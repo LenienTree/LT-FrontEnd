@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import Header from './Header';
 import Footer from './Footer';
+import api from '../services/api';
 
 const OrganizeEvent = () => {
     const navigate = useNavigate();
-    const [currentStep, setCurrentStep] = useState(2);
+    const [currentStep, setCurrentStep] = useState(1);
     const [showPreview, setShowPreview] = useState(false);
 
     // Form state for event details
@@ -20,11 +21,7 @@ const OrganizeEvent = () => {
         eventAccess: 'Free',
         eventDateRange: '',
         eventTime: '',
-        // Organizer details
-        organizerName: '',
-        collegeName: '',
-        organizerEmail: '',
-        organizerPhone: '',
+        registrationDeadline: '',
         // Event description
         eventDescription: '',
         prizeType: 'No prize',
@@ -50,6 +47,8 @@ const OrganizeEvent = () => {
     });
 
     const [registrationId, setRegistrationId] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState(null);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -59,27 +58,115 @@ const OrganizeEvent = () => {
         }));
     };
 
-    const generateRegistrationId = () => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let id = '';
-        for (let i = 0; i < 12; i++) {
-            id += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return id;
-    };
+    const handleSubmit = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        setError(null);
+        
+        if (currentStep === 1) {
+            try {
+                setIsSubmitting(true);
+                // Parse dates
+                let sDate = new Date();
+                let eDate = new Date();
+                let rDate = new Date();
+                try {
+                    const timeStr = eventData.eventTime || "00:00";
+                    if (eventData.eventDateRange.includes('-')) {
+                        const parts = eventData.eventDateRange.split('-');
+                        sDate = new Date(parts[0].trim() + " " + timeStr);
+                        eDate = new Date(parts[1].trim() + " " + timeStr);
+                    } else if (eventData.eventDateRange) {
+                        sDate = new Date(eventData.eventDateRange + " " + timeStr);
+                        eDate = new Date(eventData.eventDateRange + " " + timeStr);
+                    }
+                    if (eventData.registrationDeadline) {
+                        rDate = new Date(eventData.registrationDeadline + " " + timeStr);
+                    } else {
+                        rDate = sDate;
+                    }
+                } catch(err) { console.error('Date parse error', err); }
+                
+                const step1Payload = {
+                    title: eventData.eventName,
+                    subtitle: eventData.eventSubtitle || undefined,
+                    category: eventData.eventType === 'Other' ? 'Other' : eventData.eventType,
+                    theme: eventData.eventTheme || undefined,
+                    mode: eventData.modeOfConduct.toUpperCase(),
+                    location: {
+                        mapLink: eventData.eventLocation || undefined
+                    },
+                    startDate: isNaN(sDate.getTime()) ? new Date().toISOString() : sDate.toISOString(),
+                    endDate: isNaN(eDate.getTime()) ? new Date().toISOString() : eDate.toISOString(),
+                    registrationDeadline: isNaN(rDate.getTime()) ? new Date().toISOString() : rDate.toISOString(),
+                    description: eventData.eventDescription || 'No description provided.',
+                    prizeType: eventData.prizeType === 'No prize' ? 'NONE' : eventData.prizeType === 'Cash prize' ? 'CASH' : eventData.prizeType === 'Merchandise' ? 'MERCH' : 'POINTS',
+                    prizeAmount: eventData.prizeDetails ? parseFloat(eventData.prizeDetails.split('/')[0].replace(/[^0-9.]/g, '')) || 0 : 0,
+                    isPaid: eventData.eventAccess === 'Paid'
+                };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (currentStep < 3) {
-            if (currentStep === 2 && eventData.termsAccepted) {
-                // Generate registration ID when moving to step 3
-                setRegistrationId(generateRegistrationId());
+                const res = await api.events.createDraft(step1Payload);
+                const newEventId = res.id;
+                setRegistrationId(newEventId);
+                
+                if (eventData.eventPoster) {
+                    await api.events.uploadPoster(newEventId, eventData.eventPoster);
+                }
+                
+                setCurrentStep(2);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (err) {
+                setError(err.message || 'Failed to create event. Please ensure all required fields are filled.');
+                console.error(err);
+            } finally {
+                setIsSubmitting(false);
             }
-            setCurrentStep(prev => prev + 1);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-            // TODO: Handle final form submission
-            console.log('Event data:', eventData);
+        } else if (currentStep === 2) {
+            try {
+                setIsSubmitting(true);
+                if (!eventData.termsAccepted) return;
+                
+                const templateColors = {
+                    'Default': { primaryColor: '#0a1f1f', secondaryColor: '#0d2f2f', accentColor: '#00ff88' },
+                    'Blue Sky': { primaryColor: '#1e3a8a', secondaryColor: '#60a5fa', accentColor: '#ffffff' },
+                    'Crimson Rush': { primaryColor: '#7f1d1d', secondaryColor: '#f87171', accentColor: '#ffffff' },
+                    'Plain White': { primaryColor: '#f3f4f6', secondaryColor: '#d1d5db', accentColor: '#000000' },
+                    'Black & Yellow': { primaryColor: '#000000', secondaryColor: '#4b5563', accentColor: '#facc15' },
+                    'Aqua Push': { primaryColor: '#164e63', secondaryColor: '#22d3ee', accentColor: '#ffffff' },
+                    'Pink Bubbles': { primaryColor: '#831843', secondaryColor: '#f472b6', accentColor: '#ffffff' }
+                };
+                
+                const colors = templateColors[eventData.selectedTemplate] || templateColors['Default'];
+                
+                const customFields = [];
+                Object.entries(eventData.requiredFields).forEach(([key, isRequired]) => {
+                    if (isRequired) customFields.push({ label: key, type: 'text', required: true });
+                });
+                if (eventData.includeMealInfo) customFields.push({ label: 'Meal Preference', type: 'select', required: false, options: ['Veg', 'Non-veg']});
+                if (eventData.includeTshirtInfo) customFields.push({ label: 'T-Shirt Size', type: 'select', required: false, options: ['S', 'M', 'L', 'XL']});
+
+                const step2Payload = {
+                    maxParticipants: parseInt(eventData.participantLimit) || undefined,
+                    approvalMode: eventData.acceptanceMode === 'Auto approval' ? 'AUTO' : 'MANUAL',
+                    designConfig: colors,
+                    customFormFields: customFields
+                };
+
+                await api.events.updateDesign(registrationId, step2Payload);
+                
+                if (eventData.eventBanner) {
+                    await api.events.uploadBanner(registrationId, eventData.eventBanner);
+                }
+                
+                await api.events.submitForApproval(registrationId);
+                
+                setCurrentStep(3);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (err) {
+                setError(err.message || 'Failed to submit event design and configuration.');
+                console.error(err);
+            } finally {
+                setIsSubmitting(false);
+            }
         }
     };
 
@@ -146,6 +233,12 @@ const OrganizeEvent = () => {
                         <div className="mb-8 pb-4 border-b-2 border-[#00ff88]">
                             <h2 className="text-white text-2xl font-semibold">Event details</h2>
                         </div>
+
+                        {error && (
+                            <div className="mb-8 p-4 bg-red-500/10 border-2 border-red-500/50 rounded-xl text-red-400">
+                                {error}
+                            </div>
+                        )}
 
                         {/* Event Form */}
                         <form onSubmit={handleSubmit} className="space-y-8">
@@ -360,6 +453,24 @@ const OrganizeEvent = () => {
                                                 />
                                             </div>
                                         </div>
+
+                                        {/* Registration Deadline */}
+                                        <div>
+                                            <label className="text-white text-sm mb-3 block">Registration Deadline</label>
+                                            <div className="flex items-center gap-3">
+                                                <div className="bg-[#1a4d4d] text-gray-400 px-4 py-3 rounded-lg text-sm">
+                                                    Date
+                                                </div>
+                                                <input
+                                                    type="date"
+                                                    name="registrationDeadline"
+                                                    value={eventData.registrationDeadline}
+                                                    onChange={handleInputChange}
+                                                    className="flex-1 bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2  rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -369,70 +480,10 @@ const OrganizeEvent = () => {
                                 <div className="mb-8 pb-4 border-b-2 border-[#00ff88]">
                                     <h2 className="text-white text-2xl font-semibold">Organizer details</h2>
                                 </div>
-
-                                <div className="grid lg:grid-cols-2 gap-6">
-                                    {/* Organizer Name */}
-                                    <div>
-                                        <label className="text-white text-sm mb-3 block">
-                                            Name of the organizer <span className="text-red-400">*</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="organizerName"
-                                            value={eventData.organizerName}
-                                            onChange={handleInputChange}
-                                            placeholder="Organizer Lenient Tree"
-                                            className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
-                                            required
-                                        />
-                                    </div>
-
-                                    {/* College Name */}
-                                    <div>
-                                        <label className="text-white text-sm mb-3 block">
-                                            College Name <span className="text-gray-500 text-xs">(if the event is conducted on college by POC / CA)</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="collegeName"
-                                            value={eventData.collegeName}
-                                            onChange={handleInputChange}
-                                            placeholder="Organizer LenientTree"
-                                            className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
-                                        />
-                                    </div>
-
-                                    {/* Organizer Email */}
-                                    <div>
-                                        <label className="text-white text-sm mb-3 block">
-                                            Email of the organizer <span className="text-red-400">*</span>
-                                        </label>
-                                        <input
-                                            type="email"
-                                            name="organizerEmail"
-                                            value={eventData.organizerEmail}
-                                            onChange={handleInputChange}
-                                            placeholder="organizer@gmail.com"
-                                            className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
-                                            required
-                                        />
-                                    </div>
-
-                                    {/* Organizer Phone */}
-                                    <div>
-                                        <label className="text-white text-sm mb-3 block">
-                                            Phone number of the organizer <span className="text-red-400">*</span>
-                                        </label>
-                                        <input
-                                            type="tel"
-                                            name="organizerPhone"
-                                            value={eventData.organizerPhone}
-                                            onChange={handleInputChange}
-                                            placeholder="+91 98765 54321"
-                                            className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
-                                            required
-                                        />
-                                    </div>
+                                <div className="bg-[#1a4d4d]/30 border-2 border-[#1a4d4d] rounded-xl p-6">
+                                    <p className="text-gray-400 text-sm">
+                                        This event will be automatically attributed to your logged-in organizer profile. Make sure your profile information (Name, College, Contact details) is up to date in the Profile section.
+                                    </p>
                                 </div>
                             </div>
 
@@ -450,7 +501,7 @@ const OrganizeEvent = () => {
                                         value={eventData.eventDescription}
                                         onChange={handleInputChange}
                                         rows="8"
-                                        placeholder="Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio Event bio"
+                                        placeholder="Event description"
                                         className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 resize-none"
                                     ></textarea>
                                 </div>
@@ -541,9 +592,10 @@ const OrganizeEvent = () => {
                             <div className="flex justify-end pt-4">
                                 <button
                                     type="submit"
-                                    className="bg-gradient-to-r from-[#00ff88] to-[#00cc70] hover:from-[#00cc70] hover:to-[#00ff88] text-[#0a1f1f] font-bold py-3 px-12 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-[#00ff88]/50"
+                                    disabled={isSubmitting}
+                                    className={`bg-gradient-to-r from-[#00ff88] to-[#00cc70] hover:from-[#00cc70] hover:to-[#00ff88] text-[#0a1f1f] font-bold py-3 px-12 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-[#00ff88]/50 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
-                                    Next
+                                    {isSubmitting ? 'Creating...' : 'Next'}
                                 </button>
                             </div>
                         </form>
@@ -553,6 +605,11 @@ const OrganizeEvent = () => {
                 {/* Step 2: Event Design and Details */}
                 {currentStep === 2 && (
                     <div className="rounded-3xl bg-[#022F2E] p-8 lg:p-6">
+                        {error && (
+                            <div className="mb-8 p-4 bg-red-500/10 border-2 border-red-500/50 rounded-xl text-red-400">
+                                {error}
+                            </div>
+                        )}
                         {/* Banner Upload Section */}
                         <div className="flex flex-col items-center justify-center py-12">
                             <div className="relative group">
@@ -899,13 +956,13 @@ const OrganizeEvent = () => {
                                 <button
                                     type="button"
                                     onClick={handleSubmit}
-                                    disabled={!eventData.termsAccepted}
-                                    className={`flex-1 font-bold py-4 px-12 rounded-xl transition-all duration-300 ${eventData.termsAccepted
+                                    disabled={!eventData.termsAccepted || isSubmitting}
+                                    className={`flex-1 font-bold py-4 px-12 rounded-xl transition-all duration-300 ${eventData.termsAccepted && !isSubmitting
                                         ? 'bg-gradient-to-r from-[#00ff88] to-[#00cc70] hover:from-[#00cc70] hover:to-[#00ff88] text-[#0a1f1f] transform hover:scale-105 hover:shadow-lg hover:shadow-[#00ff88]/50'
                                         : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                                         }`}
                                 >
-                                    Submit
+                                    {isSubmitting ? 'Submitting...' : 'Submit'}
                                 </button>
                             </div>
                         </div>

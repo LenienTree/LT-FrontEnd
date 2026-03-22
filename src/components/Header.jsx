@@ -2,6 +2,8 @@
 import { useState, useRef, useEffect } from "react"
 import { Menu, X, LogOut, User } from "lucide-react"
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useAuth } from "../context/AuthContext";
+import { users } from "../services/api";
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -10,6 +12,9 @@ export default function Header() {
     const navigate = useNavigate()
     const location = useLocation()
     const pathname = location.pathname
+    const { isAuthenticated, logout, user, loading } = useAuth()
+    const [profileImage, setProfileImage] = useState(null)
+    const [isAdmin, setIsAdmin] = useState(false)
 
     // Function to check if a link is active
     const isActive = (href) => {
@@ -18,6 +23,21 @@ export default function Header() {
         }
         return pathname === href;
     }
+
+    // Fetch profile image when user logs in
+    useEffect(() => {
+        if (!isAuthenticated) {
+            setProfileImage(null)
+            return
+        }
+        users.getMyProfile()
+            .then(data => setProfileImage(data?.profileImage ?? null))
+            .catch(() => { })
+
+        users.getMyProfile()
+            .then(data => setIsAdmin(data?.role === 'ADMIN'))
+            .catch(() => { })
+    }, [isAuthenticated])
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -34,7 +54,7 @@ export default function Header() {
     }, [])
 
     const handleLogout = () => {
-        localStorage.removeItem('token')
+        logout()
         navigate('/login')
     }
 
@@ -70,36 +90,60 @@ export default function Header() {
                         </nav>
                     </div>
 
-                    {/* Profile */}
+                    {/* Profile / Sign In — Desktop */}
                     <div className="hidden md:block relative" ref={profileRef}>
-                        <button
-                            onClick={() => setIsProfileOpen(!isProfileOpen)}
-                            className="flex items-center space-x-2 focus:outline-none"
-                        >
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                                <User size={20} />
-                            </div>
-                            <span className="text-white text-sm font-medium hidden lg:block">Profile</span>
-                        </button>
-
-                        {/* Dropdown Menu */}
-                        {isProfileOpen && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                                <a
-                                    href="/profile"
-                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                    onClick={() => setIsProfileOpen(false)}
-                                >
-                                    View Profile
-                                </a>
+                        {loading ? null : isAuthenticated ? (
+                            <>
                                 <button
-                                    onClick={handleLogout}
-                                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
+                                    onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                    className="flex items-center space-x-2 focus:outline-none"
                                 >
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    Logout
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold overflow-hidden">
+                                        {profileImage
+                                            ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" />
+                                            : <User size={20} />}
+                                    </div>
+                                    <span className="text-white text-sm font-medium hidden lg:block">{user?.name ?? "Profile"}</span>
                                 </button>
-                            </div>
+
+                                {/* Dropdown Menu */}
+                                {isProfileOpen && (
+                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                                        {isAdmin && (
+                                            <a
+                                                href="/admin"
+                                                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                                onClick={() => setIsProfileOpen(false)}
+                                            >
+                                                Admin Dashboard
+                                            </a>
+                                        )}
+                                        <a
+                                            href="/profile"
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                            onClick={() => setIsProfileOpen(false)}
+                                        >
+                                            View Profile
+                                        </a>
+
+                                        <button
+                                            onClick={handleLogout}
+                                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
+                                        >
+                                            <LogOut className="mr-2 h-4 w-4" />
+                                            Logout
+                                        </button>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <Link
+                                to="/login"
+                                className="flex items-center space-x-2 px-4 py-2 rounded-full bg-[#9AE600] text-black text-sm font-semibold hover:bg-[#85cc00] transition-colors"
+                            >
+                                <User size={16} />
+                                <span>Sign In</span>
+                            </Link>
                         )}
                     </div>
 
@@ -124,23 +168,36 @@ export default function Header() {
                                 </Link>
                             ))}
                             <div className="border-t border-gray-700 pt-2 mt-2">
-                                <Link
-                                    href="/profile"
-                                    className="block py-2 text-sm text-gray-300 hover:text-white"
-                                    onClick={() => setIsMenuOpen(false)}
-                                >
-                                    View Profile
-                                </Link>
-                                <button
-                                    onClick={() => {
-                                        handleLogout();
-                                        setIsMenuOpen(false);
-                                    }}
-                                    className="w-full text-left py-2 text-sm text-red-400 hover:text-red-300 flex items-center"
-                                >
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    Logout
-                                </button>
+                                {isAuthenticated ? (
+                                    <>
+                                        <Link
+                                            to="/profile"
+                                            className="block py-2 text-sm text-gray-300 hover:text-white"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            View Profile
+                                        </Link>
+                                        <button
+                                            onClick={() => {
+                                                handleLogout();
+                                                setIsMenuOpen(false);
+                                            }}
+                                            className="w-full text-left py-2 text-sm text-red-400 hover:text-red-300 flex items-center"
+                                        >
+                                            <LogOut className="mr-2 h-4 w-4" />
+                                            Logout
+                                        </button>
+                                    </>
+                                ) : (
+                                    <Link
+                                        to="/login"
+                                        className="flex items-center space-x-2 py-2 text-sm text-[#9AE600] font-semibold hover:text-[#85cc00]"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <User size={16} />
+                                        <span>Sign In</span>
+                                    </Link>
+                                )}
                             </div>
                         </nav>
                     </div>

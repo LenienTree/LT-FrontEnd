@@ -1,33 +1,10 @@
 import React, { useState, useEffect } from 'react';
 
-const CountdownTimer = ({ eventDateRange }) => {
+const CountdownTimer = ({ endDate }) => {
     const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
     useEffect(() => {
-        // Parse the eventDateRange to get the end date
-        const parseEventDate = (dateRange) => {
-            try {
-                // Extract the end date from "29 Jul - 30 Jul, 2025" format
-                const parts = dateRange.split('-').map(s => s.trim());
-                if (parts.length >= 2) {
-                    const endPart = parts[parts.length - 1].trim(); // "30 Jul, 2025"
-
-                    // Convert "30 Jul, 2025" to "Jul 30, 2025" for better parsing
-                    const dateParts = endPart.split(',').map(s => s.trim());
-                    if (dateParts.length === 2) {
-                        const [dayMonth, year] = dateParts;
-                        const [day, month] = dayMonth.split(' ');
-                        const formattedDate = `${month} ${day}, ${year} 23:59:59`;
-                        return new Date(formattedDate).getTime();
-                    }
-                }
-            } catch (error) {
-                console.error('Error parsing date:', error);
-            }
-            return null;
-        };
-
-        const targetDate = parseEventDate(eventDateRange);
+        const targetDate = endDate ? new Date(endDate).getTime() : null;
 
         if (!targetDate) {
             setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -57,7 +34,7 @@ const CountdownTimer = ({ eventDateRange }) => {
         const timer = setInterval(calculateTimeLeft, 1000);
 
         return () => clearInterval(timer);
-    }, [eventDateRange]);
+    }, [endDate]);
 
     return (
         <div className="bg-[#0a1f1f] border-2 border-[#00ff88]/20 rounded-2xl p-6 flex flex-col items-center justify-center text-center">

@@ -49,6 +49,13 @@ const Profile = () => {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
 
+  // Organizer request modal state
+  const [showOrgModal, setShowOrgModal] = useState(false);
+  const [orgSubmitted, setOrgSubmitted] = useState(false);
+  const [submittingOrg, setSubmittingOrg] = useState(false);
+  const [orgForm, setOrgForm] = useState({ orgName: '', orgEmail: '', eventName: '' });
+  const [orgError, setOrgError] = useState('');
+
   // ── Bootstrap ──
   useEffect(() => {
     const fetchAll = async () => {
@@ -151,13 +158,35 @@ const Profile = () => {
     }
   };
 
-  const handleBecomeOrganizer = async () => {
+  const handleBecomeOrganizer = () => {
+    setOrgError('');
+    setShowOrgModal(true);
+  };
+
+  const handleOrganizerSubmit = async (e) => {
+    e.preventDefault();
+    setOrgError('');
+    setSubmittingOrg(true);
     try {
-      await users.becomeOrganizer();
-      setProfileSuccess('You are now an organizer!');
-      setTimeout(() => setProfileSuccess(''), 3000);
+      await users.becomeOrganizer({
+        orgName: orgForm.orgName,
+        orgEmail: orgForm.orgEmail,
+        eventName: orgForm.eventName,
+      });
+      setShowOrgModal(false);
+      setOrgSubmitted(true);
+      setProfileSuccess('Your request has been submitted! We will review and get back to you.');
+      setTimeout(() => setProfileSuccess(''), 5000);
     } catch (err) {
-      setProfileError(err.message || 'Failed to upgrade to organizer.');
+      // 409 = already has a pending request
+      if (err.message?.includes('pending')) {
+        setShowOrgModal(false);
+        setOrgSubmitted(true);
+      } else {
+        setOrgError(err.message || 'Failed to submit request. Please try again.');
+      }
+    } finally {
+      setSubmittingOrg(false);
     }
   };
 
@@ -182,7 +211,10 @@ const Profile = () => {
   }
 
   const displayName = profileData?.name || profileData?.email || 'User';
+
   const userId = `#${(profileData?.id || '').slice(0, 10)}`;
+
+
 
   return (
     <>
@@ -262,7 +294,7 @@ const Profile = () => {
                   <div className="relative mb-6">
                     <div className="w-40 h-40 rounded-full border-4 border-[#00ff88] overflow-hidden bg-gray-800">
                       <img
-                        src={profileData?.profileImage || '/event.png'}
+                        src={profileData?.profileImage || '/profile.jpg'}
                         alt="Profile"
                         className="w-full h-full object-cover"
                       />
@@ -314,19 +346,42 @@ const Profile = () => {
                   </div>
                 </div>
 
-                {/* Become Organizer */}
-                {profileData?.role !== 'ORGANIZER' && profileData?.role !== 'ADMIN' && (
+                {/* Organizer CTA / Become Organizer */}
+                {profileData?.isOrganizer ? (
+                  <div className="flex items-center justify-between pb-6 border-b border-[#1a4d4d]">
+                    <div>
+                      <h3 className="text-white text-lg font-medium mb-1">You're an Organizer 🎉</h3>
+                      <p className="text-gray-400 text-sm">Ready to host your next event? Create one now.</p>
+                    </div>
+                    <button
+                      onClick={() => navigate('/organize')}
+                      className="bg-gradient-to-r from-[#00ff88] to-[#00cc70] hover:from-[#00cc70] hover:to-[#00ff88] text-[#0a1f1f] font-bold px-6 py-2 rounded-lg transition-all duration-300 transform hover:scale-105"
+                    >
+                      Create an Event
+                    </button>
+                  </div>
+                ) : profileData?.role !== 'ADMIN' && (
                   <div className="flex items-center justify-between pb-6 border-b border-[#1a4d4d]">
                     <div>
                       <h3 className="text-white text-lg font-medium mb-1">Become an Organizer</h3>
-                      <p className="text-gray-400 text-sm">Start creating and managing events</p>
+                      <p className="text-gray-400 text-sm">
+                        {orgSubmitted
+                          ? 'Your request is under review by our team.'
+                          : 'Start creating and managing events'}
+                      </p>
                     </div>
-                    <button
-                      onClick={handleBecomeOrganizer}
-                      className="bg-gradient-to-r from-[#00ff88] to-[#00cc70] hover:from-[#00cc70] hover:to-[#00ff88] text-[#0a1f1f] font-bold px-6 py-2 rounded-lg transition-all duration-300 transform hover:scale-105"
-                    >
-                      Upgrade
-                    </button>
+                    {orgSubmitted ? (
+                      <span className="flex items-center gap-2 bg-yellow-900/40 border border-yellow-500/50 text-yellow-400 text-sm font-semibold px-4 py-2 rounded-lg">
+                        ⏳ Pending Approval
+                      </span>
+                    ) : (
+                      <button
+                        onClick={handleBecomeOrganizer}
+                        className="bg-gradient-to-r from-[#00ff88] to-[#00cc70] hover:from-[#00cc70] hover:to-[#00ff88] text-[#0a1f1f] font-bold px-6 py-2 rounded-lg transition-all duration-300 transform hover:scale-105"
+                      >
+                        Upgrade
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -352,6 +407,23 @@ const Profile = () => {
           {activeTab === 'myEvents' && (
             <div className="bg-[#0d2f2f] border-2 border-[#1a4d4d] rounded-3xl p-8 lg:p-12 w-full">
               <h2 className="text-white text-2xl font-semibold mb-6 pb-4 border-b-2 border-[#00ff88]">My Registered Events</h2>
+
+              {/* Create Event CTA for organizers */}
+              {profileData?.isOrganizer && (
+                <div className="mb-6 flex items-center justify-between bg-[#0a1f1f] border border-[#00ff88]/40 rounded-2xl p-5">
+                  <div>
+                    <h3 className="text-white font-semibold mb-1">You're an Organizer 🎉</h3>
+                    <p className="text-gray-400 text-sm">Create and manage your own events from the organize page.</p>
+                  </div>
+                  <button
+                    onClick={() => navigate('/organize')}
+                    className="bg-gradient-to-r from-[#00ff88] to-[#00cc70] hover:from-[#00cc70] hover:to-[#00ff88] text-[#0a1f1f] font-bold px-5 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 whitespace-nowrap"
+                  >
+                    Create an Event
+                  </button>
+                </div>
+              )}
+
               {myEvents.length === 0 ? (
                 <p className="text-gray-400">You haven't registered for any events yet.</p>
               ) : (
@@ -490,6 +562,90 @@ const Profile = () => {
         </div>
       </div>
       <Footer />
+
+      {/* ── Organizer Request Modal ── */}
+      {showOrgModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md bg-[#0d2f2f] border-2 border-[#1a4d4d] rounded-3xl p-8 shadow-2xl shadow-[#00ff88]/10">
+            {/* Header */}
+            <div className="mb-6">
+              <h2 className="text-white text-2xl font-bold mb-1">Become an Organizer</h2>
+              <p className="text-gray-400 text-sm">Tell us about your organization. Our team will review your request.</p>
+            </div>
+
+            {orgError && (
+              <div className="mb-4 px-4 py-3 bg-red-900/40 border border-red-500/50 rounded-xl text-red-400 text-sm">
+                {orgError}
+              </div>
+            )}
+
+            <form onSubmit={handleOrganizerSubmit} className="space-y-5">
+              {/* Org Name */}
+              <div>
+                <label className="text-gray-400 text-sm mb-2 block">
+                  Organization / Club Name <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={orgForm.orgName}
+                  onChange={e => setOrgForm(f => ({ ...f, orgName: e.target.value }))}
+                  placeholder="e.g. IEEE Student Chapter"
+                  required
+                  className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                />
+              </div>
+
+              {/* Contact Email */}
+              <div>
+                <label className="text-gray-400 text-sm mb-2 block">
+                  Contact Email <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={orgForm.orgEmail}
+                  onChange={e => setOrgForm(f => ({ ...f, orgEmail: e.target.value }))}
+                  placeholder="org@example.com"
+                  required
+                  className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                />
+              </div>
+
+              {/* Event Name */}
+              <div>
+                <label className="text-gray-400 text-sm mb-2 block">
+                  Name of Your First Event <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={orgForm.eventName}
+                  onChange={e => setOrgForm(f => ({ ...f, eventName: e.target.value }))}
+                  placeholder="e.g. HackFest 2025"
+                  required
+                  className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-4 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowOrgModal(false); setOrgError(''); }}
+                  className="flex-1 bg-transparent border-2 border-[#1a4d4d] hover:border-[#00ff88] text-gray-400 hover:text-white font-semibold py-3 rounded-xl transition-all duration-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingOrg}
+                  className="flex-1 bg-gradient-to-r from-[#00ff88] to-[#00cc70] hover:from-[#00cc70] hover:to-[#00ff88] text-[#0a1f1f] font-bold py-3 rounded-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  {submittingOrg ? 'Submitting…' : 'Submit Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 };

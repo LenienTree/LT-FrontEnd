@@ -19,14 +19,14 @@ export default function CalenderPage() {
 
     // Placeholder event data
     const events = [
-        { id: 1, title: "RasPrime Live", type: "Hackathon", image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400", color: "bg-red-600" },
-        { id: 2, title: "Starlet 4.0 Pre-Event", type: "Ideathon", image: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=400", color: "bg-purple-600" },
-        { id: 3, title: "Lenient Tree Community", type: "Conclave", image: "https://images.unsplash.com/photo-1511578314322-379afb476865?w=400", color: "bg-red-500" },
-        { id: 4, title: "Call for Ambassadors", type: "Webinar", image: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=400", color: "bg-blue-600" },
-        { id: 5, title: "HackInfinity", type: "Hackathon", image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=400", color: "bg-green-700" },
-        { id: 6, title: "Prime Merchandise", type: "Conclave", image: "https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?w=400", color: "bg-gray-900" },
-        { id: 7, title: "SIMATS Engineering", type: "Webinar", image: "https://images.unsplash.com/photo-1591115765373-5207764f72e7?w=400", color: "bg-teal-600" },
-        { id: 8, title: "Ekathva Summit", type: "Ideathon", image: "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=400", color: "bg-cyan-600" },
+        { id: 1, title: "Evoke ", type: "Ideathon", image: "./events/evoke.png", color: "bg-red-600" },
+        { id: 2, title: "Girlathon", type: "Hackathon", image: "./events/girlathon.png", color: "bg-purple-600" },
+        { id: 3, title: "Hack-Finity", type: "Hackathon", image: "./events/hack-finity-1.png", color: "bg-red-500" },
+        { id: 4, title: "Hack-Finity", type: "Hackathon", image: "./events/hack-finity-2.png", color: "bg-red-500" },
+        { id: 5, title: "Line Following Robot", type: "Hackathon", image: "./events/line-following-robot.png", color: "bg-green-700" },
+        { id: 6, title: "Pen Testing", type: "Conclave", image: "./events/pen-testing.png", color: "bg-gray-900" },
+        { id: 7, title: "Prime", type: "Webinar", image: "./events/prime.png", color: "bg-teal-600" },
+        { id: 8, title: "Prime Merch", type: "Ideathon", image: "./events/prime-merch.png", color: "bg-cyan-600" },
     ];
 
     const filterButtons = [
@@ -98,11 +98,11 @@ export default function CalenderPage() {
             days.push(
                 <div key={day} className="relative flex flex-col items-center p-2">
                     {events.length > 0 && (
-                        <div className="flex w-full mb-1">
+                        <div className="flex w-full h-10 mb-1">
                             {events.map((color, idx) => (
                                 <div
                                     key={idx}
-                                    className={`h-1 sm:h-1.5 ${color}`}
+                                    className={`h-2 sm:h-2 ${color}`}
                                     style={{ width: `${100 / events.length}%` }}
                                 />
                             ))}

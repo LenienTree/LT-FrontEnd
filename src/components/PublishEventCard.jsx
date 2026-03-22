@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
 
+import { useNavigate } from "react-router-dom";
 export default function PublishEventCard() {
     const [isVisible, setIsVisible] = useState(true);
-
+    const navigate = useNavigate();
     if (!isVisible) return null;
 
     return (
@@ -23,7 +24,7 @@ export default function PublishEventCard() {
                             <br />
                             <span className="text-teal-300">Click Continue to publish your event for free!</span>
                         </p>
-                        <button className="bg-[#9AE600] hover:bg-[#8BD500] text-black font-bold py-3 px-10 rounded-lg transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        <button onClick={() => navigate('/profile')} className="bg-[#9AE600] hover:bg-[#8BD500] text-black font-bold py-3 px-10 rounded-lg transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
                             Continue
                         </button>
                     </div>

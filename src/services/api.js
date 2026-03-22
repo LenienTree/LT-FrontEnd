@@ -41,11 +41,10 @@ async function request(endpoint, options = {}) {
   // Auto-refresh on 401
   if (response.status === 401 && !options._retry) {
     try {
-      const refreshed = await auth.refresh();
-      if (refreshed?.token) {
-        setToken(refreshed.token);
-        return request(endpoint, { ...options, _retry: true });
-      }
+      // Backend sets the new access token as an HTTP-only cookie (body is null).
+      // We just need to trigger the refresh call — the cookie is updated automatically.
+      await auth.refresh();
+      return request(endpoint, { ...options, _retry: true });
     } catch (_) {
       removeToken();
     }
@@ -208,7 +207,7 @@ export const users = {
   /**
    * Upgrade current user to organizer role.
    */
-  becomeOrganizer: () => post("/api/users/me/become-organizer", {}),
+  becomeOrganizer: (data) => post("/api/users/me/become-organizer", data || {}),
 
   /**
    * Get any public user's profile by ID.
@@ -450,6 +449,48 @@ export const organizer = {
   getIssuedCertificates: () => get("/api/organizer/certificates"),
 };
 
+// ─── Admin ────────────────────────────────────────────────────────────────────
+
+export const admin = {
+  /** GET /api/admin/dashboard → { stats, recentEvents, recentUsers } */
+  getDashboard: () => get("/api/admin/dashboard"),
+
+  /** GET /api/admin/pending-events */
+  getPendingEvents: (page = 1, limit = 10) =>
+    get(`/api/admin/pending-events?page=${page}&limit=${limit}`),
+
+  /** PUT /api/admin/events/:id/approve */
+  approveEvent: (id, isFeatured = false) =>
+    put(`/api/admin/events/${id}/approve`, { isFeatured }),
+
+  /** PUT /api/admin/events/:id/reject */
+  rejectEvent: (id, reason) =>
+    put(`/api/admin/events/${id}/reject`, { reason }),
+
+  /** GET /api/admin/users */
+  getUsers: (page = 1, limit = 10, search = "") =>
+    get(`/api/admin/users?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`),
+
+  /** PUT /api/admin/users/:id/block */
+  blockUser: (id) => put(`/api/admin/users/${id}/block`, {}),
+
+  /** PUT /api/admin/users/:id/unblock */
+  unblockUser: (id) => put(`/api/admin/users/${id}/unblock`, {}),
+
+  /** DELETE /api/admin/users/:id */
+  deleteUser: (id) => del(`/api/admin/users/${id}`),
+
+  /** GET /api/admin/audit-logs */
+  getAuditLogs: (page = 1, limit = 20) =>
+    get(`/api/admin/audit-logs?page=${page}&limit=${limit}`),
+
+  /** GET /api/admin/organizer-requests — only pending (isOrganizer=false) */
+  getOrganizerRequests: () => get("/api/admin/organizer-requests"),
+
+  /** Approve organizer request: sets isOrganizer = true on the user */
+  approveOrganizer: (userId) => put(`/api/admin/users/${userId}/approve-organizer`, {}),
+};
+
 // ─── Default export (grouped) ─────────────────────────────────────────────────
 
 const api = {
@@ -458,6 +499,7 @@ const api = {
   events,
   bookmarks,
   organizer,
+  admin,
 };
 
 export default api;

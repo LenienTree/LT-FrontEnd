@@ -64,33 +64,34 @@ const CollaborationEventCard = React.memo(({ event }) => {
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef(null);
   const tlRef = useRef(null);
+  console.log("Event data", event)
 
   const getCardColors = (color) => {
     switch (color) {
       case "green":
         return {
-          bgColor: "bg-green-700",
+
           borderColor: "border-green-400",
           glowColor: "shadow-[0_0_20px_rgba(34,197,94,0.8)]",
           logoColor: "text-white",
         };
       case "blue":
         return {
-          bgColor: "bg-blue-800",
+
           borderColor: "border-blue-400",
           glowColor: "shadow-[0_0_20px_rgba(59,130,246,0.8)]",
           logoColor: "text-white",
         };
       case "red":
         return {
-          bgColor: "bg-red-600",
+
           borderColor: "border-red-400",
           glowColor: "shadow-[0_0_20px_rgba(239,68,68,0.8)]",
           logoColor: "text-yellow-300",
         };
       default:
         return {
-          bgColor: "bg-green-700",
+
           borderColor: "border-green-400",
           glowColor: "shadow-[0_0_20px_rgba(34,197,94,0.8)]",
           logoColor: "text-white",
@@ -159,34 +160,40 @@ const CollaborationEventCard = React.memo(({ event }) => {
       >
         <div className="relative h-full">
           {/* Front Card */}
-          <div className="front-card absolute inset-0 flex flex-col justify-between p-4 sm:p-8 text-center">
-            <div>
-              <p className="text-sm sm:text-lg font-medium text-white/90 mb-4 sm:mb-8">
-                In collaboration with
-              </p>
-            </div>
-            <div className="flex-1 flex items-center justify-center">
-              <div className={`text-6xl sm:text-8xl font-bold ${colors.logoColor}`}>
-                <svg
-                  className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-2 sm:mb-4"
-                  viewBox="0 0 100 100"
-                  fill="currentColor"
-                >
-                  <path d="M20 20 L20 80 L40 80 L40 60 L50 60 C60 60 65 55 65 45 C65 35 60 30 50 30 L40 30 L40 50 L50 50 C52 50 54 48 54 45 C54 42 52 40 50 40 L30 40 L30 20 Z" />
-                  <circle cx="70" cy="25" r="3" fill="currentColor" />
-                  <circle cx="75" cy="30" r="2.5" fill="currentColor" />
-                  <circle cx="72" cy="35" r="2" fill="currentColor" />
-                  <circle cx="78" cy="28" r="2" fill="currentColor" />
-                  <circle cx="76" cy="22" r="2" fill="currentColor" />
-                </svg>
+          <div className="front-card absolute inset-0 w-full h-full text-center bg-[#0d2f2f]">
+            {event.eventPoster ? (
+              <img src={event.eventPoster} alt="Event Poster" className="w-full h-full object-cover" />
+            ) : (
+              <div className="absolute inset-0 flex flex-col justify-between p-4 sm:p-8">
+                <div>
+                  <p className="text-sm sm:text-lg font-medium text-white/90 mb-4 sm:mb-8">
+                    In collaboration with
+                  </p>
+                </div>
+                <div className="flex-1 flex items-center justify-center">
+                  <div className={`text-6xl sm:text-8xl font-bold ${colors.logoColor}`}>
+                    <svg
+                      className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-2 sm:mb-4"
+                      viewBox="0 0 100 100"
+                      fill="currentColor"
+                    >
+                      <path d="M20 20 L20 80 L40 80 L40 60 L50 60 C60 60 65 55 65 45 C65 35 60 30 50 30 L40 30 L40 50 L50 50 C52 50 54 48 54 45 C54 42 52 40 50 40 L30 40 L30 20 Z" />
+                      <circle cx="70" cy="25" r="3" fill="currentColor" />
+                      <circle cx="75" cy="30" r="2.5" fill="currentColor" />
+                      <circle cx="72" cy="35" r="2" fill="currentColor" />
+                      <circle cx="78" cy="28" r="2" fill="currentColor" />
+                      <circle cx="76" cy="22" r="2" fill="currentColor" />
+                    </svg>
+                  </div>
+                </div>
+                <div>
+                  <h3 className={`text-xl sm:text-2xl font-bold mb-2 sm:mb-4 ${colors.logoColor}`}>
+                    Lenient Tree
+                  </h3>
+                  <p className="text-base sm:text-lg text-white/80">Community Partner</p>
+                </div>
               </div>
-            </div>
-            <div>
-              <h3 className={`text-xl sm:text-2xl font-bold mb-2 sm:mb-4 ${colors.logoColor}`}>
-                Lenient Tree
-              </h3>
-              <p className="text-base sm:text-lg text-white/80">Community Partner</p>
-            </div>
+            )}
           </div>
           {/* Top Elements */}
           <div className="top-elements absolute top-0 left-0 right-0 p-3 sm:p-6 flex justify-between items-start pointer-events-none">
@@ -578,6 +585,8 @@ const Home = () => {
       format: event.mode === "ONLINE" ? "Online" : "In-person",
       participants: event.maxParticipants ? `${event.maxParticipants}+` : "Open",
       color: categoryColors[event.category] || "green",
+      eventPoster: event.eventPoster,
+      bannerImage: event.bannerImage,
     };
   };
 
@@ -614,10 +623,11 @@ const Home = () => {
   const marqueeRef = useRef(null);
 
   const heroSlides = [
-    "https://images.pexels.com/photos/4549411/pexels-photo-4549411.jpeg?_gl=1*q8kev5*_ga*MTIwMTM2NTczNi4xNzIyNTI0MTM4*_ga_8JE65Q40S6*czE3NTcxNDA1Nzgkbzc4JGcxJHQxNzU3MTQwNjA5JGoyOSRsMCRoMA..",
-    "https://images.pexels.com/photos/2378278/pexels-photo-2378278.jpeg?_gl=1*6obuey*_ga*MTIwMTM2NTczNi4xNzIyNTI0MTM4*_ga_8JE65Q40S6*czE3NTcxNDA1Nzgkbzc4JGcxJHQxNzU3MTQwNjU0JGo1OSRsMCRoMA..",
-    "https://images.pexels.com/photos/1403550/pexels-photo-1403550.jpeg?_gl=1*t2rspw*_ga*MTIwMTM2NTczNi4xNzIyNTI0MTM4*_ga_8JE65Q40S6*czE3NTcxNDA1Nzgkbzc4JGcxJHQxNzU3MTQwNjcyJGo0MSRsMCRoMA..",
-    "https://images.pexels.com/photos/6042675/pexels-photo-6042675.jpeg?_gl=1*126y1e*_ga*MTIwMTM2NTczNi4xNzIyNTI0MTM4*_ga_8JE65Q40S6*czE3NTcxNDA1Nzgkbzc4JGcxJHQxNzU3MTQwNjkzJGoyMCRsMCRoMA..",
+    "./Hero/1.png",
+    "./Hero/2.png",
+    "./Hero/3.png",
+    "./Hero/4.png",
+    "./Hero/5.png"
   ];
 
   const timelineRef = useRef(null);
@@ -819,6 +829,7 @@ const Home = () => {
           { autoAlpha: 1, scale: 1, duration: 1.2, ease: "power2.inOut" },
           "-=1.1"
         )
+        .addLabel(`slide${nextIndex}`)
         .call(() => setCurrentSlide(nextIndex), null, ">-1.1");
     }
     timelineRef.current = tl;
@@ -950,24 +961,21 @@ const Home = () => {
     const slides = slidesContainerRef.current.children;
     const slideCount = slides.length;
     timelineRef.current.pause();
+
+    const targetTime = index === 0 ? 0 : timelineRef.current.labels[`slide${index}`];
+
     for (let i = 0; i < slideCount; i++) {
       gsap.to(slides[i], {
-        autoAlpha: 0,
-        scale: 1.05,
+        autoAlpha: i === index ? 1 : 0,
+        scale: i === index ? 1 : 1.05,
         duration: 0.6,
         ease: "power2.inOut",
+        onComplete: i === index ? () => {
+          setCurrentSlide(index);
+          if (targetTime !== undefined) timelineRef.current.play(targetTime);
+        } : undefined,
       });
     }
-    gsap.to(slides[index], {
-      autoAlpha: 1,
-      scale: 1,
-      duration: 0.6,
-      ease: "power2.inOut",
-      onComplete: () => {
-        setCurrentSlide(index);
-        timelineRef.current.restart(true);
-      },
-    });
   };
 
   return (
@@ -981,41 +989,38 @@ const Home = () => {
             box-shadow: 0 0 20px #64ff00;
           }
           50% {
-            opacity: 0.3;
+            opacity: 0.7;
             box-shadow: 0 0 8px #64ff00;
           }
         }
         .flash-dot {
-          animation: flash 2s infinite;
+          animation: flash 1s infinite;
         }
       `}</style>
 
       <main className="relative bg-[#022F2E]">
         <Header />
-        <section className="container mt-20 mx-auto px-4 sm:px-6 pt-4 sm:pt-8 max-w-[1360px] bg-[#022F2E]">
-          <div className="relative h-64 sm:h-80 md:h-96 lg:h-[500px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
+        <section className="container mt-20 mx-auto px-3 sm:px-6 pt-4 sm:pt-8 max-w-[1360px] bg-[#022F2E]">
+          <div className="relative h-72 sm:h-80 md:h-96 lg:h-[500px]  rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
             <div
               ref={slidesContainerRef}
               className="relative w-full h-full inset-0 rounded-2xl sm:rounded-3xl overflow-hidden"
             >
               {heroSlides.map((src, index) => (
-                <React.Fragment key={index}>
-                  {/* Desktop: ImageHoverEffect component */}
-                  <ImageHoverEffect
-                    imageSrc={src}
-                    alt={`Slide ${index + 1}`}
-                    draggable={false}
-                    className="w-full h-full object-cover rounded-3xl hidden md:block"
-                  />
-                  {/* Mobile: Simple image */}
+                <div
+                  key={index}
+                  className="absolute w-full h-full inset-0 rounded-2xl sm:rounded-3xl overflow-hidden"
+                >
+                  <div className="hidden md:block w-full h-full absolute inset-0">
+                    <ImageHoverEffect imageSrc={src} />
+                  </div>
                   <img
-                    key={`mobile-${index}`}
                     src={src}
                     alt={`Slide ${index + 1}`}
-                    className="md:hidden absolute inset-0 w-full h-full object-cover rounded-2xl sm:rounded-3xl"
+                    className="md:hidden absolute inset-0 w-full h-full object-contain rounded-2xl sm:rounded-3xl"
                     draggable={false}
                   />
-                </React.Fragment>
+                </div>
               ))}
             </div>
             <div className="relative h-full flex flex-col items-center justify-center text-center px-4 sm:px-8 pointer-events-none">
@@ -1132,7 +1137,7 @@ const Home = () => {
           }}
         >
           {/* Floating Elements */}
-          <div className="hidden lg:block absolute top-1/3 left-6 lg:left-24 w-40 sm:w-48 lg:w-80 transform -rotate-12 rounded-lg z-20">
+          <div className="hidden lg:block absolute top-1/4 left-6 lg:left-24 w-40 sm:w-48 lg:w-80 transform -rotate-12 rounded-lg z-20">
 
             <AnimatedBadge />
             {/* <img src="/8.png" alt="Ticket" className="w-full" /> */}
@@ -1217,13 +1222,13 @@ const Home = () => {
 
             <div className="flex flex-col sm:flex-row md:gap-8 lg:gap-12 relative z-10 w-full px-4 sm:px-0">
               {[
-                { number: "01+", label: "Members" },
-                { number: "01+", label: "Students" },
-                { number: "01+", label: "Sponsors" },
+                { number: "4000+", label: "Members" },
+                { number: "2000+", label: "Students" },
+                { number: "20+", label: "Sponsors" },
               ].map((stat, index) => (
                 <div
                   key={index}
-                  className="bg-slate-800/70 backdrop-blur-lg rounded-2xl mt-20 lg:mt-40 sm:rounded-3xl px-6 sm:px-8 md:px-10 py-4 sm:py-5 md:py-6 text-center border border-green-400/50 shadow-xl shadow-green-400/10 flex-1"
+                  className="bg-slate-800/70 backdrop-blur-lg rounded-2xl mt-20 lg:mt-40 sm:rounded-3xl px-6 sm:px-8 md:px-10 py-4 sm:py-5 md:py-6 text-center border-2 border-green-400/90 shadow-2xl shadow-green-400/50 flex-1"
                 >
                   <span className="block text-2xl sm:text-3xl font-bold font-mono">
                     {stat.number}
@@ -1367,28 +1372,28 @@ const Home = () => {
             </div>
 
             {/* Top Row - Left to Right */}
-            <div className="overflow-hidden mb-8 sm:mb-12">
+            <div className="overflow-hidden mb-8 sm:mb-12 bg-[#155B57]">
               <div className="flex animate-scroll-left gap-12 sm:gap-16 md:gap-24">
                 {[...logos, ...logos, ...logos, ...logos].map((logo, index) => (
                   <img
                     key={`left-${index}`}
                     src={logo}
                     alt={`Partner Logo ${index}`}
-                    className="h-12 sm:h-16 md:h-20 max-w-48 flex-shrink-0 opacity-80 hover:opacity-100 transition-opacity"
+                    className="h-12 sm:h-16 md:h-20 max-w-52 flex-shrink-0 opacity-80 hover:opacity-100 transition-opacity"
                   />
                 ))}
               </div>
             </div>
 
             {/* Bottom Row - Right to Left */}
-            <div className="overflow-hidden">
+            <div className="overflow-hidden bg-[#155B57] p-2">
               <div className="flex animate-scroll-right gap-12 sm:gap-16 md:gap-24">
                 {[...logos, ...logos, ...logos, ...logos].map((logo, index) => (
                   <img
                     key={`right-${index}`}
                     src={logo}
                     alt={`Partner Logo ${index}`}
-                    className="h-12 sm:h-16 md:h-20 max-w-48 flex-shrink-0 opacity-80 hover:opacity-100 transition-opacity"
+                    className="h-12 sm:h-16 md:h-20 max-w-52 flex-shrink-0 opacity-80 hover:opacity-100 transition-opacity"
                   />
                 ))}
               </div>

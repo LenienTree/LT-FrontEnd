@@ -157,7 +157,7 @@ const EventDetails = () => {
     const endDate = eventData.endDate ? new Date(eventData.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
     const dateRange = startDate && endDate ? `${startDate} – ${endDate}` : startDate;
     const isRegistered = registrationStatus?.isRegistered;
-
+    console.log("Event data", eventData)
     return (
         <div className="min-h-screen bg-[#0a1f1f]">
             <Header />
@@ -184,9 +184,9 @@ const EventDetails = () => {
 
                 {/* Event Banner */}
                 <div className="rounded-3xl p-8 lg:p-12 mb-8 relative overflow-hidden min-h-[300px] lg:min-h-[500px]">
-                    {eventData.bannerUrl ? (
+                    {eventData.bannerImage ? (
                         <div className="absolute inset-0">
-                            <img src={eventData.bannerUrl} alt="Event Banner" className="w-full h-full object-cover" />
+                            <img src={eventData.bannerImage} alt="Event Banner" className="w-full h-full object-cover" />
                         </div>
                     ) : (
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700" />
@@ -199,7 +199,11 @@ const EventDetails = () => {
                     <div className="relative z-10 text-center text-white ml-0 lg:ml-32">
                         <h1 className="text-3xl lg:text-5xl font-bold mb-4">{dateRange || 'TBD'}</h1>
                         <p className="text-xl lg:text-2xl mb-2">Mode: {eventData.mode}</p>
-                        {eventData.location && <p className="text-lg text-gray-200">{eventData.location}</p>}
+                        {(eventData.venueName || eventData.mapLink) && (
+                            <p className="text-lg text-gray-200">
+                                {eventData.venueName} {eventData.mapLink && `(${eventData.mapLink})`}
+                            </p>
+                        )}
                     </div>
                 </div>
 
@@ -208,8 +212,8 @@ const EventDetails = () => {
                     {/* Poster */}
                     <div className="lg:col-span-1">
                         <div className="bg-blue-900 rounded-2xl overflow-hidden border-4 border-blue-700 shadow-2xl">
-                            {eventData.posterUrl ? (
-                                <img src={eventData.posterUrl} alt="Event Poster" className="w-full h-auto" />
+                            {eventData.eventPoster ? (
+                                <img src={eventData.eventPoster} alt="Event Poster" className="w-full h-auto" />
                             ) : (
                                 <div className="aspect-[3/4] flex items-center justify-center text-gray-400">
                                     No poster available
@@ -287,7 +291,7 @@ const EventDetails = () => {
                 <div className="mb-12">
                     <h3 className="text-white text-xl font-semibold mb-6">Announcements</h3>
                     <div className="bg-[#0d2f2f]/30 border-2 border-[#1a4d4d] rounded-3xl p-6 lg:p-8 space-y-6">
-                        <CountdownTimer eventDateRange={dateRange} />
+                        {eventData.endDate && <CountdownTimer endDate={eventData.endDate} />}
 
                         {announcements.length === 0 ? (
                             <div className="bg-gradient-to-r from-[#0a1f1f] to-[#0d2f2f] border-2 border-[#1a4d4d] rounded-2xl p-6 relative overflow-hidden">

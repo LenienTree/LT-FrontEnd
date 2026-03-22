@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./components/Home";
 import AboutNew from "./components/AboutNew";
 import TeamHalfCircle from "./components/TeamHalfCircle";
@@ -10,6 +10,26 @@ import Profile from "./components/Profile";
 import CalenderPage from "./pages/calender";
 import OrganizeEvent from "./components/OrganizeEvent";
 import EventDetails from "./components/EventDetails";
+import Admin from "./components/Admin";
+import { useAuth } from "./context/AuthContext";
+
+// Guard: only approved organizers and admins can access /organize
+function OrganizerRoute({ children }) {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return null;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!user?.isOrganizer && user?.role !== 'ADMIN') return <Navigate to="/profile" replace />;
+  return children;
+}
+
+// Guard: only admins can access /admin
+function AdminRoute({ children }) {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return null;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'ADMIN') return <Navigate to="/" replace />;
+  return children;
+}
 
 function App() {
   return (
@@ -23,7 +43,8 @@ function App() {
         <Route path="/test1" element={<TeamHalfCircle />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/calender" element={<CalenderPage />} />
-        <Route path="/organize" element={<OrganizeEvent />} />
+        <Route path="/organize" element={<OrganizerRoute><OrganizeEvent /></OrganizerRoute>} />
+        <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
         {/* Event detail — supports both /event/:id and legacy /event?id=... */}
         <Route path="/event/:id" element={<EventDetails />} />
         <Route path="/event" element={<EventDetails />} />

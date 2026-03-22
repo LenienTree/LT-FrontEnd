@@ -48,15 +48,16 @@ export function AuthProvider({ children }) {
     const register = useCallback(async (formData) => {
         setError(null);
         const data = await authApi.register(formData);
-        if (data?.token) setToken(data.token);
+        if (data?.accessToken) setToken(data.accessToken);
         if (data?.user) setUser(data.user);
         return data;
     }, []);
 
     const googleAuth = useCallback(async (idToken) => {
         setError(null);
+        // Backend strips tokens from the Google auth response body (sets them as
+        // HTTP-only cookies instead), so we only need to update the user state.
         const data = await authApi.googleAuth({ idToken });
-        if (data?.accessToken) setToken(data.accessToken);
         if (data?.user) setUser(data.user);
         return data;
     }, []);
