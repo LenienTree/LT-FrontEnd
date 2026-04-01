@@ -1,12 +1,12 @@
 /**
  * LenientTree API Service
- * Base URL: http://localhost:5000
+ * Base URL: set via VITE_API_BASE_URL env var (falls back to localhost:5000 for local dev only)
  *
  * This file contains all API calls for the frontend.
  * Admin endpoints are intentionally excluded.
  */
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000";
 
 // ─── Token Helpers ────────────────────────────────────────────────────────────
 
