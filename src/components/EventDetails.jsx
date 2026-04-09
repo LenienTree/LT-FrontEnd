@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Bookmark, BookmarkCheck, Loader2 } from 'lucide-react';
-import Header from './Header';
-import Footer from './Footer';
+import Header from './layout/Header';
+import Footer from './layout/Footer';
 import CountdownTimer from './CountdownTimer';
 import { events as eventsApi, bookmarks as bookmarksApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -159,10 +159,10 @@ const EventDetails = () => {
     const isRegistered = registrationStatus?.isRegistered;
     console.log("Event data", eventData)
     return (
-        <div className="min-h-screen bg-[#0a1f1f]">
+        <div className="min-h-screen  bg-[#0a1f1f]">
             <Header />
 
-            <div className="container pt-24 mx-auto px-4 py-8">
+            <div className="container pl-10 pr-10 pt-24 mx-auto px-4 py-8">
                 {/* Top Navigation */}
                 <div className="flex justify-between items-center mb-8">
                     <button
@@ -213,7 +213,7 @@ const EventDetails = () => {
                     <div className="lg:col-span-1">
                         <div className="bg-blue-900 rounded-2xl overflow-hidden border-4 border-blue-700 shadow-2xl">
                             {eventData.eventPoster ? (
-                                <img src={eventData.eventPoster} alt="Event Poster" className="w-full h-auto" />
+                                <img src={eventData.eventPoster} alt="Event Poster" className="h-full" />
                             ) : (
                                 <div className="aspect-[3/4] flex items-center justify-center text-gray-400">
                                     No poster available

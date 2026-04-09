@@ -4,7 +4,9 @@ const CountdownTimer = ({ endDate }) => {
     const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
     useEffect(() => {
-        const targetDate = endDate ? new Date(endDate).getTime() : null;
+        console.log("endDate", endDate)
+        const targetDate = endDate;
+        console.log("targetDate", targetDate)
 
         if (!targetDate) {
             setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });

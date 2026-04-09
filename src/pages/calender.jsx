@@ -1,90 +1,171 @@
-import React, { useState } from "react";
-import Header from "../components/Header";
-import { Search } from "lucide-react";
-import Footer from "../components/Footer";
-import PublishEventCard from "../components/PublishEventCard";
-import OrganizeEventCTA from "../components/OrganizeEventCTA";
+import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import Header from "../components/layout/Header";
+import { Search, Loader2, AlertCircle, X, Calendar, MapPin } from "lucide-react";
+import Footer from "../components/layout/Footer";
+import PublishEventCard from "../components/organizer/PublishEventCard";
+import OrganizeEventCTA from "../components/organizer/OrganizeEventCTA";
+import { events as eventsApi } from "../services/api";
 
+/* ─── Category colour map ─────────────────────────────────────────────────── */
+const CAT_STYLES = {
+    Hackathon: { pill: "bg-blue-500/20 text-blue-300 border-blue-500/30",   dot: "bg-blue-500",   cal: "bg-blue-500" },
+    Ideathon:  { pill: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30", dot: "bg-yellow-400", cal: "bg-yellow-400" },
+    Webinar:   { pill: "bg-purple-500/20 text-purple-300 border-purple-500/30", dot: "bg-purple-500", cal: "bg-purple-500" },
+    Conclave:  { pill: "bg-red-500/20 text-red-300 border-red-500/30",      dot: "bg-red-500",    cal: "bg-red-500" },
+    Other:     { pill: "bg-gray-500/20 text-gray-300 border-gray-500/30",   dot: "bg-gray-400",   cal: "bg-gray-400" },
+};
+const getStyle = (cat) => CAT_STYLES[cat] ?? CAT_STYLES.Other;
+
+function formatDate(d) {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/* ─── Event poster card ───────────────────────────────────────────────────── */
+function EventCard({ event, onClick }) {
+    const [imgError, setImgError] = useState(false);
+    const poster = !imgError && (event.eventPoster || event.bannerImage);
+    const s = getStyle(event.category);
+
+    return (
+        <div
+            onClick={() => onClick(event._id || event.id)}
+            className="group cursor-pointer flex flex-col"
+        >
+            <div className="rounded-2xl overflow-hidden bg-[#0D3838] border border-[#9AE600]/10 hover:border-[#9AE600]/50 shadow-lg hover:shadow-[#9AE600]/10 transition-all duration-300 hover:scale-[1.02] flex flex-col h-full">
+                {/* Poster — locked 3:4 aspect ratio */}
+                <div className="relative w-full overflow-hidden bg-gradient-to-br from-[#0a1f1f] to-[#0d3333]" style={{ paddingBottom: "133.33%" }}>
+                    <div className="absolute inset-0">
+                    {poster ? (
+                        <img
+                            src={poster}
+                            alt={event.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            onError={() => setImgError(true)}
+                        />
+                    ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-4">
+                            <Calendar size={30} className="text-[#9AE600]/40" />
+                            <span className="text-gray-500 text-xs text-center line-clamp-2">{event.title}</span>
+                        </div>
+                    )}
+                    {/* Mode badge */}
+                    <div className="absolute top-2 right-2">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border backdrop-blur-sm ${event.mode === "ONLINE" ? "bg-blue-500/20 text-blue-300 border-blue-500/30" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"}`}>
+                            {event.mode === "ONLINE" ? "🌐 Online" : "📍 Offline"}
+                        </span>
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0D3838] via-transparent to-transparent opacity-70" />
+                    </div>
+                </div>
+
+                {/* Info */}
+                <div className="p-3 flex flex-col gap-1.5">
+                    <span className={`self-start text-[10px] font-semibold px-2 py-0.5 rounded-full border ${s.pill}`}>
+                        {event.category || "Event"}
+                    </span>
+                    <h3 className="text-white font-bold text-sm leading-tight line-clamp-2 group-hover:text-[#9AE600] transition-colors">
+                        {event.title}
+                    </h3>
+                    {event.subtitle && (
+                        <p className="text-gray-400 text-xs line-clamp-1">{event.subtitle}</p>
+                    )}
+                    <div className="flex items-center gap-1.5 text-gray-400 text-xs mt-1 pt-2 border-t border-white/5">
+                        <Calendar size={10} />
+                        <span>{formatDate(event.startDate)}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ─── Skeleton card ───────────────────────────────────────────────────────── */
+function SkeletonCard() {
+    return (
+        <div className="rounded-2xl overflow-hidden bg-[#0D3838] border border-white/5 animate-pulse">
+            <div className="w-full bg-[#1a4d4d]/30" style={{ paddingBottom: "133.33%" }} />
+            <div className="p-3 space-y-2">
+                <div className="h-3 w-16 bg-[#1a4d4d]/40 rounded-full" />
+                <div className="h-4 w-full bg-[#1a4d4d]/40 rounded" />
+                <div className="h-3 w-2/3 bg-[#1a4d4d]/30 rounded" />
+            </div>
+        </div>
+    );
+}
+
+/* ─── Main CalendarPage ───────────────────────────────────────────────────── */
 export default function CalenderPage() {
+    const navigate = useNavigate();
     const [currentDate] = useState(new Date());
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-    const [selectedFilter, setSelectedFilter] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
+    const [activeCategory, setActiveCategory] = useState("All");
 
-    const monthNames = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ];
+    // API state
+    const [allEvents, setAllEvents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
-    // Placeholder event data
-    const events = [
-        { id: 1, title: "Evoke ", type: "Ideathon", image: "./events/evoke.png", color: "bg-red-600" },
-        { id: 2, title: "Girlathon", type: "Hackathon", image: "./events/girlathon.png", color: "bg-purple-600" },
-        { id: 3, title: "Hack-Finity", type: "Hackathon", image: "./events/hack-finity-1.png", color: "bg-red-500" },
-        { id: 4, title: "Hack-Finity", type: "Hackathon", image: "./events/hack-finity-2.png", color: "bg-red-500" },
-        { id: 5, title: "Line Following Robot", type: "Hackathon", image: "./events/line-following-robot.png", color: "bg-green-700" },
-        { id: 6, title: "Pen Testing", type: "Conclave", image: "./events/pen-testing.png", color: "bg-gray-900" },
-        { id: 7, title: "Prime", type: "Webinar", image: "./events/prime.png", color: "bg-teal-600" },
-        { id: 8, title: "Prime Merch", type: "Ideathon", image: "./events/prime-merch.png", color: "bg-cyan-600" },
-    ];
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const CATEGORIES = ["All", "Hackathon", "Ideathon", "Webinar", "Conclave", "Other"];
 
-    const filterButtons = [
-        { name: "All", color: "bg-[#9AE600]" },
-        { name: "Hackathon", color: "bg-white" },
-        { name: "Ideathon", color: "bg-white" },
-        { name: "Conclave", color: "bg-white" },
-        { name: "Webinar", color: "bg-white" },
-    ];
+    /* Fetch all events once — same pattern as Home.jsx */
+    useEffect(() => {
+        setLoading(true);
+        eventsApi.getAll({ limit: 200 })
+            .then(res => {
+                // Backend returns buildPaginatedResult: { data: events[], meta: {} }
+                // api.js unwraps the outer { success, data } so we get { data: [], meta: {} }
+                const list = (Array.isArray(res) ? res : res.data) || [];
+                setAllEvents(list);
+                setError("");
+            })
+            .catch(err => setError(err.message || "Failed to load events."))
+            .finally(() => setLoading(false));
+    }, []);
 
-    const filteredEvents = events.filter(event => {
-        const matchesFilter = selectedFilter === "All" || event.type === selectedFilter;
-        const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesFilter && matchesSearch;
-    });
+    /* Filtered events for the poster grid - no filters by default */
+    const filteredEvents = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        return allEvents.filter(e => {
+            const matchesCat = activeCategory === "All" || e.category === activeCategory;
+            const matchesSearch = !q
+                || (e.title ?? "").toLowerCase().includes(q)
+                || (e.subtitle ?? "").toLowerCase().includes(q)
+                || (e.description ?? "").toLowerCase().includes(q);
+            return matchesCat && matchesSearch;
+        });
+    }, [allEvents, searchQuery, activeCategory]);
 
-    const getDaysInMonth = (month, year) => {
-        return new Date(year, month + 1, 0).getDate();
-    };
+    /* Build a map of day → event categories for the calendar dots */
+    const calendarEventMap = useMemo(() => {
+        const map = {};
+        allEvents.forEach(e => {
+            if (!e.startDate) return;
+            const d = new Date(e.startDate);
+            if (d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
+                const day = d.getDate();
+                if (!map[day]) map[day] = [];
+                map[day].push(e.category || "Other");
+            }
+        });
+        return map;
+    }, [allEvents, selectedMonth, selectedYear]);
 
-    const getFirstDayOfMonth = (month, year) => {
-        return new Date(year, month, 1).getDay();
-    };
+    /* ── Calendar render ── */
+    const getDaysInMonth = (m, y) => new Date(y, m + 1, 0).getDate();
+    const getFirstDay = (m, y) => new Date(y, m, 1).getDay();
 
     const renderCalendar = () => {
         const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
-        const firstDay = getFirstDayOfMonth(selectedMonth, selectedYear);
+        const firstDay = getFirstDay(selectedMonth, selectedYear);
         const days = [];
 
-        const getStaticEvents = (day) => {
-            const eventPatterns = {
-                1: [], 2: ['hackathon', 'ideathon'], 3: ['conclave'], 4: ['ideathon', 'webinar'],
-                5: [], 6: ['hackathon'], 7: ['conclave', 'ideathon'], 8: [],
-                9: ['webinar', 'hackathon', 'ideathon'], 10: [], 11: ['ideathon', 'conclave'],
-                12: ['hackathon', 'webinar'], 13: [], 14: ['conclave', 'ideathon'], 15: [],
-                16: ['hackathon', 'webinar'], 17: ['ideathon', 'conclave', 'hackathon'], 18: [],
-                19: ['webinar', 'hackathon'], 20: ['ideathon'], 21: [],
-                22: ['conclave', 'hackathon'], 23: ['hackathon', 'webinar', 'ideathon'],
-                24: ['conclave', 'webinar'], 25: ['ideathon', 'hackathon'],
-                26: ['hackathon', 'conclave'], 27: ['ideathon', 'webinar'], 28: [],
-                29: ['webinar', 'hackathon'], 30: ['conclave', 'ideathon'],
-                31: ['hackathon', 'webinar', 'ideathon']
-            };
-
-            const events = eventPatterns[day] || [];
-            return events.map(type => {
-                switch (type) {
-                    case 'hackathon': return 'bg-blue-500';
-                    case 'ideathon': return 'bg-yellow-500';
-                    case 'conclave': return 'bg-red-500';
-                    case 'webinar': return 'bg-purple-500';
-                    default: return 'bg-gray-500';
-                }
-            });
-        };
-
         for (let i = 0; i < firstDay; i++) {
-            days.push(<div key={`empty-${i}`} className="p-2"></div>);
+            days.push(<div key={`e-${i}`} className="p-2" />);
         }
 
         for (let day = 1; day <= daysInMonth; day++) {
@@ -93,49 +174,51 @@ export default function CalenderPage() {
                 selectedMonth === currentDate.getMonth() &&
                 selectedYear === currentDate.getFullYear();
 
-            const events = getStaticEvents(day);
+            const dayEvents = calendarEventMap[day] || [];
+            // Show at most 3 unique category dots
+            const dots = [...new Set(dayEvents)].slice(0, 3);
 
             days.push(
                 <div key={day} className="relative flex flex-col items-center p-2">
-                    {events.length > 0 && (
-                        <div className="flex w-full h-10 mb-1">
-                            {events.map((color, idx) => (
+                    {dots.length > 0 && (
+                        <div className="flex gap-0.5 mb-1 h-2">
+                            {dots.map((cat, idx) => (
                                 <div
                                     key={idx}
-                                    className={`h-2 sm:h-2 ${color}`}
-                                    style={{ width: `${100 / events.length}%` }}
+                                    className={`flex-1 h-2 rounded-sm ${getStyle(cat).cal}`}
                                 />
                             ))}
                         </div>
                     )}
                     <span
-                        className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full text-sm sm:text-base md:text-lg font-medium transition-all ${isToday
-                            ? "bg-[#9AE600] text-slate-900 font-bold ring-4 ring-[#9AE600]/30"
-                            : "text-white/90 hover:text-white"
-                            }`}
+                        className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full text-sm sm:text-base md:text-lg font-medium transition-all ${
+                            isToday
+                                ? "bg-[#9AE600] text-slate-900 font-bold ring-4 ring-[#9AE600]/30"
+                                : dots.length > 0
+                                ? "text-white ring-1 ring-[#9AE600]/20"
+                                : "text-white/90 hover:text-white"
+                        }`}
                     >
                         {day}
                     </span>
                 </div>
             );
         }
-
         return days;
     };
 
+    const handleEventClick = (id) => navigate(`/event/${id}`);
+
     return (
-        <div className="min-h-screen bg-[#022F2E]" style={{
-            backgroundImage: `url("/vectorhome2.png")`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-        }}>
+        <div
+            className="min-h-screen bg-[#022F2E]"
+            style={{ backgroundImage: `url("/vectorhome2.png")`, backgroundSize: "cover", backgroundPosition: "center" }}
+        >
             <div className="p-20">
                 <Header />
             </div>
 
-            {/* Publish Event Card */}
-
-            {/* Calendar Card */}
+            {/* ── Calendar ── */}
             <div className="w-full max-w-5xl mx-auto bg-[#0D3838]/95 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 border-4 border-[#9AE600] shadow-2xl shadow-[#9AE600]/20 mb-8">
                 <div className="flex mt-10 justify-between items-center mb-6 sm:mb-8">
                     <h4 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
@@ -144,12 +227,8 @@ export default function CalenderPage() {
                     <div className="flex items-center gap-2 sm:gap-3">
                         <button
                             onClick={() => {
-                                if (selectedMonth === 0) {
-                                    setSelectedMonth(11);
-                                    setSelectedYear(selectedYear - 1);
-                                } else {
-                                    setSelectedMonth(selectedMonth - 1);
-                                }
+                                if (selectedMonth === 0) { setSelectedMonth(11); setSelectedYear(selectedYear - 1); }
+                                else setSelectedMonth(selectedMonth - 1);
                             }}
                             className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-700/50 hover:bg-slate-600/50 border-2 border-slate-600/50 transition-all"
                             aria-label="Previous month"
@@ -160,12 +239,8 @@ export default function CalenderPage() {
                         </button>
                         <button
                             onClick={() => {
-                                if (selectedMonth === 11) {
-                                    setSelectedMonth(0);
-                                    setSelectedYear(selectedYear + 1);
-                                } else {
-                                    setSelectedMonth(selectedMonth + 1);
-                                }
+                                if (selectedMonth === 11) { setSelectedMonth(0); setSelectedYear(selectedYear + 1); }
+                                else setSelectedMonth(selectedMonth + 1);
                             }}
                             className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-700/50 hover:bg-slate-600/50 border-2 border-slate-600/50 transition-all"
                             aria-label="Next month"
@@ -178,139 +253,138 @@ export default function CalenderPage() {
                 </div>
 
                 <div className="grid grid-cols-7 gap-2 sm:gap-3 text-center mb-4">
-                    {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((day) => (
-                        <div key={day} className="text-white/60 text-sm sm:text-base md:text-lg py-2 sm:py-3">
-                            {day}
-                        </div>
+                    {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map(d => (
+                        <div key={d} className="text-white/60 text-sm sm:text-base md:text-lg py-2 sm:py-3">{d}</div>
                     ))}
                 </div>
-
                 <div className="grid grid-cols-7 gap-2 sm:gap-3">{renderCalendar()}</div>
             </div>
 
-            {/* Event Legend */}
-            <div className="max-w-5xl mx-auto bg-[#0D3838]/80 backdrop-blur-lg rounded-2xl p-6 border-2 border-[#9AE600]/50">
+            {/* ── Legend ── */}
+            <div className="max-w-5xl mx-auto bg-[#0D3838]/80 backdrop-blur-lg rounded-2xl p-6 border-2 border-[#9AE600]/50 mb-10">
                 <h3 className="text-xl font-bold text-white mb-4">Event Types</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                        <span className="text-white/90">Hackathon</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 bg-yellow-500 rounded"></div>
-                        <span className="text-white/90">Ideathon</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 bg-red-500 rounded"></div>
-                        <span className="text-white/90">Conclave</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 bg-purple-500 rounded"></div>
-                        <span className="text-white/90">Webinar</span>
-                    </div>
+                <div className="flex flex-wrap gap-4">
+                    {Object.entries(CAT_STYLES).map(([cat, s]) => (
+                        <div key={cat} className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-sm ${s.dot}`} />
+                            <span className="text-white/80 text-sm">{cat}</span>
+                        </div>
+                    ))}
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 pt-32 pb-16">
+            {/* ── Event Discovery Section ── */}
+            <div className="container mx-auto px-4 pb-16">
                 <div className="max-w-7xl mx-auto">
-                    {/* Search Bar */}
-                    <div className="mb-8">
-                        <div className="relative max-w-4xl mx-auto">
-                            <div className="flex items-center bg-white rounded-xl overflow-hidden shadow-lg">
-                                <div className="pl-4 pr-2">
-                                    <Search className="w-5 h-5 text-gray-400" />
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="Search for events"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="flex-1 py-3 px-2 text-gray-700 placeholder-gray-400 focus:outline-none"
-                                />
-                                <button className="px-4 py-3 hover:bg-gray-50 transition-colors">
-                                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
+
+                    {/* Section heading */}
+                    <div className="text-center mb-10">
+                        <span className="inline-block text-[#9AE600] text-xs font-semibold uppercase tracking-widest mb-3 px-3 py-1 bg-[#9AE600]/10 rounded-full border border-[#9AE600]/20">
+                            Browse
+                        </span>
+                        <h2 className="text-white text-3xl md:text-4xl font-bold">All Events</h2>
                     </div>
 
-                    {/* Filter Buttons */}
-                    <div className="mb-8 flex flex-wrap justify-center gap-3">
-                        {filterButtons.map((filter) => (
+                    {/* Search bar */}
+                    <div className="mb-6 relative max-w-2xl mx-auto">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        <input
+                            type="text"
+                            placeholder="Search events by name, description..."
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            className="w-full bg-[#0D3838] border-2 border-[#9AE600]/30 text-white placeholder-gray-500 py-3 pl-10 pr-10 rounded-xl focus:outline-none focus:border-[#9AE600] transition-all duration-300 text-sm"
+                        />
+                        {searchQuery && (
                             <button
-                                key={filter.name}
-                                onClick={() => setSelectedFilter(filter.name)}
-                                className={`px-8 py-2.5 rounded-full font-medium transition-all ${selectedFilter === filter.name
-                                    ? "bg-[#9AE600] text-black shadow-lg scale-105"
-                                    : "bg-white text-gray-700 hover:bg-gray-100"
-                                    }`}
+                                onClick={() => setSearchQuery("")}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
                             >
-                                {filter.name}
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Category filter pills */}
+                    <div className="mb-8 flex flex-wrap justify-center gap-3">
+                        {CATEGORIES.map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => setActiveCategory(cat)}
+                                className={`px-6 py-2 rounded-full text-sm font-semibold border transition-all duration-200 ${
+                                    activeCategory === cat
+                                        ? "bg-[#9AE600] text-black border-[#9AE600] shadow-lg scale-105"
+                                        : "bg-transparent text-gray-300 border-[#9AE600]/20 hover:border-[#9AE600]/50 hover:text-white"
+                                }`}
+                            >
+                                {cat}
                             </button>
                         ))}
+                        {(searchQuery || activeCategory !== "All") && (
+                            <button
+                                onClick={() => { setSearchQuery(""); setActiveCategory("All"); }}
+                                className="px-4 py-2 rounded-full text-xs text-gray-400 border border-white/10 hover:text-white hover:border-white/30 flex items-center gap-1 transition-all"
+                            >
+                                <X size={12} /> Clear
+                            </button>
+                        )}
                     </div>
 
-                    {/* Event Collage - Masonry Layout */}
-                    <div className="mb-12">
-                        <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
-                            {filteredEvents.map((event) => (
-                                <div
-                                    key={event.id}
-                                    className="break-inside-avoid mb-4"
-                                >
-                                    <div className={`${event.color} rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all hover:scale-105 cursor-pointer`}>
-                                        <div className="relative">
-                                            <img
-                                                src={event.image}
-                                                alt={event.title}
-                                                className="w-full h-48 object-cover opacity-90"
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                                            <div className="absolute bottom-0 left-0 right-0 p-4">
-                                                <h3 className="text-white font-bold text-lg">{event.title}</h3>
-                                                <p className="text-white/80 text-sm">{event.type}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                    {/* Results count */}
+                    {!loading && !error && (
+                        <p className="text-center text-gray-400 text-sm mb-6">
+                            {filteredEvents.length === 0
+                                ? "No events found"
+                                : `${filteredEvents.length} event${filteredEvents.length !== 1 ? "s" : ""}`}
+                            {searchQuery && <span className="text-[#9AE600]"> for "{searchQuery}"</span>}
+                        </p>
+                    )}
+
+                    {/* Error state */}
+                    {error && (
+                        <div className="flex items-center gap-3 px-5 py-4 bg-red-900/30 border border-red-500/30 rounded-xl text-red-400 text-sm mb-8 max-w-xl mx-auto">
+                            <AlertCircle size={18} className="flex-shrink-0" />
+                            <span>{error}</span>
+                            <button onClick={() => window.location.reload()} className="ml-auto underline text-red-300 hover:text-red-200">Retry</button>
+                        </div>
+                    )}
+
+                    {/* Masonry grid */}
+                    {loading ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                            {Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)}
+                        </div>
+                    ) : filteredEvents.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                            {filteredEvents.map(event => (
+                                <EventCard
+                                    key={event._id || event.id}
+                                    event={event}
+                                    onClick={handleEventClick}
+                                />
                             ))}
                         </div>
-                    </div>
-                    <PublishEventCard />
-                    <div className="mb-12">
-                        <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
-                            {filteredEvents.map((event) => (
-                                <div
-                                    key={event.id}
-                                    className="break-inside-avoid mb-4"
-                                >
-                                    <div className={`${event.color} rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all hover:scale-105 cursor-pointer`}>
-                                        <div className="relative">
-                                            <img
-                                                src={event.image}
-                                                alt={event.title}
-                                                className="w-full h-48 object-cover opacity-90"
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                                            <div className="absolute bottom-0 left-0 right-0 p-4">
-                                                <h3 className="text-white font-bold text-lg">{event.title}</h3>
-                                                <p className="text-white/80 text-sm">{event.type}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                    ) : !error ? (
+                        <div className="flex flex-col items-center justify-center py-20 gap-4">
+                            <div className="w-16 h-16 rounded-full bg-[#9AE600]/5 border border-[#9AE600]/10 flex items-center justify-center">
+                                <Calendar size={28} className="text-[#9AE600]/30" />
+                            </div>
+                            <p className="text-gray-400 text-sm">No events match your search.</p>
+                            <button
+                                onClick={() => { setSearchQuery(""); setActiveCategory("All"); }}
+                                className="text-xs text-[#9AE600] hover:underline"
+                            >
+                                Clear filters
+                            </button>
                         </div>
+                    ) : null}
+
+                    <div className="mt-16">
+                        <PublishEventCard />
                     </div>
-
-
-
                 </div>
             </div>
 
-            {/* Organize Event CTA */}
             <OrganizeEventCTA />
             <Footer />
         </div>

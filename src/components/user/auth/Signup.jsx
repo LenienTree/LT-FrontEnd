@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../../context/AuthContext';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -18,6 +18,17 @@ const Signup = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [passwordFocused, setPasswordFocused] = useState(false);
+
+  const passwordRules = [
+    { id: 'length', label: 'Minimum 8 characters', test: (p) => p.length >= 8 },
+    { id: 'lower', label: 'At least one lowercase letter (a–z)', test: (p) => /[a-z]/.test(p) },
+    { id: 'upper', label: 'At least one uppercase letter (A–Z)', test: (p) => /[A-Z]/.test(p) },
+    { id: 'number', label: 'At least one number (0–9)', test: (p) => /[0-9]/.test(p) },
+    { id: 'special', label: 'At least one special character (!@#$%^&*)', test: (p) => /[!@#$%^&*()\-_=+\[\]{};:'",.<>?/\\|`~]/.test(p) },
+  ];
+
+  const allRulesPassed = passwordRules.every(r => r.test(formData.password));
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -29,6 +40,11 @@ const Signup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!allRulesPassed) {
+      setError('Password does not meet all the required criteria.');
+      setPasswordFocused(true);
+      return;
+    }
     if (!formData.agreeToTerms) {
       setError('Please accept the terms and conditions');
       return;
@@ -142,9 +158,37 @@ const Signup = () => {
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-6 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 backdrop-blur-sm"
+                onFocus={() => setPasswordFocused(true)}
+                className={`w-full bg-transparent border-2 text-white placeholder-gray-500 py-3 px-6 rounded-xl focus:outline-none transition-all duration-300 backdrop-blur-sm ${formData.password === ''
+                    ? 'border-[#1a4d4d] focus:border-[#00ff88]'
+                    : allRulesPassed
+                      ? 'border-[#00ff88]'
+                      : 'border-red-500'
+                  }`}
                 required
               />
+
+              {/* Password Rules Checklist */}
+              {passwordFocused && (
+                <div className="mt-3 px-4 py-3 bg-[#071515] border border-[#1a4d4d] rounded-xl space-y-1.5">
+                  <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">Password requirements</p>
+                  {passwordRules.map(rule => {
+                    const passed = rule.test(formData.password);
+                    return (
+                      <div key={rule.id} className="flex items-center gap-2">
+                        <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${passed ? 'bg-[#00ff88]/20 text-[#00ff88]' : 'bg-red-500/20 text-red-400'
+                          }`}>
+                          {passed ? '✓' : '✗'}
+                        </span>
+                        <span className={`text-xs transition-colors duration-300 ${passed ? 'text-[#00ff88]' : 'text-red-400'
+                          }`}>
+                          {rule.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Terms */}

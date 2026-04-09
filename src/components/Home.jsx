@@ -6,8 +6,8 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import GrowthChart from "./animations/GrowthChart";
 import AnimatedBadge from "./animations/AnimateRibbon";
 import ContactPage from "./ContactPage";
-import Header from "./Header";
-import Footer from "./Footer";
+import Header from "./layout/Header";
+import Footer from "./layout/Footer";
 import { events as eventsApi } from "../services/api";
 import { Link } from "react-router-dom";
 
@@ -64,7 +64,6 @@ const CollaborationEventCard = React.memo(({ event }) => {
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef(null);
   const tlRef = useRef(null);
-  console.log("Event data", event)
 
   const getCardColors = (color) => {
     switch (color) {
@@ -595,6 +594,7 @@ const Home = () => {
       try {
         setIsLoadingEvents(true);
         const res = await eventsApi.getAll({ limit: 4 });
+        console.log("Fetched events", res)
 
         // Backend returns result of buildPaginatedResult: { data: events[], meta: {} }
         // Our api.js wrapper returns the 'data' field of the response

@@ -2,8 +2,8 @@
 import { useState, useRef, useEffect } from "react"
 import { Menu, X, LogOut, User } from "lucide-react"
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { useAuth } from "../context/AuthContext";
-import { users } from "../services/api";
+import { useAuth } from "../../context/AuthContext";
+import { users } from "../../services/api";
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -62,7 +62,6 @@ export default function Header() {
         { name: "Home", href: "/" },
         { name: "Calendar", href: "/calender" },
         { name: "About", href: "/about" },
-
     ]
 
     return (

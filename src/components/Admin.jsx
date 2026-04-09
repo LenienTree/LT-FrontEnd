@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Users, CalendarDays, TrendingUp, Eye, Clock, BarChart2,
   CheckCircle, XCircle, Shield, Search, Bell, LogOut,
@@ -489,13 +489,15 @@ const Admin = () => {
                       ) : (
                         <div className="space-y-3">
                           {recentEvents.map((ev) => (
-                            <div key={ev.id} className="flex items-center justify-between py-2 border-b border-[#1a4d4d] last:border-0">
-                              <div>
-                                <p className="text-white text-sm font-medium">{ev.title}</p>
-                                <p className="text-gray-500 text-xs mt-0.5">{ev.category} · {ev.organizer?.name || '—'}</p>
+                            <Link key={ev.id} to={`/event/${ev.id}`}>
+                              <div className="flex items-center justify-between py-2 border-b border-[#1a4d4d] last:border-0">
+                                <div>
+                                  <p className="text-white text-sm font-medium">{ev.title}</p>
+                                  <p className="text-gray-500 text-xs mt-0.5">{ev.category} · {ev.organizer?.name || '—'}</p>
+                                </div>
+                                <Badge status={ev.status} />
                               </div>
-                              <Badge status={ev.status} />
-                            </div>
+                            </Link>
                           ))}
                         </div>
                       )}

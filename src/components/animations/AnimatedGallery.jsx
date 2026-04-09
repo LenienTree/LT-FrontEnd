@@ -127,15 +127,15 @@ export default function AnimatedGallery() {
       }
     }
 
-   return {
-  transform: `translateX(${offset}%) scale(${scale})`,
-  opacity,
-  zIndex,
-  filter: `blur(${blur}px)`,
-  transition: isDragging 
-    ? "none" 
-    : "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), filter 0.5s cubic-bezier(0.4, 0, 0.2, 1)"
-};
+    return {
+      transform: `translateX(${offset}%) scale(${scale})`,
+      opacity,
+      zIndex,
+      filter: `blur(${blur}px)`,
+      transition: isDragging
+        ? "none"
+        : "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), filter 0.5s cubic-bezier(0.4, 0, 0.2, 1)"
+    };
 
   };
 

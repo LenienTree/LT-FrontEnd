@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import Header from './Header';
-import Footer from './Footer';
-import api from '../services/api';
+import Header from '../layout/Header';
+import Footer from '../layout/Footer';
+import api from '../../services/api';
 
 const OrganizeEvent = () => {
     const navigate = useNavigate();
@@ -26,7 +26,12 @@ const OrganizeEvent = () => {
         eventDescription: '',
         prizeType: 'No prize',
         prizeDetails: '',
+        ticketPrice: '',
         eventPoster: null,
+        // FAQs
+        faqs: [{ question: '', answer: '' }],
+        // Announcements
+        announcements: [{ title: '', content: '', publishDate: '' }],
         // Event design (Step 2)
         eventBanner: null,
         selectedTemplate: 'Default',
@@ -58,10 +63,52 @@ const OrganizeEvent = () => {
         }));
     };
 
+    // FAQ handlers
+    const handleFaqChange = (index, field, value) => {
+        setEventData(prev => {
+            const updated = [...prev.faqs];
+            updated[index] = { ...updated[index], [field]: value };
+            return { ...prev, faqs: updated };
+        });
+    };
+    const addFaq = () => {
+        setEventData(prev => ({
+            ...prev,
+            faqs: [...prev.faqs, { question: '', answer: '' }]
+        }));
+    };
+    const removeFaq = (index) => {
+        setEventData(prev => ({
+            ...prev,
+            faqs: prev.faqs.filter((_, i) => i !== index)
+        }));
+    };
+
+    // Announcement handlers
+    const handleAnnouncementChange = (index, field, value) => {
+        setEventData(prev => {
+            const updated = [...prev.announcements];
+            updated[index] = { ...updated[index], [field]: value };
+            return { ...prev, announcements: updated };
+        });
+    };
+    const addAnnouncement = () => {
+        setEventData(prev => ({
+            ...prev,
+            announcements: [...prev.announcements, { title: '', content: '', publishDate: '' }]
+        }));
+    };
+    const removeAnnouncement = (index) => {
+        setEventData(prev => ({
+            ...prev,
+            announcements: prev.announcements.filter((_, i) => i !== index)
+        }));
+    };
+
     const handleSubmit = async (e) => {
         if (e && e.preventDefault) e.preventDefault();
         setError(null);
-        
+
         if (currentStep === 1) {
             try {
                 setIsSubmitting(true);
@@ -84,8 +131,8 @@ const OrganizeEvent = () => {
                     } else {
                         rDate = sDate;
                     }
-                } catch(err) { console.error('Date parse error', err); }
-                
+                } catch (err) { console.error('Date parse error', err); }
+
                 const step1Payload = {
                     title: eventData.eventName,
                     subtitle: eventData.eventSubtitle || undefined,
@@ -101,17 +148,28 @@ const OrganizeEvent = () => {
                     description: eventData.eventDescription || 'No description provided.',
                     prizeType: eventData.prizeType === 'No prize' ? 'NONE' : eventData.prizeType === 'Cash prize' ? 'CASH' : eventData.prizeType === 'Merchandise' ? 'MERCH' : 'POINTS',
                     prizeAmount: eventData.prizeDetails ? parseFloat(eventData.prizeDetails.split('/')[0].replace(/[^0-9.]/g, '')) || 0 : 0,
-                    isPaid: eventData.eventAccess === 'Paid'
+                    isPaid: eventData.eventAccess === 'Paid',
+                    ticketPrice: eventData.eventAccess === 'Paid' ? parseFloat(eventData.ticketPrice) || 0 : undefined,
+                    faqs: eventData.faqs
+                        .filter(f => f.question.trim() && f.answer.trim())
+                        .map((f, i) => ({ question: f.question, answer: f.answer, order: i + 1 })),
+                    announcements: eventData.announcements
+                        .filter(a => a.title.trim() && a.content.trim())
+                        .map(a => ({
+                            title: a.title,
+                            content: a.content,
+                            publishDate: a.publishDate ? new Date(a.publishDate).toISOString() : new Date().toISOString()
+                        }))
                 };
 
                 const res = await api.events.createDraft(step1Payload);
                 const newEventId = res.id;
                 setRegistrationId(newEventId);
-                
+
                 if (eventData.eventPoster) {
                     await api.events.uploadPoster(newEventId, eventData.eventPoster);
                 }
-                
+
                 setCurrentStep(2);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } catch (err) {
@@ -124,7 +182,7 @@ const OrganizeEvent = () => {
             try {
                 setIsSubmitting(true);
                 if (!eventData.termsAccepted) return;
-                
+
                 const templateColors = {
                     'Default': { primaryColor: '#0a1f1f', secondaryColor: '#0d2f2f', accentColor: '#00ff88' },
                     'Blue Sky': { primaryColor: '#1e3a8a', secondaryColor: '#60a5fa', accentColor: '#ffffff' },
@@ -134,15 +192,15 @@ const OrganizeEvent = () => {
                     'Aqua Push': { primaryColor: '#164e63', secondaryColor: '#22d3ee', accentColor: '#ffffff' },
                     'Pink Bubbles': { primaryColor: '#831843', secondaryColor: '#f472b6', accentColor: '#ffffff' }
                 };
-                
+
                 const colors = templateColors[eventData.selectedTemplate] || templateColors['Default'];
-                
+
                 const customFields = [];
                 Object.entries(eventData.requiredFields).forEach(([key, isRequired]) => {
                     if (isRequired) customFields.push({ label: key, type: 'text', required: true });
                 });
-                if (eventData.includeMealInfo) customFields.push({ label: 'Meal Preference', type: 'select', required: false, options: ['Veg', 'Non-veg']});
-                if (eventData.includeTshirtInfo) customFields.push({ label: 'T-Shirt Size', type: 'select', required: false, options: ['S', 'M', 'L', 'XL']});
+                if (eventData.includeMealInfo) customFields.push({ label: 'Meal Preference', type: 'select', required: false, options: ['Veg', 'Non-veg'] });
+                if (eventData.includeTshirtInfo) customFields.push({ label: 'T-Shirt Size', type: 'select', required: false, options: ['S', 'M', 'L', 'XL'] });
 
                 const step2Payload = {
                     maxParticipants: parseInt(eventData.participantLimit) || undefined,
@@ -152,13 +210,13 @@ const OrganizeEvent = () => {
                 };
 
                 await api.events.updateDesign(registrationId, step2Payload);
-                
+
                 if (eventData.eventBanner) {
                     await api.events.uploadBanner(registrationId, eventData.eventBanner);
                 }
-                
+
                 await api.events.submitForApproval(registrationId);
-                
+
                 setCurrentStep(3);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } catch (err) {
@@ -253,7 +311,7 @@ const OrganizeEvent = () => {
                                         name="eventName"
                                         value={eventData.eventName}
                                         onChange={handleInputChange}
-                                        placeholder="Event hosted by Lenient Tree"
+                                        placeholder="ThinkerRoot"
                                         className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
                                         required
                                     />
@@ -389,6 +447,28 @@ const OrganizeEvent = () => {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Ticket Price (conditional) */}
+                            {eventData.eventAccess === 'Paid' && (
+                                <div className="grid lg:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="text-white text-sm mb-3 block">
+                                            Ticket Price (₹) <span className="text-red-400">*</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="ticketPrice"
+                                            value={eventData.ticketPrice}
+                                            onChange={handleInputChange}
+                                            placeholder="499"
+                                            min="0"
+                                            className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                            required
+                                        />
+                                        <p className="text-gray-500 text-xs mt-2">Enter the price per participant in INR</p>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Date & Time Section */}
                             <div className="border-2 border-[#1a4d4d] rounded-xl p-6">
@@ -586,6 +666,170 @@ const OrganizeEvent = () => {
                                         )}
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* FAQs Section */}
+                            <div className="mt-12">
+                                <div className="mb-8 pb-4 border-b-2 border-[#00ff88]">
+                                    <h2 className="text-white text-2xl font-semibold">Frequently Asked Questions</h2>
+                                </div>
+                                <p className="text-gray-400 text-sm mb-6">
+                                    Add common questions and answers that participants might have about your event. These will be displayed on your event page.
+                                </p>
+
+                                <div className="space-y-6">
+                                    {eventData.faqs.map((faq, index) => (
+                                        <div
+                                            key={index}
+                                            className="relative border-2 border-[#1a4d4d] rounded-xl p-6 hover:border-[#1a6d6d] transition-all duration-300 group"
+                                        >
+                                            {/* FAQ number badge */}
+                                            <div className="absolute -top-3 left-4 bg-[#00ff88] text-[#0a1f1f] text-xs font-bold px-3 py-1 rounded-full">
+                                                Q{index + 1}
+                                            </div>
+
+                                            {/* Remove button */}
+                                            {eventData.faqs.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeFaq(index)}
+                                                    className="absolute top-3 right-3 text-gray-500 hover:text-red-400 transition-colors duration-300 opacity-0 group-hover:opacity-100"
+                                                    title="Remove this FAQ"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            )}
+
+                                            <div className="space-y-4 mt-2">
+                                                <div>
+                                                    <label className="text-white text-sm mb-2 block">Question</label>
+                                                    <input
+                                                        type="text"
+                                                        value={faq.question}
+                                                        onChange={(e) => handleFaqChange(index, 'question', e.target.value)}
+                                                        placeholder="e.g. Who can participate?"
+                                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-white text-sm mb-2 block">Answer</label>
+                                                    <textarea
+                                                        value={faq.answer}
+                                                        onChange={(e) => handleFaqChange(index, 'answer', e.target.value)}
+                                                        rows="3"
+                                                        placeholder="Provide a clear, helpful answer..."
+                                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 resize-none"
+                                                    ></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Add FAQ button */}
+                                <button
+                                    type="button"
+                                    onClick={addFaq}
+                                    className="mt-4 flex items-center gap-2 text-[#00ff88] hover:text-[#00cc70] font-medium transition-colors duration-300 group"
+                                >
+                                    <span className="w-8 h-8 rounded-full border-2 border-[#00ff88] group-hover:bg-[#00ff88]/10 flex items-center justify-center transition-all duration-300">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                    </span>
+                                    Add another question
+                                </button>
+                            </div>
+
+                            {/* Announcements Section */}
+                            <div className="mt-12">
+                                <div className="mb-8 pb-4 border-b-2 border-[#00ff88]">
+                                    <h2 className="text-white text-2xl font-semibold">Announcements</h2>
+                                </div>
+                                <p className="text-gray-400 text-sm mb-6">
+                                    Schedule announcements that will be published on your event page. Use these to share updates, deadlines, or important information with participants.
+                                </p>
+
+                                <div className="space-y-6">
+                                    {eventData.announcements.map((announcement, index) => (
+                                        <div
+                                            key={index}
+                                            className="relative border-2 border-[#1a4d4d] rounded-xl p-6 hover:border-[#1a6d6d] transition-all duration-300 group"
+                                        >
+                                            {/* Announcement number badge */}
+                                            <div className="absolute -top-3 left-4 bg-[#00ff88] text-[#0a1f1f] text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                                                </svg>
+                                                #{index + 1}
+                                            </div>
+
+                                            {/* Remove button */}
+                                            {eventData.announcements.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeAnnouncement(index)}
+                                                    className="absolute top-3 right-3 text-gray-500 hover:text-red-400 transition-colors duration-300 opacity-0 group-hover:opacity-100"
+                                                    title="Remove this announcement"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            )}
+
+                                            <div className="space-y-4 mt-2">
+                                                <div className="grid lg:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="text-white text-sm mb-2 block">Title</label>
+                                                        <input
+                                                            type="text"
+                                                            value={announcement.title}
+                                                            onChange={(e) => handleAnnouncementChange(index, 'title', e.target.value)}
+                                                            placeholder="e.g. Registration Now Open! 🎉"
+                                                            className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-white text-sm mb-2 block">Publish Date</label>
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={announcement.publishDate}
+                                                            onChange={(e) => handleAnnouncementChange(index, 'publishDate', e.target.value)}
+                                                            className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="text-white text-sm mb-2 block">Content</label>
+                                                    <textarea
+                                                        value={announcement.content}
+                                                        onChange={(e) => handleAnnouncementChange(index, 'content', e.target.value)}
+                                                        rows="3"
+                                                        placeholder="Write the announcement details here..."
+                                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 resize-none"
+                                                    ></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Add Announcement button */}
+                                <button
+                                    type="button"
+                                    onClick={addAnnouncement}
+                                    className="mt-4 flex items-center gap-2 text-[#00ff88] hover:text-[#00cc70] font-medium transition-colors duration-300 group"
+                                >
+                                    <span className="w-8 h-8 rounded-full border-2 border-[#00ff88] group-hover:bg-[#00ff88]/10 flex items-center justify-center transition-all duration-300">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                    </span>
+                                    Add another announcement
+                                </button>
                             </div>
 
                             {/* Next Button */}

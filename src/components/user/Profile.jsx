@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Copy, Edit2, LogOut, Loader2 } from 'lucide-react';
-import Header from './Header';
-import Footer from './Footer';
-import { useAuth } from '../context/AuthContext';
-import { users, bookmarks } from '../services/api';
+import Header from '../layout/Header';
+import Footer from '../layout/Footer';
+import { useAuth } from '../../context/AuthContext';
+import { users, bookmarks, events as eventsApi } from '../../services/api';
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
 
@@ -34,6 +34,8 @@ const Profile = () => {
   // Profile data state
   const [profileData, setProfileData] = useState(null);
   const [myEvents, setMyEvents] = useState([]);
+  const [myCreatedEvents, setMyCreatedEvents] = useState([]);
+  const [loadingCreatedEvents, setLoadingCreatedEvents] = useState(false);
   const [myCertificates, setMyCertificates] = useState([]);
   const [myBookmarks, setMyBookmarks] = useState([]);
 
@@ -67,16 +69,29 @@ const Profile = () => {
           bookmarks.getAll(),
         ]);
 
-        if (profileRes.status === 'fulfilled') setProfileData(profileRes.value);
+        if (profileRes.status === 'fulfilled') {
+          const profile = profileRes.value;
+          setProfileData(profile);
+
+          // If the user is an organizer, fetch the events they created
+          if (profile?.isOrganizer && profile?.id) {
+            setLoadingCreatedEvents(true);
+            eventsApi.getAll({ organizerId: profile.id, limit: 100 })
+              .then(res => {
+                const list = (Array.isArray(res) ? res : res.data) || [];
+                setMyCreatedEvents(list);
+              })
+              .catch(() => {})
+              .finally(() => setLoadingCreatedEvents(false));
+          }
+        }
+
         if (eventsRes.status === 'fulfilled') {
-          // Backend returns { registered, organized, bookmarked }
           setMyEvents(eventsRes.value.registered || []);
           setMyBookmarks(eventsRes.value.bookmarked || []);
         }
         if (certsRes.status === 'fulfilled') setMyCertificates(certsRes.value || []);
-        // Note: bookmarksRes is redundant if eventsRes returns them, 
-        // but keeping it as a fallback if the user wants separate fetch
-        if (bookmarksRes.status === 'fulfilled' && !eventsRes.value.bookmarked) {
+        if (bookmarksRes.status === 'fulfilled' && !eventsRes.value?.bookmarked) {
           setMyBookmarks(bookmarksRes.value || []);
         }
       } catch (err) {
@@ -405,49 +420,130 @@ const Profile = () => {
 
           {/* ── MY EVENTS TAB ── */}
           {activeTab === 'myEvents' && (
-            <div className="bg-[#0d2f2f] border-2 border-[#1a4d4d] rounded-3xl p-8 lg:p-12 w-full">
-              <h2 className="text-white text-2xl font-semibold mb-6 pb-4 border-b-2 border-[#00ff88]">My Registered Events</h2>
+            <div className="bg-[#0d2f2f] border-2 border-[#1a4d4d] rounded-3xl p-8 lg:p-12 w-full space-y-10">
 
-              {/* Create Event CTA for organizers */}
+              {/* ── Events I'm Organising (organizer only) ── */}
               {profileData?.isOrganizer && (
-                <div className="mb-6 flex items-center justify-between bg-[#0a1f1f] border border-[#00ff88]/40 rounded-2xl p-5">
-                  <div>
-                    <h3 className="text-white font-semibold mb-1">You're an Organizer 🎉</h3>
-                    <p className="text-gray-400 text-sm">Create and manage your own events from the organize page.</p>
+                <div>
+                  <div className="flex items-center justify-between mb-5 pb-4 border-b-2 border-[#00ff88]">
+                    <h2 className="text-white text-2xl font-semibold">Events I'm Organising</h2>
+                    <button
+                      onClick={() => navigate('/organize')}
+                      className="bg-gradient-to-r from-[#00ff88] to-[#00cc70] hover:from-[#00cc70] hover:to-[#00ff88] text-[#0a1f1f] font-bold px-5 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 whitespace-nowrap text-sm"
+                    >
+                      + New Event
+                    </button>
                   </div>
-                  <button
-                    onClick={() => navigate('/organize')}
-                    className="bg-gradient-to-r from-[#00ff88] to-[#00cc70] hover:from-[#00cc70] hover:to-[#00ff88] text-[#0a1f1f] font-bold px-5 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 whitespace-nowrap"
-                  >
-                    Create an Event
-                  </button>
+
+                  {loadingCreatedEvents ? (
+                    <div className="flex items-center gap-3 text-gray-400 py-4">
+                      <Loader2 className="w-5 h-5 animate-spin text-[#00ff88]" />
+                      <span className="text-sm">Loading your events…</span>
+                    </div>
+                  ) : myCreatedEvents.length === 0 ? (
+                    <div className="bg-[#0a1f1f] border border-dashed border-[#1a4d4d] rounded-2xl p-8 text-center">
+                      <p className="text-gray-400 mb-3">You haven't created any events yet.</p>
+                      <button
+                        onClick={() => navigate('/organize')}
+                        className="text-[#00ff88] text-sm border border-[#00ff88] px-4 py-2 rounded-lg hover:bg-[#00ff88]/10 transition-colors"
+                      >
+                        Create your first event
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {myCreatedEvents.map((evt) => {
+                        const statusColors = {
+                          DRAFT:            'bg-gray-700/50 text-gray-300 border-gray-600',
+                          PENDING_APPROVAL: 'bg-yellow-900/40 text-yellow-400 border-yellow-600/50',
+                          APPROVED:         'bg-green-900/40 text-[#00ff88] border-green-600/50',
+                          REJECTED:         'bg-red-900/40 text-red-400 border-red-600/50',
+                          COMPLETED:        'bg-blue-900/40 text-blue-400 border-blue-600/50',
+                        };
+                        const statusClass = statusColors[evt.status] || statusColors.DRAFT;
+                        const poster = evt.eventPoster || evt.bannerImage;
+
+                        return (
+                          <div
+                            key={evt.id}
+                            className="bg-[#0a1f1f] border border-[#1a4d4d] hover:border-[#00ff88]/60 rounded-2xl p-4 flex items-center gap-4 transition-all duration-200 group"
+                          >
+                            {/* Poster thumbnail */}
+                            <div className="w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden bg-[#0d2626] border border-[#1a4d4d]">
+                              {poster ? (
+                                <img src={poster} alt={evt.title} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-600 text-xl">📅</div>
+                              )}
+                            </div>
+
+                            {/* Details */}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-white font-semibold truncate group-hover:text-[#00ff88] transition-colors">{evt.title}</h3>
+                              <p className="text-gray-400 text-xs mt-0.5">
+                                {evt.category} · {evt.mode}
+                                {evt.startDate && (
+                                  <span className="ml-2 text-gray-500">
+                                    · {new Date(evt.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                  </span>
+                                )}
+                              </p>
+                              {evt._count?.registrations !== undefined && (
+                                <p className="text-gray-500 text-xs mt-0.5">
+                                  {evt._count.registrations} registration{evt._count.registrations !== 1 ? 's' : ''}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Status + View */}
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                              <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${statusClass}`}>
+                                {evt.status?.replace('_', ' ')}
+                              </span>
+                              <button
+                                onClick={() => navigate(`/event/${evt.id}`)}
+                                className="text-[#00ff88] text-sm border border-[#00ff88] px-4 py-1.5 rounded-lg hover:bg-[#00ff88]/10 transition-colors"
+                              >
+                                View
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {myEvents.length === 0 ? (
-                <p className="text-gray-400">You haven't registered for any events yet.</p>
-              ) : (
-                <div className="space-y-4">
-                  {myEvents.map((reg, i) => {
-                    const evt = reg.event || reg;
-                    return (
-                      <div key={reg.id || i} className="bg-[#0a1f1f] border border-[#1a4d4d] rounded-2xl p-5 flex items-center justify-between hover:border-[#00ff88] transition-colors">
-                        <div>
-                          <h3 className="text-white font-semibold">{evt.title || 'Event'}</h3>
-                          <p className="text-gray-400 text-sm mt-1">{evt.category} · {evt.mode}</p>
-                          <p className="text-gray-500 text-xs mt-1">Status: <span className="text-[#00ff88]">{reg.status || 'REGISTERED'}</span></p>
+              {/* ── Registered Events ── */}
+              <div>
+                <h2 className="text-white text-2xl font-semibold mb-5 pb-4 border-b-2 border-[#00ff88]">My Registered Events</h2>
+                {myEvents.length === 0 ? (
+                  <p className="text-gray-400">You haven't registered for any events yet.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {myEvents.map((reg, i) => {
+                      const evt = reg.event || reg;
+                      return (
+                        <div key={reg.id || i} className="bg-[#0a1f1f] border border-[#1a4d4d] rounded-2xl p-5 flex items-center justify-between hover:border-[#00ff88] transition-colors">
+                          <div>
+                            <h3 className="text-white font-semibold">{evt.title || 'Event'}</h3>
+                            <p className="text-gray-400 text-sm mt-1">{evt.category} · {evt.mode}</p>
+                            <p className="text-gray-500 text-xs mt-1">Status: <span className="text-[#00ff88]">{reg.status || 'REGISTERED'}</span></p>
+                          </div>
+                          <button
+                            onClick={() => navigate(`/event/${evt.id}`)}
+                            className="text-[#00ff88] text-sm border border-[#00ff88] px-4 py-2 rounded-lg hover:bg-[#00ff88]/10 transition-colors"
+                          >
+                            View
+                          </button>
                         </div>
-                        <button
-                          onClick={() => navigate(`/event/${evt.id}`)}
-                          className="text-[#00ff88] text-sm border border-[#00ff88] px-4 py-2 rounded-lg hover:bg-[#00ff88]/10 transition-colors"
-                        >
-                          View
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
             </div>
           )}
 
