@@ -51,10 +51,18 @@ async function request(endpoint, options = {}) {
   }
 
   // Parse JSON or throw
+  let data;
   const contentType = response.headers.get("content-type") || "";
-  const data = contentType.includes("application/json")
-    ? await response.json()
-    : await response.text();
+  try {
+    data = contentType.includes("application/json")
+      ? await response.json()
+      : await response.text();
+  } catch (e) {
+    if (e.name === 'SyntaxError') {
+      throw new Error("Server connection closed prematurely (unexpected end of JSON input). Check if the backend is running and stable.");
+    }
+    throw e;
+  }
 
   if (!response.ok) {
     const message =

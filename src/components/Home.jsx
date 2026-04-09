@@ -981,7 +981,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-[#022F2E] text-white overflow-x-hidden">
       {/* Add CSS for flashing animation */}
-      <style jsx>{`
+      <style>{`
         @keyframes flash {
           0%,
           100% {
