@@ -507,6 +507,7 @@ const ImageHoverEffect = ({ imageSrc }) => {
 
       // Dispose WebGL resources
       if (rendererRef.current) {
+        rendererRef.current.forceContextLoss();
         rendererRef.current.dispose();
         rendererRef.current = null;
       }
@@ -593,7 +594,7 @@ const Home = () => {
     const fetchEvents = async () => {
       try {
         setIsLoadingEvents(true);
-        const res = await eventsApi.getAll({ limit: 4 });
+        const res = await eventsApi.getAll();
         console.log("Fetched events", res)
 
         // Backend returns result of buildPaginatedResult: { data: events[], meta: {} }
@@ -601,7 +602,8 @@ const Home = () => {
         const eventArray = (Array.isArray(res) ? res : res.data) || [];
 
         const mapped = eventArray.map(mapDbEventToCard);
-        setDbEvents(mapped);
+        const revesed = [...mapped].reverse().slice(0, 4);
+        setDbEvents(revesed);
       } catch (error) {
         console.error("Failed to fetch events:", error);
         // Fallback to dummy data if API fails or returns empty
@@ -613,6 +615,11 @@ const Home = () => {
 
     fetchEvents();
   }, []);
+
+  useEffect(() => {
+    console.log("dbEvents", dbEvents);
+    console.log("isLoadingEvents", isLoadingEvents);
+  }, [dbEvents, isLoadingEvents]);
 
   const slidesContainerRef = useRef(null);
   const ctaTextRef = useRef(null);
@@ -1072,7 +1079,7 @@ const Home = () => {
             )}
           </div>
           <a
-            href="/"
+            href="/calender"
             className="block w-fit mx-auto mt-8 sm:mt-12 bg-[#64F422] text-slate-900 px-6 sm:px-8 py-2.5 sm:py-3 rounded-[12px] text-sm sm:text-base font-bold transition-all hover:scale-105 hover:shadow-lg hover:shadow-green-400/40"
           >
             View Calendar

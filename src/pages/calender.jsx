@@ -120,7 +120,7 @@ export default function CalenderPage() {
                 // Backend returns buildPaginatedResult: { data: events[], meta: {} }
                 // api.js unwraps the outer { success, data } so we get { data: [], meta: {} }
                 const list = (Array.isArray(res) ? res : res.data) || [];
-                setAllEvents(list);
+                setAllEvents([...list].reverse());
                 setError("");
             })
             .catch(err => setError(err.message || "Failed to load events."))

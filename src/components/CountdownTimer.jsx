@@ -5,7 +5,7 @@ const CountdownTimer = ({ endDate }) => {
 
     useEffect(() => {
         console.log("endDate", endDate)
-        const targetDate = endDate;
+        const targetDate = new Date(endDate).getTime();
         console.log("targetDate", targetDate)
 
         if (!targetDate) {
