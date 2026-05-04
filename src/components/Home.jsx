@@ -1464,205 +1464,179 @@ const Home = () => {
         </section>
 
         {/* --- TESTIMONIALS SECTION --- */}
-        <section className="relative bg-[#022F2E] py-12 sm:py-16 md:py-24 overflow-hidden" style={{
-        }}>
-          {/* Wavy Background Elements */}
-          <div className="absolute inset-0 z-0 pointer-events-none hidden md:block">
-            <Wave
-              style={{
-                width: "800px",
-                height: "800px",
-                top: "-400px",
-                left: "-300px",
-              }}
-            />
-            <Wave
-              style={{
-                width: "750px",
-                height: "750px",
-                top: "-380px",
-                left: "-280px",
-              }}
-            />
-            <Wave
-              style={{
-                width: "700px",
-                height: "700px",
-                top: "-360px",
-                left: "-240px",
-              }}
-            />
-            <Wave
-              style={{
-                width: "650px",
-                height: "650px",
-                top: "-340px",
-                left: "-240px",
-              }}
-            />
-            <Wave
-              className="bg-green-200/10"
-              style={{
-                width: "800px",
-                height: "800px",
-                bottom: "-450px",
-                right: "-400px",
-              }}
-            />
-            <Wave
-              className="bg-green-200/10"
-              style={{
-                width: "750px",
-                height: "750px",
-                bottom: "-430px",
-                right: "-380px",
-              }}
-            />
-          </div>
+        <section className="relative py-12 sm:py-16 md:py-20 overflow-hidden" style={{ background: "#f0f4ee" }}>
 
-          <div className="container mx-auto px-4 sm:px-6 relative z-10">
-            {/* Top Section: Large Testimonial & Image */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-8 sm:mb-12">
-              {/* Large Testimonial Card */}
-              <div className="bg-gray-100/80 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-lg text-slate-800 flex flex-col justify-center">
-                <p className="text-4xl sm:text-5xl font-bold">"</p>
-                <blockquote className="text-lg sm:text-xl md:text-2xl font-semibold leading-relaxed my-3 sm:my-4">
-                  Lenient Tree is bringing events from all over the world at
-                  your fingertips, all you have to do is join and show your
-                  skills. We value student's satisfaction and joy more than
-                  anything.
-                </blockquote>
-                <div className="mt-4 sm:mt-6">
-                  <p className="font-bold text-base sm:text-lg tracking-wider">
-                    AUGUSTINE VADAKUMCHERRY
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="w-5 h-5 sm:w-6 sm:h-6 bg-black rounded-full flex items-center justify-center">
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="sm:w-[14px] sm:h-[14px]"
-                      >
-                        <path
-                          d="M6 20V7H12"
-                          stroke="white"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M12 11C13.5 10 16 8.5 17.5 6.5C19 4.5 17.5 3 16 4.5"
-                          stroke="white"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-sm sm:text-md font-medium text-slate-700">
-                      Lenient Tree
+          {/* test-vector-1 — small, top-left of the section */}
+          <img
+            src="/test-vector-1.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute top-0 left-0 w-48 sm:w-72 md:w-96 pointer-events-none select-none z-0"
+            style={{ objectFit: "contain", objectPosition: "top left" }}
+          />
+
+          {/* test-vector-2 — large, bottom-right of the section */}
+          <img
+            src="/test-vector-2.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute bottom-0 right-0 w-64 sm:w-96 md:w-[480px] pointer-events-none select-none z-0"
+            style={{ objectFit: "contain", objectPosition: "bottom right" }}
+          />
+
+          <div className="container mx-auto px-4 sm:px-6 relative z-10 max-w-[1100px]">
+
+            {/* === MAIN TESTIMONIAL CARD === */}
+            <div className="relative rounded-3xl overflow-hidden shadow-xl border border-black/5">
+
+              <div className="relative z-10 flex flex-col md:flex-row min-h-[380px] sm:min-h-[420px]" style={{ gap: 0 }}>
+
+                {/* LEFT: Testimonial content */}
+                <div className="flex-1 flex flex-col justify-center px-8 sm:px-10 md:px-14 py-10 md:py-14">
+                  {/* Large curly quote */}
+                  <div className="mb-4">
+                    <svg width="56" height="44" viewBox="0 0 56 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <text x="0" y="44" fontSize="72" fontFamily="Georgia, serif" fill="#2d5a27" opacity="0.85">"</text>
+                    </svg>
+                  </div>
+
+                  <blockquote className="text-[#1a1a1a] text-base sm:text-lg md:text-xl leading-relaxed font-medium mb-6 sm:mb-8 max-w-md">
+                    Lenient Tree is bringing&nbsp; events from all over the world at
+                    your fingertips, all you have to do is join and show your
+                    skills. We value student's satisfaction and joy more than
+                    anything.
+                  </blockquote>
+
+                  {/* Author */}
+                  <div className="mt-auto">
+                    <p className="font-bold text-sm sm:text-base tracking-widest text-[#1a1a1a] uppercase mb-2">
+                      Augustine Vadakumcherry
                     </p>
+                    {/* LT Badge */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 bg-[white] rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M6 20V7H12" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M12 11C13.5 10 16 8.5 17.5 6.5C19 4.5 17.5 3 16 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                      <p className="text-sm sm:text-base font-medium text-[#333]">Lenient Tree</p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Person's Image Card - IMPROVED */}
-              <div className="bg-teal-600 rounded-2xl flex items-end justify-center overflow-hidden h-64 sm:h-72 md:h-80 lg:h-96 w-full transition-all duration-500 hover:shadow-xl hover:shadow-teal-500/30">
-                <img
-                  src="https://images.unsplash.com/photo-1741675121661-3ace9d68caba?q=80&w=627&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                  alt="Augustine Vadakumcherry"
-                  className="w-auto h-full object-cover object-bottom grayscale hover:grayscale-0 transition-all duration-500 hover:scale-105"
-                />
+                {/* RIGHT: Teal panel with person photo */}
+                <div
+                  className="relative flex-shrink-0 w-full md:w-[300px] lg:w-[340px] flex items-end justify-center overflow-hidden"
+                  style={{ background: "#f0f4ee", minHeight: "320px" }}
+                >
+                  {/* test-vector-2 behind the person photo */}
+                  <img
+                    src="/test-vector-2.png"
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute bottom-0 right-0 w-full pointer-events-none select-none z-0"
+                    style={{ objectFit: "cover", objectPosition: "bottom right" }}
+                  />
+                  <img
+                    src="https://images.unsplash.com/photo-1741675121661-3ace9d68caba?q=80&w=627&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                    alt="Augustine Vadakumcherry"
+                    className="relative z-10 w-auto h-full max-h-[420px] object-cover object-bottom grayscale"
+                    style={{ display: "block" }}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Bottom Section: Three Small Testimonials */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {/* === THREE INDIVIDUAL TESTIMONIAL CARDS === */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mt-6 sm:mt-8">
+
               {/* Card 1: Mark Zhong */}
-              <div className="bg-[#073434] rounded-2xl p-6 text-white">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src="https://images.unsplash.com/photo-1625262550495-1d3bfb5c1502?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                      alt="Mark Zhong"
-                      className="w-12 h-12 rounded-lg object-cover"
-                    />
-                    <div>
-                      <p className="font-bold text-sm">MARK ZHONG</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="w-5 h-5 flex items-center justify-center text-xs font-bold bg-gray-300 text-black rounded-full">
-                          a
-                        </span>
-                        <p className="text-xs text-gray-400">aCCUTARY</p>
-                      </div>
+              <div className="bg-[#073434] rounded-2xl p-6 text-white flex flex-col gap-4">
+                {/* Header: large avatar left, name+badge right-aligned */}
+                <div className="flex items-center justify-between gap-4">
+                  <img
+                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300&auto=format&fit=crop"
+                    alt="Mark Zhong"
+                    className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
+                  />
+                  <div className="text-right">
+                    <p className="font-bold text-sm tracking-wider">MARK ZHONG</p>
+                    <div className="flex items-center justify-end gap-2 mt-1.5">
+                      <span className="w-5 h-5 flex items-center justify-center text-xs font-bold bg-gray-300 text-black rounded-full flex-shrink-0">a</span>
+                      <p className="text-xs text-gray-400">aCCUTARY</p>
                     </div>
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-gray-400">"</p>
-                <p className="text-gray-200 text-sm leading-relaxed">
-                  Hi, I am happy with Lenient Tree and hope to work with them
-                  more often.
-                </p>
+                {/* Quote + text */}
+                <div>
+                  <p className="text-3xl font-bold text-[#64F422] leading-none mb-2">"</p>
+                  <p className="text-gray-200 text-sm leading-relaxed">
+                    Hi, I am happy with Lenient Tree and hope to work with them more often.
+                  </p>
+                </div>
               </div>
 
               {/* Card 2: Henry Dockson */}
-              <div className="bg-[#073434] rounded-2xl p-6 text-white">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src="https://images.unsplash.com/photo-1625262550495-1d3bfb5c1502?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                      alt="Henry Dockson"
-                      className="w-12 h-12 rounded-lg object-cover"
-                    />
-                    <div>
-                      <p className="font-bold text-sm">HENRY DOCKSON</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="w-5 h-5 flex items-center justify-center text-xs font-bold bg-gray-500 text-white rounded-full">
-                          B
-                        </span>
-                        <p className="text-xs text-gray-400">Bilency</p>
-                      </div>
+              <div className="bg-[#073434] rounded-2xl p-6 text-white flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-4">
+                  <img
+                    src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=300&auto=format&fit=crop"
+                    alt="Henry Dockson"
+                    className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
+                  />
+                  <div className="text-right">
+                    <p className="font-bold text-sm tracking-wider">HENRY DOCKSON</p>
+                    <div className="flex items-center justify-end gap-2 mt-1.5">
+                      <span className="w-5 h-5 flex items-center justify-center text-xs font-bold bg-gray-500 text-white rounded-full flex-shrink-0">B</span>
+                      <p className="text-xs text-gray-400">Bilency</p>
                     </div>
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-gray-400">"</p>
-                <p className="text-gray-200 text-sm leading-relaxed">
-                  Lenient Tree is growing everyday, and I want to be part of it.
-                  Investment such as this is always a great option in my
-                  opinion.
-                </p>
+                <div>
+                  <p className="text-3xl font-bold text-[#64F422] leading-none mb-2">"</p>
+                  <p className="text-gray-200 text-sm leading-relaxed">
+                    Lenient Tree is growing everyday, and I want to be part of it. Investment such as this is always a great option in my opinion.
+                  </p>
+                </div>
               </div>
 
               {/* Card 3: Arnav Ghani */}
-              <div className="bg-[#073434] rounded-2xl p-6 text-white">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src="https://images.unsplash.com/photo-1625262550495-1d3bfb5c1502?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                      alt="Arnav Ghani"
-                      className="w-12 h-12 rounded-lg object-cover"
-                    />
-                    <div>
-                      <p className="font-bold text-sm">ARNAV GHANI</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="w-5 h-5 flex items-center justify-center text-xs font-bold bg-gray-300 text-black rounded-full">
-                          @
-                        </span>
-                        <p className="text-xs text-gray-400">Artystry H&C</p>
-                      </div>
+              <div className="bg-[#073434] rounded-2xl p-6 text-white flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-4">
+                  <img
+                    src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=300&auto=format&fit=crop"
+                    alt="Arnav Ghani"
+                    className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
+                  />
+                  <div className="text-right">
+                    <p className="font-bold text-sm tracking-wider">ARNAV GHANI</p>
+                    <div className="flex items-center justify-end gap-2 mt-1.5">
+                      <span className="w-5 h-5 flex items-center justify-center text-xs font-bold bg-gray-300 text-black rounded-full flex-shrink-0">@</span>
+                      <p className="text-xs text-gray-400">Artystry H&amp;C</p>
                     </div>
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-gray-400">"</p>
-                <p className="text-gray-200 text-sm leading-relaxed">
-                  Creativity is not limited for Lenient Tree, they help us get
-                  the best results. It's their ART.
-                </p>
+                <div>
+                  <p className="text-3xl font-bold text-[#64F422] leading-none mb-2">"</p>
+                  <p className="text-gray-200 text-sm leading-relaxed">
+                    Creativity is not limited for Lenient Tree, they help us get the best results. It's their ART.
+                  </p>
+                </div>
               </div>
+
             </div>
+
+            {/* === TESTIMONIES LABEL === */}
+            <div className="mt-6 sm:mt-8">
+              <h2 className="text-[#1a1a1a] text-2xl sm:text-3xl font-bold flex items-center gap-2">
+                Testimonies
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="inline-block">
+                  <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </h2>
+            </div>
+
           </div>
         </section>
 
