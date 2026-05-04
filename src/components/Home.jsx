@@ -149,7 +149,7 @@ const CollaborationEventCard = React.memo(({ event }) => {
     <div className="p-2 sm:p-3">
       <div
         ref={cardRef}
-        className={`relative w-full h-80 sm:h-96 rounded-2xl overflow-hidden cursor-pointer border-2 transition-shadow duration-300 ${colors.bgColor
+        className={`relative w-full sm:w-80 h-[380px] sm:h-[400px] rounded-lg overflow-hidden cursor-pointer border-2 transition-shadow duration-300 ${colors.bgColor
           } ${isHovered
             ? `${colors.borderColor} ${colors.glowColor}`
             : "border-white/20"
@@ -558,6 +558,8 @@ const Home = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [dbEvents, setDbEvents] = useState([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const [dbHackathons, setDbHackathons] = useState([]);
+  const [isLoadingHackathons, setIsLoadingHackathons] = useState(true);
 
   // Map database event model to what CollaborationEventCard expects
   const mapDbEventToCard = (event) => {
@@ -613,7 +615,25 @@ const Home = () => {
       }
     };
 
+    const fetchHackathons = async () => {
+      try {
+        setIsLoadingHackathons(true);
+        const res = await eventsApi.getAll({ category: 'Hackathon' });
+        const eventArray = (Array.isArray(res) ? res : res.data) || [];
+
+        const mapped = eventArray.map(mapDbEventToCard);
+        const revesed = [...mapped].reverse().slice(0, 4);
+        setDbHackathons(revesed);
+      } catch (error) {
+        console.error("Failed to fetch hackathons:", error);
+        setDbHackathons([]);
+      } finally {
+        setIsLoadingHackathons(false);
+      }
+    };
+
     fetchEvents();
+    fetchHackathons();
   }, []);
 
   useEffect(() => {
@@ -1053,17 +1073,17 @@ const Home = () => {
 
         <section
           ref={eventsRef}
-          className="container mt-12 sm:mt-16 md:mt-24 mx-auto px-3 sm:px-6 py-8 sm:py-12 md:py-16 bg-[#022F2E]"
+          className="container mt-10 sm:mt-16 md:mt-24 mx-auto px-3 sm:px-6 py-4 sm:py-12 md:py-12 bg-[#022F2E]"
         >
-          <div className="mb-6 sm:mb-8 px-2 sm:px-3">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">Upcoming Events</h2>
+          <div className="mb-2 sm:mb-2 px-2 sm:px-3">
+            <h2 className="text-2xl sm:text-3xl md:text-3xl font-bold text-[#A1A1A1]">Upcoming Events</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 min-h-[400px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 min-h-[400px] sm:min-h-[500px]">
             {isLoadingEvents ? (
               // Loading Skeleton
               Array(4).fill(0).map((_, i) => (
                 <div key={i} className="p-4 animate-pulse">
-                  <div className="w-full h-80 bg-slate-800/50 rounded-2xl border-2 border-white/5"></div>
+                  <div className="w-full h-[380px] sm:h-[400px] bg-slate-800/50 rounded-2xl border-2 border-white/5"></div>
                 </div>
               ))
             ) : dbEvents.length > 0 ? (
@@ -1078,13 +1098,38 @@ const Home = () => {
               </div>
             )}
           </div>
+
+          <div className="mt-1 sm:mt-3 mb-1 px-2 sm:px-3">
+            <h2 className="text-2xl sm:text-3xl md:text-3xl font-bold text-[#A1A1A1]">Upcoming Hackathons</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 min-h-[400px]">
+            {isLoadingHackathons ? (
+              // Loading Skeleton
+              Array(4).fill(0).map((_, i) => (
+                <div key={i} className="p-4 animate-pulse">
+                  <div className="w-full h-[380px] sm:h-[400px] bg-slate-800/50 rounded-2xl border-2 border-white/5"></div>
+                </div>
+              ))
+            ) : dbHackathons.length > 0 ? (
+              dbHackathons.map((event) => (
+                <Link key={event.id} to={`/event/${event.id}`}>
+                  <CollaborationEventCard event={event} />
+                </Link>
+              ))
+            ) : (
+              <div className="col-span-full py-20 text-center text-white/50">
+                <p className="text-xl">No upcoming hackathons found.</p>
+              </div>
+            )}
+          </div>
           <a
             href="/calender"
-            className="block w-fit mx-auto mt-8 sm:mt-12 bg-[#64F422] text-slate-900 px-6 sm:px-8 py-2.5 sm:py-3 rounded-[12px] text-sm sm:text-base font-bold transition-all hover:scale-105 hover:shadow-lg hover:shadow-green-400/40"
+            className="block w-80 text-center mx-auto mt-4 sm:mt-4 bg-[#64F422] text-slate-900 px-4 sm:px-8 py-2.5 sm:py-3 rounded-[12px] text-sm sm:text-base font-bold transition-all hover:scale-105 hover:shadow-lg hover:shadow-green-400/40"
           >
             View Calendar
           </a>
         </section>
+
 
 
         <section
@@ -1112,11 +1157,11 @@ const Home = () => {
           <div className="hidden md:block absolute bottom-0 left-6 sm:left-12 w-16 h-16 sm:w-32 sm:h-32 bg-gradient-to-br from-purple-500 to-purple-800 transform -skew-x-12 -mb-4 sm:-mb-8"></div>
           <div className="hidden md:block absolute bottom-0 right-6 sm:right-12 w-16 h-16 sm:w-32 sm:h-32 bg-red-600 transform skew-x-12 -mb-4 sm:-mb-8"></div>
           <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6">
-            <h2 ref={ctaTextRef} className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-4 mt-8 px-2">
+            <h2 ref={ctaTextRef} className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-4 mt-8 px-2 ">
               Your Gateway to
               <div className="mt-4 sm:mt-6 h-32 sm:h-40 md:h-48 lg:h-56 xl:h-64 overflow-hidden relative">
-                <span className="rotating-words block text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[12rem] font-serif italic font-bold text-white/90">
-                  <span className="inline-block animate-scroll-up">
+                <span className="rotating-words block text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[12rem]  italic font-bold text-white/90">
+                  <span className="inline-block font-['Fitzgerald-Italic'] animate-scroll-up">
                     {words[currentWordIndex]}
                   </span>
                 </span>
@@ -1227,7 +1272,7 @@ const Home = () => {
               <div className="grid grid-cols-7 gap-2 sm:gap-3">{renderCalendar()}</div>
             </div>
 
-            <div className="flex flex-col sm:flex-row md:gap-8 lg:gap-12 relative z-10 w-full px-4 sm:px-0">
+            <div className="flex flex-col sm:flex-row justify-center gap-6 md:gap-8 lg:gap-12 relative z-10 w-full px-4 sm:px-0 mt-12 lg:mt-20">
               {[
                 { number: "4000+", label: "Members" },
                 { number: "2000+", label: "Students" },
@@ -1235,12 +1280,22 @@ const Home = () => {
               ].map((stat, index) => (
                 <div
                   key={index}
-                  className="bg-slate-800/70 backdrop-blur-lg rounded-2xl mt-20 lg:mt-40 sm:rounded-3xl px-6 sm:px-8 md:px-10 py-4 sm:py-5 md:py-6 text-center border-2 border-green-400/90 shadow-2xl shadow-green-400/50 flex-1"
+                  className="relative overflow-hidden bg-[#133F3D] rounded-[1.5rem] sm:rounded-[2rem] px-8 sm:px-10 lg:px-14 py-6 sm:py-8 flex items-center justify-center border-2 border-[#64F422]/80 shadow-[0_0_25px_rgba(100,244,34,0.4)] w-full sm:w-auto"
                 >
-                  <span className="block text-2xl sm:text-3xl font-bold font-mono">
-                    {stat.number}
-                  </span>
-                  <span className="block text-sm sm:text-base text-white/70 mt-1">{stat.label}</span>
+                  {/* Subtle inner shape for depth */}
+                  <div className="absolute -left-10 sm:-left-16 top-1/2 transform -translate-y-1/2 w-28 sm:w-36 h-32 sm:h-48 bg-white/5 rounded-[50%] blur-[2px]"></div>
+
+                  <div className="relative z-10 flex items-center justify-center gap-2 sm:gap-3">
+                    <span className="text-3xl sm:text-4xl lg:text-5xl font-light text-white">
+                      {stat.number.replace('+', '')}
+                    </span>
+                    <span className="text-3xl sm:text-4xl lg:text-5xl font-light text-white">
+                      +
+                    </span>
+                    <span className="text-lg sm:text-xl lg:text-2xl text-white font-medium tracking-wide pt-1">
+                      {stat.label}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
