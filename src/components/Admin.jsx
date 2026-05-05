@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { admin } from '../services/api';
+import { events as eventsApi } from '../services/api';
+import EditEventModal from './shared/EditEventModal';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -123,6 +125,11 @@ const Admin = () => {
   const [rejectModal, setRejectModal] = useState(null); // { id, title }
   const [rejectReason, setRejectReason] = useState('');
 
+  // All events
+  const [allEvents, setAllEvents] = useState([]);
+  const [loadingAllEvents, setLoadingAllEvents] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+
   // Users
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -133,6 +140,7 @@ const Admin = () => {
   // Organizer requests (from audit logs)
   const [orgRequests, setOrgRequests] = useState([]);
   const [loadingOrg, setLoadingOrg] = useState(false);
+  const [viewOrgModal, setViewOrgModal] = useState(null);
 
   // Recent users (full list with search)
   const [recentUsersData, setRecentUsersData] = useState([]);
@@ -169,6 +177,18 @@ const Admin = () => {
 
   // ── Fetch Pending Events ──
 
+
+  const fetchAllEvents = useCallback(async () => {
+    setLoadingAllEvents(true);
+    try {
+      const data = await eventsApi.getAll({ limit: 1000 });
+      setAllEvents(data?.data || data || []);
+    } catch {
+      showToast('Failed to load all events', 'error');
+    } finally {
+      setLoadingAllEvents(false);
+    }
+  }, []);
   const fetchPending = useCallback(async () => {
     setLoadingPending(true);
     try {
@@ -231,6 +251,7 @@ const Admin = () => {
   useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
   useEffect(() => {
     if (activeTab === 'events') fetchPending();
+    if (activeTab === 'allEvents') fetchAllEvents();
     if (activeTab === 'users') fetchUsers(1);
     if (activeTab === 'organizer') fetchOrgRequests();
     if (activeTab === 'recentUsers') fetchRecentUsers(1);
@@ -298,6 +319,7 @@ const Admin = () => {
   const navItems = [
     { key: 'dashboard', label: 'Dashboard', icon: BarChart2 },
     { key: 'events', label: 'Pending Events', icon: CalendarDays },
+    { key: 'allEvents', label: 'All Events', icon: CalendarDays },
     { key: 'organizer', label: 'Organizer Requests', icon: UserCheck },
     { key: 'recentUsers', label: 'Recent Users', icon: Users },
     { key: 'users', label: 'All Users', icon: SlidersHorizontal },
@@ -542,7 +564,7 @@ const Admin = () => {
               ) : (
                 <div className="space-y-4">
                   {pendingEvents.map((ev) => (
-                    <div key={ev.id} className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-5 hover:border-[#00ff88]/40 transition-all">
+                    <div key={ev.id} onClick={() => navigate(`/event/${ev.id}`)} className="cursor-pointer bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-5 hover:border-[#00ff88]/40 transition-all">
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -559,14 +581,14 @@ const Admin = () => {
                         </div>
                         <div className="flex gap-2 flex-shrink-0">
                           <button
-                            onClick={() => handleApproveEvent(ev.id)}
+                            onClick={(e) => { e.stopPropagation(); handleApproveEvent(ev.id); }}
                             className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all"
                           >
                             <CheckCircle className="w-4 h-4" />
                             Approve
                           </button>
                           <button
-                            onClick={() => setRejectModal({ id: ev.id, title: ev.title })}
+                            onClick={(e) => { e.stopPropagation(); setRejectModal({ id: ev.id, title: ev.title }); }}
                             className="flex items-center gap-1.5 bg-red-900/50 hover:bg-red-700 border border-red-500/50 text-red-400 hover:text-white text-sm font-medium px-4 py-2 rounded-xl transition-all"
                           >
                             <XCircle className="w-4 h-4" />
@@ -613,6 +635,49 @@ const Admin = () => {
             </div>
           )}
 
+
+          {/* ── ALL EVENTS TAB ── */}
+          {activeTab === 'allEvents' && (
+            <div>
+              <SectionHeader title="All Events" count={allEvents.length} onRefresh={fetchAllEvents} />
+              {loadingAllEvents ? (
+                <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-[#00ff88] animate-spin" /></div>
+              ) : allEvents.length === 0 ? (
+                <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-12 text-center">
+                  <CalendarDays className="w-12 h-12 text-[#00ff88] mx-auto mb-3 opacity-50" />
+                  <p className="text-gray-400">No events found.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {allEvents.map((ev) => (
+                    <div key={ev.id} onClick={() => navigate(`/event/${ev.id}`)} className="cursor-pointer bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-5 hover:border-[#00ff88]/40 transition-all">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <h3 className="text-white font-semibold">{ev.title}</h3>
+                            <Badge status={ev.status} />
+                          </div>
+                          <p className="text-gray-400 text-sm">{ev.category} · {ev.mode}</p>
+                          <p className="text-gray-500 text-xs mt-1">
+                            By {ev.organizer?.name || '—'} · {fmtDate(ev.startDate)}
+                          </p>
+                        </div>
+                        <div className="flex gap-2 flex-shrink-0">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditingEvent(ev); }}
+                            className="flex items-center gap-1.5 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all"
+                          >
+                            <Pencil className="w-4 h-4" />
+                            Edit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {/* ── ORGANIZER REQUESTS TAB ── */}
           {activeTab === 'organizer' && (
             <div>
@@ -629,7 +694,7 @@ const Admin = () => {
                   {orgRequests.map((log) => {
                     const details = log.newValue || {};
                     return (
-                      <div key={log.id} className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-5 hover:border-purple-500/40 transition-all">
+                      <div key={log.id} onClick={() => setViewOrgModal(log)} className="cursor-pointer bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-5 hover:border-purple-500/40 transition-all">
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -644,7 +709,7 @@ const Admin = () => {
                           </div>
                           <div className="flex-shrink-0">
                             <button
-                              onClick={() => handleApproveOrganizer(log.userId)}
+                              onClick={(e) => { e.stopPropagation(); handleApproveOrganizer(log.userId); }}
                               className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-5 py-2 rounded-xl transition-all"
                             >
                               <UserCheck className="w-4 h-4" />
@@ -842,6 +907,7 @@ const Admin = () => {
                 </>
               )}
 
+
               {/* ── View User Modal ── */}
               {viewUserModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
@@ -1031,9 +1097,52 @@ const Admin = () => {
             </div>
           )}
 
+              {/* ── View Org Modal ── */}
+              {viewOrgModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+                  <div className="w-full max-w-md bg-[#0d2f2f] border-2 border-[#1a4d4d] rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between mb-5">
+                      <h3 className="text-white font-semibold text-lg">Organizer Details</h3>
+                      <button onClick={() => setViewOrgModal(null)} className="text-gray-400 hover:text-white transition-colors">
+                        <XCircle className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <div className="space-y-4 text-sm text-gray-300">
+                      <div><span className="text-gray-500 block text-xs">User Name</span>{viewOrgModal.user?.name || viewOrgModal.user?.email || 'Unknown'}</div>
+                      <div><span className="text-gray-500 block text-xs">User Email</span>{viewOrgModal.user?.email}</div>
+                      <div><span className="text-gray-500 block text-xs">Organization Name</span>{viewOrgModal.newValue?.orgName || '—'}</div>
+                      <div><span className="text-gray-500 block text-xs">Organization Email</span>{viewOrgModal.newValue?.orgEmail || '—'}</div>
+                      <div><span className="text-gray-500 block text-xs">First Event</span>{viewOrgModal.newValue?.eventName || '—'}</div>
+                      <div><span className="text-gray-500 block text-xs">Requested At</span>{fmtDateTime(viewOrgModal.createdAt)}</div>
+                    </div>
+                    <div className="flex gap-3 mt-6">
+                      <button onClick={() => setViewOrgModal(null)} className="flex-1 py-2.5 rounded-xl border border-[#1a4d4d] text-gray-400 hover:text-white transition-all">
+                        Close
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); handleApproveOrganizer(viewOrgModal.userId); setViewOrgModal(null); }} className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold transition-all">
+                        Approve
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+          <EditEventModal
+            isOpen={!!editingEvent}
+            eventToEdit={editingEvent}
+            onClose={() => setEditingEvent(null)}
+            onSuccess={(payload) => {
+              setEditingEvent(null);
+              if (activeTab === 'allEvents') fetchAllEvents();
+              if (activeTab === 'events') fetchPending();
+              fetchDashboard();
+              showToast('Event updated successfully!');
+            }}
+          />
         </main>
       </div>
     </div>
+
   );
 };
 

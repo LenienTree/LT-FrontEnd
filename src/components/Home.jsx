@@ -1475,29 +1475,35 @@ const Home = () => {
             style={{ objectFit: "contain", objectPosition: "top left" }}
           />
 
-          {/* test-vector-2 — large, bottom-right of the section */}
           <img
             src="/test-vector-2.png"
             alt=""
             aria-hidden="true"
-            className="absolute bottom-0 right-0 w-64 sm:w-96 md:w-[480px] pointer-events-none select-none z-0"
-            style={{ objectFit: "contain", objectPosition: "bottom right" }}
+            className="absolute top-0 right-0 w-full md:w-[75%] h-full object-cover object-right pointer-events-none select-none z-0"
+          />
+          {/* test-vector-3 — bottom-left of the section */}
+          <img
+            src="/test-vector-3.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute bottom-0 left-0 w-48 sm:w-72 md:w-96 pointer-events-none select-none z-0"
+            style={{ objectFit: "contain", objectPosition: "bottom left" }}
           />
 
           <div className="container mx-auto px-4 sm:px-6 relative z-10 max-w-[1100px]">
 
             {/* === MAIN TESTIMONIAL CARD === */}
-            <div className="relative rounded-3xl overflow-hidden shadow-xl border border-black/5">
 
-              <div className="relative z-10 flex flex-col md:flex-row min-h-[380px] sm:min-h-[420px]" style={{ gap: 0 }}>
 
-                {/* LEFT: Testimonial content */}
-                <div className="flex-1 flex flex-col justify-center px-8 sm:px-10 md:px-14 py-10 md:py-14">
+
+            <div className="relative z-10 flex flex-col md:flex-row min-h-[380px] sm:min-h-[420px]" style={{ gap: 0 }}>
+
+              {/* LEFT: Testimonial content */}
+              <div className="flex-1 flex flex-col justify-center p-4 sm:p-6 md:p-8 z-10">
+                <div className="bg-white/50 backdrop-blur-md rounded-3xl p-6 sm:p-8 md:p-10 border border-white/40 h-full flex flex-col justify-center shadow-sm">
                   {/* Large curly quote */}
-                  <div className="mb-4">
-                    <svg width="56" height="44" viewBox="0 0 56 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <text x="0" y="44" fontSize="72" fontFamily="Georgia, serif" fill="#2d5a27" opacity="0.85">"</text>
-                    </svg>
+                  <div className="mb-1">
+                    <img src="/quote.png" alt="Quote" className="w-12 sm:w-14 h-auto" />
                   </div>
 
                   <blockquote className="text-[#1a1a1a] text-base sm:text-lg md:text-xl leading-relaxed font-medium mb-6 sm:mb-8 max-w-md">
@@ -1514,7 +1520,7 @@ const Home = () => {
                     </p>
                     {/* LT Badge */}
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 sm:w-7 sm:h-7 bg-[white] rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 bg-black rounded-full flex items-center justify-center flex-shrink-0">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M6 20V7H12" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                           <path d="M12 11C13.5 10 16 8.5 17.5 6.5C19 4.5 17.5 3 16 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -1524,29 +1530,33 @@ const Home = () => {
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* RIGHT: Teal panel with person photo */}
+              {/* RIGHT: Teal panel with person photo */}
+              <div className="relative flex-shrink-0 w-full md:w-[320px] lg:w-[380px] flex items-end justify-center p-4 sm:p-6 md:p-8 z-10">
                 <div
-                  className="relative flex-shrink-0 w-full md:w-[300px] lg:w-[340px] flex items-end justify-center overflow-hidden"
-                  style={{ background: "#f0f4ee", minHeight: "320px" }}
+                  className="relative w-full h-full min-h-[320px] rounded-2xl overflow-hidden flex items-end justify-center"
+                  style={{ background: "#0E7A67" }}
                 >
-                  {/* test-vector-2 behind the person photo */}
                   <img
-                    src="/test-vector-2.png"
-                    alt=""
-                    aria-hidden="true"
-                    className="absolute bottom-0 right-0 w-full pointer-events-none select-none z-0"
-                    style={{ objectFit: "cover", objectPosition: "bottom right" }}
-                  />
-                  <img
-                    src="https://images.unsplash.com/photo-1741675121661-3ace9d68caba?q=80&w=627&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                    src="/augustine.png"
                     alt="Augustine Vadakumcherry"
-                    className="relative z-10 w-auto h-full max-h-[420px] object-cover object-bottom grayscale"
+                    className="relative z-10 w-auto h-full max-h-[380px] object-cover object-bottom grayscale"
                     style={{ display: "block" }}
                   />
                 </div>
               </div>
             </div>
+            {/* === TESTIMONIES LABEL === */}
+            <div className="mt-6 sm:mt-8">
+              <h2 className="text-[#1a1a1a] text-2xl sm:text-3xl font-bold flex items-center gap-2">
+                Testimonies
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="inline-block">
+                  <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </h2>
+            </div>
+
 
             {/* === THREE INDIVIDUAL TESTIMONIAL CARDS === */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mt-6 sm:mt-8">
@@ -1627,15 +1637,6 @@ const Home = () => {
 
             </div>
 
-            {/* === TESTIMONIES LABEL === */}
-            <div className="mt-6 sm:mt-8">
-              <h2 className="text-[#1a1a1a] text-2xl sm:text-3xl font-bold flex items-center gap-2">
-                Testimonies
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="inline-block">
-                  <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </h2>
-            </div>
 
           </div>
         </section>
