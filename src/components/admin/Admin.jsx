@@ -6,102 +6,15 @@ import {
   ChevronLeft, ChevronRight, RefreshCw, Loader2,
   UserCheck, AlertTriangle, Pencil, Trash2, SlidersHorizontal
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { admin } from '../services/api';
-import { events as eventsApi } from '../services/api';
-import EditEventModal from './shared/EditEventModal';
+import { useAuth } from '../../context/AuthContext';
+import { admin } from '../../services/api';
+import { events as eventsApi } from '../../services/api';
+import EditEventModal from '../shared/EditEventModal';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const fmtNum = (n) =>
-  n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M`
-    : n >= 1_000 ? `${(n / 1_000).toFixed(1)}K`
-      : String(n ?? 0);
-
-const fmtDate = (d) =>
-  d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-
-const fmtDateTime = (d) =>
-  d ? new Date(d).toLocaleString('en-IN', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: false
-  }).replace(',', '') : '—';
-
-const Badge = ({ status }) => {
-  const map = {
-    PENDING_APPROVAL: 'bg-yellow-900/40 text-yellow-400 border-yellow-500/40',
-    APPROVED: 'bg-green-900/40 text-green-400 border-green-500/40',
-    REJECTED: 'bg-red-900/40 text-red-400 border-red-500/40',
-    DRAFT: 'bg-gray-700/60 text-gray-300 border-gray-500/40',
-    ACTIVE: 'bg-green-900/40 text-green-400 border-green-500/40',
-    BLOCKED: 'bg-red-900/40 text-red-400 border-red-500/40',
-    ORGANIZER_REQUEST: 'bg-purple-900/40 text-purple-400 border-purple-500/40',
-  };
-  return (
-    <span className={`text-xs px-2 py-0.5 rounded-full border ${map[status] ?? 'bg-gray-700 text-gray-300 border-gray-500'}`}>
-      {status?.replace('_', ' ')}
-    </span>
-  );
-};
-
-// Role badge matching mockup — USER=amber outline, ADMIN=red/pink
-const RoleBadge = ({ role, isOrganizer }) => {
-  if (role === 'ADMIN') return (
-    <span className="text-xs font-semibold px-3 py-0.5 rounded-full border border-red-500 text-red-400 bg-red-900/20">
-      Admin
-    </span>
-  );
-  if (isOrganizer) return (
-    <span className="text-xs font-semibold px-3 py-0.5 rounded-full border border-purple-500 text-purple-400 bg-purple-900/20">
-      Organizer
-    </span>
-  );
-  return (
-    <span className="text-xs font-semibold px-3 py-0.5 rounded-full border border-amber-500 text-amber-400 bg-amber-900/20">
-      User
-    </span>
-  );
-};
-
-// ─── Stat Card ────────────────────────────────────────────────────────────────
-
-const StatCard = ({ label, value, change, icon: Icon, iconBg }) => (
-  <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-5 flex items-center justify-between hover:border-[#00ff88]/50 transition-all duration-300 group">
-    <div>
-      <p className="text-gray-400 text-xs mb-1">{label}</p>
-      <p className="text-white text-3xl font-bold tracking-tight">{fmtNum(value)}</p>
-      {change != null && (
-        <p className="text-[#00ff88] text-xs mt-1 flex items-center gap-1">
-          <TrendingUp className="w-3 h-3" />
-          {change}% from last month
-        </p>
-      )}
-    </div>
-    <div className={`w-14 h-14 rounded-2xl ${iconBg} flex items-center justify-center flex-shrink-0 shadow-lg`}>
-      <Icon className="w-7 h-7 text-white" />
-    </div>
-  </div>
-);
-
-// ─── Section Header ───────────────────────────────────────────────────────────
-
-const SectionHeader = ({ title, count, onRefresh }) => (
-  <div className="flex items-center justify-between mb-4">
-    <div className="flex items-center gap-3">
-      <h2 className="text-white text-lg font-semibold">{title}</h2>
-      {count != null && (
-        <span className="bg-[#00ff88]/20 text-[#00ff88] text-xs font-bold px-2.5 py-0.5 rounded-full">
-          {count}
-        </span>
-      )}
-    </div>
-    {onRefresh && (
-      <button onClick={onRefresh} className="text-gray-400 hover:text-[#00ff88] transition-colors p-1 rounded-lg hover:bg-[#1a4d4d]">
-        <RefreshCw className="w-4 h-4" />
-      </button>
-    )}
-  </div>
-);
+import { fmtNum, fmtDate, fmtDateTime } from './AdminHelpers';
+import { Badge, RoleBadge } from './Badges';
+import StatCard from './StatCard';
+import SectionHeader from './SectionHeader';
 
 // ─── Admin Component ──────────────────────────────────────────────────────────
 

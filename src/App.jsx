@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import Home from "./components/Home";
+import Home from "./components/home/Home";
 import AboutNew from "./components/AboutNew";
 import TeamHalfCircle from "./components/TeamHalfCircle";
 import Signup from "./components/user/auth/Signup";
@@ -9,7 +9,7 @@ import Profile from "./components/user/Profile";
 import CalenderPage from "./pages/calender";
 import OrganizeEvent from "./components/organizer/OrganizeEvent";
 import EventDetails from "./components/EventDetails";
-import Admin from "./components/Admin";
+import Admin from "./components/admin/Admin";
 import { useAuth } from "./context/AuthContext";
 
 // Guard: only approved organizers and admins can access /organize
