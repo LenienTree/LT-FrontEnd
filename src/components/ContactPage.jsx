@@ -3,7 +3,7 @@ import React from 'react';
 const ContactPage = () => {
     return (
         <div className="max-h-screen w-full bg-gray-900 text-white font-inter flex items-start justify-start">
-            <div className=" max-w-9xl bg-[#102025] rounded-lg shadow-xl p-2 flex flex-col lg:flex-row">
+            <div className=" max-w-9xl bg-[#102025] rounded-4xl shadow-xl p-2 flex flex-col lg:flex-row">
                 {/* Left Section: Contact Form */}
                 <div className="lg:w-1/3 p-4 lg:pr-12"> {/* Increased right padding for spacing */}
                     <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
@@ -19,7 +19,7 @@ const ContactPage = () => {
                                 id="fullName"
                                 name="fullName"
                                 placeholder="Full Name"
-                                className="mt-1 block w-full py-2 bg-gray-800 border-b border-gray-600 focus:border-green-500 focus:outline-none  " // Adjusted styling
+                                className="mt-1 block w-full py-2 px-2 bg-gray-800 border-b border-gray-600 focus:border-green-500 focus:outline-none  " // Adjusted styling
                             />
                         </div>
                         <div>
@@ -29,7 +29,7 @@ const ContactPage = () => {
                                 id="phoneNo"
                                 name="phoneNo"
                                 placeholder="Phone No."
-                                className="mt-1 block w-full py-2 bg-gray-800 border-b border-gray-600 focus:border-green-500 focus:outline-none  " // Adjusted styling
+                                className="mt-1 block w-full py-2 px-2 bg-gray-800 border-b border-gray-600 focus:border-green-500 focus:outline-none  " // Adjusted styling
                             />
                         </div>
                         <div>
@@ -39,7 +39,7 @@ const ContactPage = () => {
                                 id="email"
                                 name="email"
                                 placeholder="Email"
-                                className="mt-1 block w-full py-2 bg-gray-800 border-b border-gray-600 focus:border-green-500 focus:outline-none  " // Adjusted styling
+                                className="mt-1 block w-full py-2 px-2 bg-gray-800 border-b border-gray-600 focus:border-green-500 focus:outline-none  " // Adjusted styling
                             />
                         </div>
                         <div>
@@ -49,7 +49,7 @@ const ContactPage = () => {
                                 name="message"
                                 rows="4"
                                 placeholder="Message"
-                                className="mt-1 block w-full py-2 bg-gray-800 border-b border-gray-600 focus:border-green-500 focus:outline-none   resize-none" // Adjusted styling, added resize-none
+                                className="mt-1 block w-full py-2 px-2 bg-gray-800 border-b border-gray-600 focus:border-green-500 focus:outline-none   resize-none" // Adjusted styling, added resize-none
                             ></textarea>
                         </div>
                         <button

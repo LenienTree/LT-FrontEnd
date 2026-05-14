@@ -39,7 +39,7 @@ const EventDetails = () => {
     const [searchParams] = useSearchParams();
     const eventId = paramId || searchParams.get('id');
 
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, openAuthModal } = useAuth();
 
     const [eventData, setEventData] = useState(null);
     const [announcements, setAnnouncements] = useState([]);
@@ -100,27 +100,17 @@ const EventDetails = () => {
         fetchEvent();
     }, [eventId, isAuthenticated]);
 
-    const handleRegister = async () => {
+    const handleRegister = () => {
         if (!isAuthenticated) {
-            navigate('/login');
+            openAuthModal('login');
             return;
         }
-        setRegistering(true);
-        setError('');
-        try {
-            await eventsApi.registerForEvent(eventId, {});
-            setRegisterSuccess('You are registered! Check your email for confirmation.');
-            setRegistrationStatus(prev => ({ ...prev, isRegistered: true, status: 'PENDING' }));
-        } catch (err) {
-            setError(err.message || 'Registration failed.');
-        } finally {
-            setRegistering(false);
-        }
+        navigate(`/event/${eventId}/register`);
     };
 
     const handleBookmark = async () => {
         if (!isAuthenticated) {
-            navigate('/login');
+            openAuthModal('login');
             return;
         }
         setBookmarking(true);

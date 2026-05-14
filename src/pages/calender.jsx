@@ -9,11 +9,11 @@ import { events as eventsApi } from "../services/api";
 
 /* ─── Category colour map ─────────────────────────────────────────────────── */
 const CAT_STYLES = {
-    Hackathon: { pill: "bg-blue-500/20 text-blue-300 border-blue-500/30",   dot: "bg-blue-500",   cal: "bg-blue-500" },
-    Ideathon:  { pill: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30", dot: "bg-yellow-400", cal: "bg-yellow-400" },
-    Webinar:   { pill: "bg-purple-500/20 text-purple-300 border-purple-500/30", dot: "bg-purple-500", cal: "bg-purple-500" },
-    Conclave:  { pill: "bg-red-500/20 text-red-300 border-red-500/30",      dot: "bg-red-500",    cal: "bg-red-500" },
-    Other:     { pill: "bg-gray-500/20 text-gray-300 border-gray-500/30",   dot: "bg-gray-400",   cal: "bg-gray-400" },
+    Hackathon: { pill: "bg-blue-500/20 text-blue-300 border-blue-500/30", dot: "bg-blue-500", cal: "bg-blue-500" },
+    Ideathon: { pill: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30", dot: "bg-yellow-400", cal: "bg-yellow-400" },
+    Webinar: { pill: "bg-purple-500/20 text-purple-300 border-purple-500/30", dot: "bg-purple-500", cal: "bg-purple-500" },
+    Conclave: { pill: "bg-red-500/20 text-red-300 border-red-500/30", dot: "bg-red-500", cal: "bg-red-500" },
+    Other: { pill: "bg-gray-500/20 text-gray-300 border-gray-500/30", dot: "bg-gray-400", cal: "bg-gray-400" },
 };
 const getStyle = (cat) => CAT_STYLES[cat] ?? CAT_STYLES.Other;
 
@@ -37,26 +37,26 @@ function EventCard({ event, onClick }) {
                 {/* Poster — locked 3:4 aspect ratio */}
                 <div className="relative w-full overflow-hidden bg-gradient-to-br from-[#0a1f1f] to-[#0d3333]" style={{ paddingBottom: "133.33%" }}>
                     <div className="absolute inset-0">
-                    {poster ? (
-                        <img
-                            src={poster}
-                            alt={event.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            onError={() => setImgError(true)}
-                        />
-                    ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-4">
-                            <Calendar size={30} className="text-[#9AE600]/40" />
-                            <span className="text-gray-500 text-xs text-center line-clamp-2">{event.title}</span>
+                        {poster ? (
+                            <img
+                                src={poster}
+                                alt={event.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                onError={() => setImgError(true)}
+                            />
+                        ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-4">
+                                <Calendar size={30} className="text-[#9AE600]/40" />
+                                <span className="text-gray-500 text-xs text-center line-clamp-2">{event.title}</span>
+                            </div>
+                        )}
+                        {/* Mode badge */}
+                        <div className="absolute top-2 right-2">
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border backdrop-blur-sm ${event.mode === "ONLINE" ? "bg-blue-500/20 text-blue-300 border-blue-500/30" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"}`}>
+                                {event.mode === "ONLINE" ? "🌐 Online" : "📍 Offline"}
+                            </span>
                         </div>
-                    )}
-                    {/* Mode badge */}
-                    <div className="absolute top-2 right-2">
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border backdrop-blur-sm ${event.mode === "ONLINE" ? "bg-blue-500/20 text-blue-300 border-blue-500/30" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"}`}>
-                            {event.mode === "ONLINE" ? "🌐 Online" : "📍 Offline"}
-                        </span>
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0D3838] via-transparent to-transparent opacity-70" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0D3838] via-transparent to-transparent opacity-70" />
                     </div>
                 </div>
 
@@ -143,17 +143,25 @@ export default function CalenderPage() {
     /* Build a map of day → event categories for the calendar dots */
     const calendarEventMap = useMemo(() => {
         const map = {};
-        allEvents.forEach(e => {
+        filteredEvents.forEach(e => {
             if (!e.startDate) return;
-            const d = new Date(e.startDate);
-            if (d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
-                const day = d.getDate();
-                if (!map[day]) map[day] = [];
-                map[day].push(e.category || "Other");
+            const start = new Date(e.startDate);
+            const end = e.endDate ? new Date(e.endDate) : start;
+
+            const current = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+            const last = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+
+            while (current <= last) {
+                if (current.getMonth() === selectedMonth && current.getFullYear() === selectedYear) {
+                    const day = current.getDate();
+                    if (!map[day]) map[day] = [];
+                    map[day].push(e.category || "Other");
+                }
+                current.setDate(current.getDate() + 1);
             }
         });
         return map;
-    }, [allEvents, selectedMonth, selectedYear]);
+    }, [filteredEvents, selectedMonth, selectedYear]);
 
     /* ── Calendar render ── */
     const getDaysInMonth = (m, y) => new Date(y, m + 1, 0).getDate();
@@ -179,28 +187,25 @@ export default function CalenderPage() {
             const dots = [...new Set(dayEvents)].slice(0, 3);
 
             days.push(
-                <div key={day} className="relative flex flex-col items-center p-2">
-                    {dots.length > 0 && (
-                        <div className="flex gap-0.5 mb-1 h-2">
-                            {dots.map((cat, idx) => (
+                <div key={day} className="flex justify-center">
+                    <div className={`relative flex flex-col items-center p-1.5 sm:p-2 w-full max-w-[3.5rem] sm:max-w-[4.5rem] ${isToday ? 'border border-[#9AE600] rounded-xl' : 'border border-transparent'}`}>
+                        <div className="flex gap-0.5 mb-1.5 w-6 sm:w-10 h-1.5">
+                            {dots.length > 0 && dots.map((cat, idx) => (
                                 <div
                                     key={idx}
-                                    className={`flex-1 h-2 rounded-sm ${getStyle(cat).cal}`}
+                                    className={`flex-1 h-1.5 rounded-full ${getStyle(cat).cal}`}
                                 />
                             ))}
                         </div>
-                    )}
-                    <span
-                        className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full text-sm sm:text-base md:text-lg font-medium transition-all ${
-                            isToday
-                                ? "bg-[#9AE600] text-slate-900 font-bold ring-4 ring-[#9AE600]/30"
-                                : dots.length > 0
-                                ? "text-white ring-1 ring-[#9AE600]/20"
-                                : "text-white/90 hover:text-white"
-                        }`}
-                    >
-                        {day}
-                    </span>
+                        <span
+                            className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full text-sm sm:text-base font-medium transition-all ${isToday
+                                ? "bg-[#9AE600] text-slate-900 font-bold"
+                                : "text-white/90 hover:text-white hover:bg-white/10"
+                                }`}
+                        >
+                            {day}
+                        </span>
+                    </div>
                 </div>
             );
         }
@@ -211,29 +216,45 @@ export default function CalenderPage() {
 
     return (
         <div
-            className="min-h-screen bg-[#022F2E]"
+            className="min-h-screen bg-[#102025]"
             style={{ backgroundImage: `url("/vectorhome2.png")`, backgroundSize: "cover", backgroundPosition: "center" }}
         >
-            <div className="p-20">
+            <div className="p-10">
                 <Header />
+            </div>
+            <div className="max-w-5xl mx-auto text-center bg-[#0D3838]/80 backdrop-blur-lg rounded-2xl p-2 px-4 border-2 border-[#9AE600]/50 mb-10">
+                <div className="flex justify-between flex-wrap items-center gap-4">
+                    {Object.entries(CAT_STYLES).map(([cat, s]) => (
+                        <div key={cat} className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-sm ${s.dot}`} />
+                            <span className="text-white/80 text-lg">{cat}</span>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {/* ── Calendar ── */}
-            <div className="w-full max-w-5xl mx-auto bg-[#0D3838]/95 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 border-4 border-[#9AE600] shadow-2xl shadow-[#9AE600]/20 mb-8">
-                <div className="flex mt-10 justify-between items-center mb-6 sm:mb-8">
-                    <h4 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
-                        {monthNames[selectedMonth]} {selectedYear}
-                    </h4>
+            <div className="w-full max-w-5xl mx-auto bg-[#102025]/95 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 border border-[#9AE600] shadow-2xl mb-8">
+                <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-3">
+                        <h4 className="text-3xl sm:text-5xl font-light text-white tracking-wide">
+                            {monthNames[selectedMonth]}
+                        </h4>
+                        <div className="flex flex-col text-xs sm:text-sm text-gray-400 font-medium justify-center mt-1">
+                            <span>{new Date(selectedYear, selectedMonth, 1).toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                            <span>{selectedYear}</span>
+                        </div>
+                    </div>
                     <div className="flex items-center gap-2 sm:gap-3">
                         <button
                             onClick={() => {
                                 if (selectedMonth === 0) { setSelectedMonth(11); setSelectedYear(selectedYear - 1); }
                                 else setSelectedMonth(selectedMonth - 1);
                             }}
-                            className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-700/50 hover:bg-slate-600/50 border-2 border-slate-600/50 transition-all"
+                            className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-white/20 hover:border-[#9AE600] hover:bg-[#9AE600]/10 transition-all group"
                             aria-label="Previous month"
                         >
-                            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:text-[#9AE600]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
                             </svg>
                         </button>
@@ -242,36 +263,33 @@ export default function CalenderPage() {
                                 if (selectedMonth === 11) { setSelectedMonth(0); setSelectedYear(selectedYear + 1); }
                                 else setSelectedMonth(selectedMonth + 1);
                             }}
-                            className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-700/50 hover:bg-slate-600/50 border-2 border-slate-600/50 transition-all"
+                            className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-white/20 hover:border-[#9AE600] hover:bg-[#9AE600]/10 transition-all group"
                             aria-label="Next month"
                         >
-                            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:text-[#9AE600]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                             </svg>
                         </button>
                     </div>
                 </div>
 
+                {/* Dots line divider */}
+                <div className="flex items-center w-full mb-6 sm:mb-8">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#9AE600]"></div>
+                    <div className="flex-1 h-[1px] bg-[#9AE600]"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#9AE600]"></div>
+                </div>
+
                 <div className="grid grid-cols-7 gap-2 sm:gap-3 text-center mb-4">
                     {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map(d => (
-                        <div key={d} className="text-white/60 text-sm sm:text-base md:text-lg py-2 sm:py-3">{d}</div>
+                        <div key={d} className="text-white/60 text-xs sm:text-sm md:text-base py-2">{d}</div>
                     ))}
                 </div>
-                <div className="grid grid-cols-7 gap-2 sm:gap-3">{renderCalendar()}</div>
+                <div className="grid grid-cols-7 gap-1 sm:gap-2">{renderCalendar()}</div>
             </div>
 
             {/* ── Legend ── */}
-            <div className="max-w-5xl mx-auto bg-[#0D3838]/80 backdrop-blur-lg rounded-2xl p-6 border-2 border-[#9AE600]/50 mb-10">
-                <h3 className="text-xl font-bold text-white mb-4">Event Types</h3>
-                <div className="flex flex-wrap gap-4">
-                    {Object.entries(CAT_STYLES).map(([cat, s]) => (
-                        <div key={cat} className="flex items-center gap-2">
-                            <div className={`w-3 h-3 rounded-sm ${s.dot}`} />
-                            <span className="text-white/80 text-sm">{cat}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
+
 
             {/* ── Event Discovery Section ── */}
             <div className="container mx-auto px-4 pb-16">
@@ -311,11 +329,10 @@ export default function CalenderPage() {
                             <button
                                 key={cat}
                                 onClick={() => setActiveCategory(cat)}
-                                className={`px-6 py-2 rounded-full text-sm font-semibold border transition-all duration-200 ${
-                                    activeCategory === cat
-                                        ? "bg-[#9AE600] text-black border-[#9AE600] shadow-lg scale-105"
-                                        : "bg-transparent text-gray-300 border-[#9AE600]/20 hover:border-[#9AE600]/50 hover:text-white"
-                                }`}
+                                className={`px-6 py-2 rounded-full text-sm font-semibold border transition-all duration-200 ${activeCategory === cat
+                                    ? "bg-[#9AE600] text-black border-[#9AE600] shadow-lg scale-105"
+                                    : "bg-transparent text-gray-300 border-[#9AE600]/20 hover:border-[#9AE600]/50 hover:text-white"
+                                    }`}
                             >
                                 {cat}
                             </button>

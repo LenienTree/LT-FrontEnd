@@ -8,6 +8,7 @@ import Contact from "./Contact";
 import { StarsCanvas } from "./canvas";
 import { motion } from "framer-motion";
 import AnimatedGallery from "./animations/AnimatedGallery";
+import Header from "./layout/Header";
 
 // Register ScrollTrigger plugin
 gsap.registerPlugin(ScrollTrigger);

@@ -1,6 +1,8 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function OrganizeEventCTA() {
+    const navigate = useNavigate()
     return (
         <div className="w-full">
             <div
@@ -36,7 +38,9 @@ export default function OrganizeEventCTA() {
                         </button>
 
                         {/* Organize Event Button */}
-                        <button className="w-full sm:w-auto bg-[#9AE600] hover:bg-[#8BD500] text-black font-bold py-4 px-12 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        <button className="w-full sm:w-auto bg-[#9AE600] hover:bg-[#8BD500] text-black font-bold py-4 px-12 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-xl"
+                            onClick={() => navigate('/profile')}
+                        >
                             Organize Event
                         </button>
                     </div>

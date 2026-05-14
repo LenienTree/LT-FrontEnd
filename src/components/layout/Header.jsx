@@ -8,11 +8,13 @@ import { users } from "../../services/api";
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isProfileOpen, setIsProfileOpen] = useState(false)
+    const [isNavVisible, setIsNavVisible] = useState(true)
     const profileRef = useRef(null)
+    const lastScrollY = useRef(0)
     const navigate = useNavigate()
     const location = useLocation()
     const pathname = location.pathname
-    const { isAuthenticated, logout, user, loading } = useAuth()
+    const { isAuthenticated, logout, user, loading, openAuthModal } = useAuth()
     const [profileImage, setProfileImage] = useState(null)
     const [isAdmin, setIsAdmin] = useState(false)
 
@@ -38,6 +40,28 @@ export default function Header() {
             .then(data => setIsAdmin(data?.role === 'ADMIN'))
             .catch(() => { })
     }, [isAuthenticated])
+
+    // Hide navbar on scroll down, show on scroll up
+    useEffect(() => {
+        function handleScroll() {
+            const currentScrollY = window.scrollY
+            if (currentScrollY < 10) {
+                // Always show at the very top
+                setIsNavVisible(true)
+            } else if (currentScrollY > lastScrollY.current) {
+                // Scrolling down — hide
+                setIsNavVisible(false)
+                setIsMenuOpen(false)
+            } else {
+                // Scrolling up — show
+                setIsNavVisible(true)
+            }
+            lastScrollY.current = currentScrollY
+        }
+
+        window.addEventListener('scroll', handleScroll, { passive: true })
+        return () => window.removeEventListener('scroll', handleScroll)
+    }, [])
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -65,7 +89,13 @@ export default function Header() {
     ]
 
     return (
-        <header className="fixed top-0 left-10 right-10 z-50">
+        <header
+            className="fixed top-0 left-10 right-10 z-50"
+            style={{
+                transform: isNavVisible ? 'translateY(0)' : 'translateY(-120%)',
+                transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+        >
             <div className="container mx-auto p-5">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
@@ -136,13 +166,13 @@ export default function Header() {
                                 )}
                             </>
                         ) : (
-                            <Link
-                                to="/login"
+                            <button
+                                onClick={() => openAuthModal('login')}
                                 className="flex items-center space-x-2 px-4 py-2 rounded-full bg-[#9AE600] text-black text-sm font-semibold hover:bg-[#85cc00] transition-colors"
                             >
                                 <User size={16} />
                                 <span>Sign In</span>
-                            </Link>
+                            </button>
                         )}
                     </div>
 
@@ -188,14 +218,16 @@ export default function Header() {
                                         </button>
                                     </>
                                 ) : (
-                                    <Link
-                                        to="/login"
-                                        className="flex items-center space-x-2 py-2 text-sm text-[#9AE600] font-semibold hover:text-[#85cc00]"
-                                        onClick={() => setIsMenuOpen(false)}
+                                    <button
+                                        onClick={() => {
+                                            openAuthModal('login');
+                                            setIsMenuOpen(false);
+                                        }}
+                                        className="w-full flex items-center space-x-2 py-2 text-sm text-[#9AE600] font-semibold hover:text-[#85cc00]"
                                     >
                                         <User size={16} />
                                         <span>Sign In</span>
-                                    </Link>
+                                    </button>
                                 )}
                             </div>
                         </nav>

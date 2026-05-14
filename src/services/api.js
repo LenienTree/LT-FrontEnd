@@ -270,10 +270,18 @@ export const events = {
   /**
    * Register the current user for an event.
    * @param {string} eventId
-   * @param {{ formData?: Record<string, string> }} data
+   * @param {{ formData?: Record<string, string>, paymentProof?: string, razorpayPaymentId?: string, razorpayOrderId?: string, razorpaySignature?: string }} data
    */
   registerForEvent: (eventId, data = {}) =>
     post(`/api/events/${eventId}/register`, data),
+
+  /**
+   * Create a Razorpay order for an event registration.
+   * @param {string} eventId
+   * @param {{ teamSize: number }} data
+   */
+  createRazorpayOrder: (eventId, data) =>
+    post(`/api/events/${eventId}/create-razorpay-order`, data),
 
   // ── Organizer Operations ──
 

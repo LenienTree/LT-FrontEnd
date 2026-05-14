@@ -15,6 +15,7 @@ import gsap from "gsap";
 import TreeWithFallingLeaves from "./animations/FallingLeaves";
 import TeamHalfCircle from "./TeamHalfCircle";
 import { StarsBackground } from "./canvas/StarsBackground";
+import Header from "./layout/Header";
 
 gsap.registerPlugin(ScrollTrigger, MotionPathPlugin);
 function AboutNew() {
@@ -579,6 +580,7 @@ function AboutNew() {
 
   return (
     <>
+      <Header />
       {(loading || exiting) && (
         <div
           style={{

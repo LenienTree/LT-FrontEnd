@@ -224,7 +224,22 @@ const Profile = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
+  };
+
+  const handleRemoveBookmark = async (eventId) => {
+    try {
+      await bookmarks.toggle(eventId);
+      setMyBookmarks(prev => prev.filter(bm => {
+        const evtId = bm.event?.id || bm.id;
+        return evtId !== eventId;
+      }));
+      setProfileSuccess('Bookmark removed!');
+      setTimeout(() => setProfileSuccess(''), 3000);
+    } catch (err) {
+      setProfileError(err.message || 'Failed to remove bookmark.');
+      setTimeout(() => setProfileError(''), 3000);
+    }
   };
 
   // ── Edit Event Handlers ──
@@ -620,12 +635,21 @@ const Profile = () => {
                           <h3 className="text-white font-semibold">{evt.title || 'Event'}</h3>
                           <p className="text-gray-400 text-sm mt-1">{evt.category} · {evt.mode}</p>
                         </div>
-                        <button
-                          onClick={() => navigate(`/event/${evt.id}`)}
-                          className="text-[#00ff88] text-sm border border-[#00ff88] px-4 py-2 rounded-lg hover:bg-[#00ff88]/10 transition-colors"
-                        >
-                          View
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => handleRemoveBookmark(evt.id)}
+                            className="text-red-400 text-sm border border-red-500/50 px-4 py-2 rounded-lg hover:bg-red-500/10 transition-colors flex items-center gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Remove
+                          </button>
+                          <button
+                            onClick={() => navigate(`/event/${evt.id}`)}
+                            className="text-[#00ff88] text-sm border border-[#00ff88] px-4 py-2 rounded-lg hover:bg-[#00ff88]/10 transition-colors"
+                          >
+                            View
+                          </button>
+                        </div>
                       </div>
                     );
                   })}

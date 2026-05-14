@@ -317,7 +317,7 @@ const Admin = () => {
             </div>
           </div>
           <button
-            onClick={() => { logout(); navigate('/login'); }}
+            onClick={() => { logout(); navigate('/'); }}
             className="w-full flex items-center gap-2 text-gray-400 hover:text-red-400 text-sm py-2 px-3 rounded-lg hover:bg-red-900/20 transition-all"
           >
             <LogOut className="w-4 h-4" />

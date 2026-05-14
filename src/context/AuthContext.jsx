@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { auth as authApi, setToken, removeToken, getToken } from "../services/api";
+import { auth as authApi, users, setToken, removeToken, getToken } from "../services/api";
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
@@ -12,6 +12,19 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true); // true on first mount (checking auth)
     const [error, setError] = useState(null);
 
+    // ── Auth Modal State ──
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [authModalView, setAuthModalView] = useState('login'); // 'login' or 'signup'
+
+    const openAuthModal = useCallback((view = 'login') => {
+        setAuthModalView(view);
+        setIsAuthModalOpen(true);
+    }, []);
+
+    const closeAuthModal = useCallback(() => {
+        setIsAuthModalOpen(false);
+    }, []);
+
     // ── Bootstrap: re-hydrate user from stored token ──
     useEffect(() => {
         const init = async () => {
@@ -20,8 +33,8 @@ export function AuthProvider({ children }) {
                 return;
             }
             try {
-                const data = await authApi.getMe();
-                // If getMe() succeeded with our updated API wrapper, it returns the user object directly
+                const data = await users.getMyProfile();
+                // If getMyProfile() succeeded with our updated API wrapper, it returns the user object directly
                 setUser(data);
             } catch {
                 removeToken();
@@ -77,7 +90,7 @@ export function AuthProvider({ children }) {
 
     const refetchUser = useCallback(async () => {
         try {
-            const data = await authApi.getMe();
+            const data = await users.getMyProfile();
             setUser(data);
             return data;
         } catch {
@@ -98,6 +111,10 @@ export function AuthProvider({ children }) {
         resetPassword,
         refetchUser,
         setError,
+        isAuthModalOpen,
+        authModalView,
+        openAuthModal,
+        closeAuthModal,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

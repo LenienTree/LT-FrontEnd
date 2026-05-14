@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 
-const Signup = () => {
+const Signup = ({ switchToLogin, onSuccess }) => {
   const navigate = useNavigate();
   const { register } = useAuth();
 
@@ -57,7 +57,8 @@ const Signup = () => {
         ...payload,
         graduationYear: Number(payload.graduationYear) || payload.graduationYear,
       });
-      navigate('/');
+      if (onSuccess) onSuccess();
+      else navigate('/');
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -66,9 +67,9 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <>
       {/* Left Panel - Signup Form */}
-      <div className="w-full lg:w-1/2 bg-gradient-to-br from-[#0a1f1f] via-[#0d2626] to-[#0a1f1f] flex items-center justify-center p-8">
+      <div className="w-full md:w-1/2 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           {/* Heading */}
           <div className="mb-8">
@@ -220,7 +221,8 @@ const Signup = () => {
           <p className="text-center text-gray-400 text-sm mt-6">
             Already have an account?{' '}
             <button
-              onClick={() => navigate('/login')}
+              type="button"
+              onClick={switchToLogin || (() => navigate('/login'))}
               className="text-[#00ff88] hover:underline font-medium"
             >
               Sign in
@@ -230,7 +232,7 @@ const Signup = () => {
       </div>
 
       {/* Right Panel */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-[#0d3333] to-[#0a1f1f] items-center justify-center overflow-hidden">
+      <div className="hidden md:flex md:w-1/2 relative bg-gradient-to-br from-[#0d3333] to-[#0a1f1f] items-center justify-center overflow-hidden">
         <div className="absolute inset-0 opacity-80">
           <img className="w-full h-full object-cover" src="/login-bg.png" alt="Tropical background" />
         </div>
@@ -247,7 +249,7 @@ const Signup = () => {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -60,16 +60,19 @@ const Home = () => {
     };
   };
 
+  const [allDbEvents, setAllDbEvents] = useState([]);
+
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         setIsLoadingEvents(true);
         const res = await eventsApi.getAll();
-        console.log("Fetched events", res)
+        console.log("Fetched events", res);
 
         // Backend returns result of buildPaginatedResult: { data: events[], meta: {} }
         // Our api.js wrapper returns the 'data' field of the response
         const eventArray = (Array.isArray(res) ? res : res.data) || [];
+        setAllDbEvents(eventArray);
 
         const mapped = eventArray.map(mapDbEventToCard);
         const revesed = [...mapped].reverse().slice(0, 4);
@@ -210,53 +213,36 @@ const Home = () => {
     const firstDay = getFirstDayOfMonth(selectedMonth, selectedYear);
     const days = [];
 
-    // Static event patterns - predefined and consistent
-    const getStaticEvents = (day) => {
-      // Static patterns based on day number (won't change on re-render)
-      const eventPatterns = {
-        1: [],
-        2: ['hackathon', 'ideathon'],
-        3: ['conclave'],
-        4: ['ideathon', 'webinar'],
-        5: [],
-        6: ['hackathon'],
-        7: ['conclave', 'ideathon'],
-        8: [],
-        9: ['webinar', 'hackathon', 'ideathon'],
-        10: [],
-        11: ['ideathon', 'conclave'],
-        12: ['hackathon', 'webinar'],
-        13: [],
-        14: ['conclave', 'ideathon'],
-        15: [],
-        16: ['hackathon', 'webinar'],
-        17: ['ideathon', 'conclave', 'hackathon'],
-        18: [],
-        19: ['webinar', 'hackathon'],
-        20: ['ideathon'],
-        21: [],
-        22: ['conclave', 'hackathon'],
-        23: ['hackathon', 'webinar', 'ideathon'],
-        24: ['conclave', 'webinar'],
-        25: ['ideathon', 'hackathon'],
-        26: ['hackathon', 'conclave'],
-        27: ['ideathon', 'webinar'],
-        28: [],
-        29: ['webinar', 'hackathon'],
-        30: ['conclave', 'ideathon'],
-        31: ['hackathon', 'webinar', 'ideathon']
-      };
-
-      const events = eventPatterns[day] || [];
-      // Map event types to colors: hackathon=blue, ideathon=yellow, conclave=red, webinar=purple
-      return events.map(type => {
-        switch (type) {
-          case 'hackathon': return 'bg-blue-500';
-          case 'ideathon': return 'bg-yellow-500';
-          case 'conclave': return 'bg-red-500';
-          case 'webinar': return 'bg-purple-500';
-          default: return 'bg-gray-500';
+    // Map database events to days in the selected month
+    const calendarEventMap = {};
+    allDbEvents.forEach(e => {
+        if (!e.startDate) return;
+        const start = new Date(e.startDate);
+        const end = e.endDate ? new Date(e.endDate) : start;
+        
+        const current = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        const last = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+        
+        while (current <= last) {
+            if (current.getMonth() === selectedMonth && current.getFullYear() === selectedYear) {
+                const day = current.getDate();
+                if (!calendarEventMap[day]) calendarEventMap[day] = [];
+                calendarEventMap[day].push(e.category || "Other");
+            }
+            current.setDate(current.getDate() + 1);
         }
+    });
+
+    const getDayEvents = (day) => {
+      const events = calendarEventMap[day] || [];
+      const uniqueEvents = [...new Set(events)].slice(0, 3);
+      return uniqueEvents.map(type => {
+        const t = type.toLowerCase();
+        if (t.includes('hackathon')) return 'bg-blue-500';
+        if (t.includes('ideathon')) return 'bg-yellow-500';
+        if (t.includes('conclave')) return 'bg-red-500';
+        if (t.includes('webinar')) return 'bg-purple-500';
+        return 'bg-gray-500';
       });
     };
 
@@ -270,7 +256,7 @@ const Home = () => {
         selectedMonth === currentDate.getMonth() &&
         selectedYear === currentDate.getFullYear();
 
-      const events = getStaticEvents(day);
+      const events = getDayEvents(day);
 
       days.push(
         <div key={day} className="relative flex flex-col items-center p-2">
@@ -599,7 +585,7 @@ const Home = () => {
 
         <section
           ref={ctaRef}
-          className="w-full relative py-20 sm:py-32 md:py-40 lg:py-48 bg-[#022F2E] text-center overflow-hidden border-t-2 sm:border-t-4 border-green-400"
+          className="w-full relative py-20 sm:py-32 md:py-40 lg:py-48 bg-[#042029] text-center overflow-hidden border-t-2 sm:border-t-4 border-green-400"
           style={{
             backgroundImage: `url("/vectorhome2.png")`,
             backgroundSize: "cover",
@@ -611,7 +597,7 @@ const Home = () => {
             <div
               className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[500px] opacity-40 blur-[120px]"
               style={{
-                background: 'radial-gradient(ellipse at top, rgba(255,255,255,0.7) 0%, transparent 80%)',
+                background: 'radial-gradient(ellipse at top, #042029 0%, transparent 80%)',
               }}
             />
           </div>
@@ -646,7 +632,7 @@ const Home = () => {
         {/* Community Section */}
         <section
           ref={communityRef}
-          className="py-32 mt-2 relative bg-[#022F2E]"
+          className="py-32  relative bg-[#042029]"
           style={{
             backgroundImage: `url("/vectorhome2.png")`,
             backgroundSize: "cover",
@@ -676,7 +662,7 @@ const Home = () => {
               />
             </div>
 
-            <div className="w-full -mt-12 sm:-mt-16 md:-mt-40 max-w-5xl bg-[#0D3838]/95 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 border-4 border-[#9AE600] shadow-2xl shadow-[#9AE600]/20 relative z-10">
+            <div className="w-full -mt-12 sm:-mt-16 md:-mt-40 max-w-5xl bg-[#042029]/95 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 border-4 border-[#9AE600] shadow-2xl shadow-[#9AE600]/20 relative z-10">
               <div className="flex justify-between items-center mb-6 sm:mb-8">
                 <h4 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
                   {monthNames[selectedMonth]} {selectedYear}
@@ -771,7 +757,7 @@ const Home = () => {
         {/* Community Showcase Section */}
         <section
           ref={communityRef}
-          className="py-32 mt-2 relative bg-[#022F2E]"
+          className="py-32  relative bg-[#042029]"
           style={{
             backgroundImage: `url("/vectorhome2.png")`,
             backgroundSize: "cover",
@@ -832,7 +818,7 @@ const Home = () => {
         </section>
 
         {/* Join Community CTA Section */}
-        <section className="relative bg-[#022F2E] py-16 sm:py-20 md:py-24 overflow-hidden" style={{
+        <section className="relative bg-[#042029] py-16 sm:py-20 md:py-24 overflow-hidden" style={{
           backgroundImage: `url("/vectorhome2.png")`,
           backgroundSize: "cover",
           backgroundPosition: "center",
@@ -888,12 +874,16 @@ const Home = () => {
 
 
         {/* --- PARTNERS/LOGOS SECTION --- */}
-        <section className="relative bg-[#022F2E] py-12 sm:py-16 md:py-20 overflow-hidden" style={{
-        }}>
+        <section className="py-32  relative bg-[#042029]"
+          style={{
+            backgroundImage: `url("/vectorhome2.png")`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}>
           <div className="relative z-10">
             {/* Section Header */}
             <div className="flex justify-center mb-8 sm:mb-12">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white px-8 sm:px-12 py-3 sm:py-4 border-4 border-[#9AE600] rounded-full bg-[#0D3838]/80 backdrop-blur-sm shadow-xl shadow-[#9AE600]/20">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white px-6 sm:px-10 py-2 sm:py-3 border-2 border-white rounded-full bg-[#0D3838]/80 backdrop-blur-sm ">
                 Our Partners
               </h2>
             </div>
@@ -979,17 +969,18 @@ const Home = () => {
                   </blockquote>
 
                   {/* Author */}
-                  <div className="mt-auto">
+                  <div className="mx-auto">
                     <p className="font-bold text-sm sm:text-base tracking-widest text-[#1a1a1a] uppercase mb-2">
                       Augustine Vadakumcherry
                     </p>
                     {/* LT Badge */}
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 sm:w-7 sm:h-7 bg-black rounded-full flex items-center justify-center flex-shrink-0">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        {/* <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M6 20V7H12" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                           <path d="M12 11C13.5 10 16 8.5 17.5 6.5C19 4.5 17.5 3 16 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+                        </svg> */}
+                        <img src="/logo1.png" className="w-4 h-4" alt="" />
                       </div>
                       <p className="text-sm sm:text-base font-medium text-[#333]">Lenient Tree</p>
                     </div>
@@ -1004,7 +995,7 @@ const Home = () => {
                   style={{ background: "#0E7A67" }}
                 >
                   <img
-                    src="/augustine.png"
+                    src="/augustine1.png"
                     alt="Augustine Vadakumcherry"
                     className="relative z-10 w-auto h-full max-h-[380px] object-cover object-bottom grayscale"
                     style={{ display: "block" }}

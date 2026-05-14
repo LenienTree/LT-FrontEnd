@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
 
-const Login = () => {
+const Login = ({ switchToSignup, onSuccess }) => {
     const navigate = useNavigate();
     const { login, googleAuth, forgotPassword } = useAuth();
 
@@ -22,7 +22,8 @@ const Login = () => {
         setLoading(true);
         try {
             await login({ email, password });
-            navigate('/');
+            if (onSuccess) onSuccess();
+            else navigate('/');
         } catch (err) {
             setError(err.message || 'Login failed. Check your credentials.');
         } finally {
@@ -46,9 +47,9 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen flex">
+        <>
             {/* Left Panel - Login Form */}
-            <div className="w-full lg:w-1/2 bg-gradient-to-br from-[#0a1f1f] via-[#0d2626] to-[#0a1f1f] flex items-center justify-center p-8">
+            <div className="w-full md:w-1/2 flex items-center justify-center p-8">
                 <div className="w-full max-w-md">
                     {/* Branding */}
                     <div className="mb-8">
@@ -106,7 +107,8 @@ const Login = () => {
                                             setLoading(true);
                                             // credentialResponse.credential is the JWT idToken
                                             await googleAuth(credentialResponse.credential);
-                                            navigate('/');
+                                            if (onSuccess) onSuccess();
+                                            else navigate('/');
                                         } catch (err) {
                                             setError(err.message || 'Google Login failed.');
                                         } finally {
@@ -180,7 +182,8 @@ const Login = () => {
                             <p className="text-center text-gray-400 text-sm mt-6">
                                 Don't have an account?{' '}
                                 <button
-                                    onClick={() => navigate('/signup')}
+                                    type="button"
+                                    onClick={switchToSignup || (() => navigate('/signup'))}
                                     className="text-[#00ff88] hover:underline font-medium"
                                 >
                                     Sign up
@@ -192,7 +195,7 @@ const Login = () => {
             </div>
 
             {/* Right Panel - Branding & Background */}
-            <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-[#0d3333] to-[#0a1f1f] items-center justify-center overflow-hidden">
+            <div className="hidden md:flex md:w-1/2 relative bg-gradient-to-br from-[#0d3333] to-[#0a1f1f] items-center justify-center overflow-hidden">
                 <div className="absolute inset-0 opacity-80">
                     <img className="w-full h-full object-cover" src="/login-bg.png" alt="Tropical background" />
                 </div>
@@ -209,7 +212,7 @@ const Login = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 
