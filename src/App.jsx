@@ -7,6 +7,7 @@ import AuthModal from "./components/user/auth/AuthModal";
 import Profile from "./components/user/Profile";
 import CalenderPage from "./pages/calender";
 import OrganizeEvent from "./components/organizer/OrganizeEvent";
+import EditEventPage from "./components/organizer/EditEventPage";
 import EventDetails from "./components/EventDetails";
 import Admin from "./components/admin/Admin";
 import EventRegistration from "./components/EventRegistration";
@@ -53,6 +54,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/calender" element={<CalenderPage />} />
         <Route path="/organize" element={<OrganizerRoute><OrganizeEvent /></OrganizerRoute>} />
+        <Route path="/organize/edit/:id" element={<OrganizerRoute><EditEventPage /></OrganizerRoute>} />
         <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
         {/* Event detail — supports both /event/:id and legacy /event?id=... */}
         <Route path="/event/:id" element={<EventDetails />} />

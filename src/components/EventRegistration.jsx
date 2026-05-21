@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, Plus, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Trash2, CheckCircle2, AlertCircle, Download, Copy, Check, Link, Linkedin, Upload } from 'lucide-react';
 import Header from './layout/Header';
 import Footer from './layout/Footer';
 import { events as eventsApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+
+// The specific event ID that requires the GitHub post flow
+const GITHUB_POST_EVENT_ID = 'f1741c2e-044a-42eb-a9e3-f27eac0aa00f';
+const RESIDENCY_POST_EVENT_ID = 'd866975a-ae3e-4d58-9649-7bbf7f755f12';
 
 const EventRegistration = () => {
     const navigate = useNavigate();
@@ -15,18 +19,21 @@ const EventRegistration = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    const [form, setForm] = useState({
-        name: user?.name || '',
-        email: user?.email || '',
-        phone: user?.phone || '',
-        college: user?.college || '',
-        tshirtSize: '',
-        gender: ''
-    });
+    const [form, setForm] = useState({});
+    const [formFields, setFormFields] = useState([]);
 
     const [teamMembers, setTeamMembers] = useState([]);
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState('');
+
+    // Manual UPI payment proof
+    const [paymentProofFile, setPaymentProofFile] = useState(null);
+
+    // LinkedIn post flow (only for the special event)
+    const isGithubEvent = eventId === GITHUB_POST_EVENT_ID;
+    const [linkedinPostLink, setLinkedinPostLink] = useState('');
+    const [copiedDescription, setCopiedDescription] = useState(false);
+    const [linkedinLinkError, setLinkedinLinkError] = useState('');
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -41,6 +48,32 @@ const EventRegistration = () => {
                 const e = res?.event || res;
                 if (!e) throw new Error('Event not found');
                 setEventData(e);
+                
+                const defaultFields = [
+                    { label: 'name', type: 'text', required: true },
+                    { label: 'email', type: 'email', required: true },
+                    { label: 'phone', type: 'tel', required: true },
+                    { label: 'college', type: 'text', required: true }
+                ];
+                
+                let fields = e.customFormFields && Array.isArray(e.customFormFields) && e.customFormFields.length > 0 
+                    ? e.customFormFields 
+                    : defaultFields;
+
+                setFormFields(fields);
+
+                const initialForm = {};
+                fields.forEach(field => {
+                    const key = field.label;
+                    const keyLower = key.toLowerCase();
+                    if (keyLower.includes('name')) initialForm[key] = user?.name || '';
+                    else if (keyLower.includes('email')) initialForm[key] = user?.email || '';
+                    else if (keyLower.includes('phone')) initialForm[key] = user?.phone || '';
+                    else if (keyLower.includes('college')) initialForm[key] = user?.college || '';
+                    else initialForm[key] = '';
+                });
+                setForm(initialForm);
+
             } catch (err) {
                 setError(err.message || 'Failed to load event details.');
             } finally {
@@ -64,7 +97,9 @@ const EventRegistration = () => {
     };
 
     const addTeamMember = () => {
-        setTeamMembers(prev => [...prev, { name: '', email: '', phone: '', tshirtSize: '' }]);
+        const initialMember = {};
+        formFields.forEach(f => { initialMember[f.label] = ''; });
+        setTeamMembers(prev => [...prev, initialMember]);
     };
 
     const removeTeamMember = (index) => {
@@ -91,28 +126,44 @@ const EventRegistration = () => {
         setSubmitting(true);
         try {
             // Validate
-            if (!form.name || !form.email || !form.phone || !form.college) {
-                throw new Error("Please fill in all primary member required fields.");
+            for (const f of formFields) {
+                if (f.required && (!form[f.label] || !form[f.label].trim())) {
+                    throw new Error(`Please fill in ${f.label} for the primary member.`);
+                }
             }
 
             for (let i = 0; i < teamMembers.length; i++) {
                 const m = teamMembers[i];
-                if (!m.name || !m.email) {
-                    throw new Error(`Please fill name and email for Team Member ${i + 1}`);
+                for (const f of formFields) {
+                    if (f.required && (!m[f.label] || !m[f.label].trim())) {
+                        throw new Error(`Please fill in ${f.label} for Team Member ${i + 1}`);
+                    }
+                }
+            }
+
+            // Validate LinkedIn post link for the special event
+            if (isGithubEvent) {
+                if (!linkedinPostLink.trim()) {
+                    throw new Error('Please paste your LinkedIn post link before registering.');
+                }
+                const urlPattern = /^https?:\/\/.+/;
+                if (!urlPattern.test(linkedinPostLink.trim())) {
+                    throw new Error('Please enter a valid URL for your LinkedIn post link.');
                 }
             }
 
             const formDataBase = {
-                name: form.name,
-                email: form.email,
-                phone: form.phone,
-                college: form.college,
-                tshirtSize: form.tshirtSize,
-                gender: form.gender,
+                ...form,
                 teamMembers: teamMembers.length > 0 ? teamMembers : undefined,
+                ...(isGithubEvent ? { linkedinPostLink: linkedinPostLink.trim() } : {}),
             };
 
-            if (eventData?.isPaid) {
+            const getName = (data) => data.name || data.Name || data['Full Name'] || Object.values(data)[0] || '';
+            const getEmail = (data) => data.email || data.Email || '';
+            const getPhone = (data) => data.phone || data.Phone || data['Phone Number'] || '';
+
+            if (eventData?.isPaid && eventData?.paymentType === 'RAZORPAY') {
+                // ── Razorpay Payment Flow ──
                 const res = await loadRazorpayScript();
                 if (!res) throw new Error("Razorpay SDK failed to load. Are you online?");
 
@@ -145,9 +196,9 @@ const EventRegistration = () => {
                         }
                     },
                     prefill: {
-                        name: form.name,
-                        email: form.email,
-                        contact: form.phone
+                        name: getName(form),
+                        email: getEmail(form),
+                        contact: getPhone(form)
                     },
                     theme: {
                         color: "#00ff88"
@@ -161,6 +212,22 @@ const EventRegistration = () => {
                 });
                 paymentObject.open();
                 return; // Early return, the success handler will finish registration
+            }
+
+            if (eventData?.isPaid && eventData?.paymentType === 'MANUAL_UPI') {
+                // ── Manual UPI Payment Flow ──
+                if (!paymentProofFile) {
+                    throw new Error('Please upload your payment screenshot before registering.');
+                }
+                const fd = new FormData();
+                fd.append('paymentProof', paymentProofFile);
+                fd.append('formData', JSON.stringify(formDataBase));
+                await eventsApi.registerForEvent(eventId, fd);
+                setSuccess('Registration submitted! Your payment will be verified by the organizer.');
+                setTimeout(() => {
+                    navigate(`/event/${eventId}`);
+                }, 3000);
+                return;
             }
 
             // Free Event Flow
@@ -194,16 +261,57 @@ const EventRegistration = () => {
     }
 
     const isPaid = eventData.isPaid;
+    const paymentType = eventData.paymentType || 'FREE';
     const ticketPrice = eventData.ticketPrice || 0;
     const totalPrice = ticketPrice * (1 + teamMembers.length);
 
-    const isFormValid = Boolean(
-        form.name.trim() &&
-        form.email.trim() &&
-        form.phone.trim() &&
-        form.college.trim() &&
-        teamMembers.every(m => m.name.trim() && m.email.trim())
-    );
+    const isFormValid = (() => {
+        if (!eventData) return false;
+        for (const f of formFields) {
+            if (f.required && (!form[f.label] || !form[f.label].trim())) return false;
+        }
+        for (const m of teamMembers) {
+            for (const f of formFields) {
+                if (f.required && (!m[f.label] || !m[f.label].trim())) return false;
+            }
+        }
+        // LinkedIn post link required for special event
+        if (isGithubEvent && !linkedinPostLink.trim()) return false;
+        // Payment screenshot required for manual UPI events
+        if (isPaid && paymentType === 'MANUAL_UPI' && !paymentProofFile) return false;
+        return true;
+    })();
+
+    const handleCopyDescription = async () => {
+        const text = eventData?.description || '';
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedDescription(true);
+            setTimeout(() => setCopiedDescription(false), 2500);
+        } catch {
+            // fallback
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            setCopiedDescription(true);
+            setTimeout(() => setCopiedDescription(false), 2500);
+        }
+    };
+
+    const handleDownloadPoster = () => {
+        if (!eventData?.eventPoster) return;
+        const link = document.createElement('a');
+        link.href = eventData.eventPoster;
+        link.download = `${eventData.title.replace(/\s+/g, '_')}_poster.jpg`;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     if (success) {
         return (
@@ -247,6 +355,135 @@ const EventRegistration = () => {
                         </div>
                     )}
 
+                    {/* ── GitHub Post Flow (Special Event Only) ── */}
+                    {isGithubEvent && (
+                        <div className="mb-10 space-y-6 relative z-10">
+                            {/* Step badge */}
+                            <div className="flex items-center gap-3 border-b border-[#1a4d4d] pb-3">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00ff88] to-[#00cc70] flex items-center justify-center shrink-0">
+                                    <span className="text-black font-bold text-sm">1</span>
+                                </div>
+                                <div>
+                                    <h2 className="text-xl text-white font-semibold">Share This Event First</h2>
+                                    <p className="text-gray-400 text-sm">Download the poster & copy the description → post it on LinkedIn → paste your post link below</p>
+                                </div>
+                            </div>
+
+                            {/* Poster + Description side-by-side or stacked */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* Poster card */}
+                                {eventData?.eventPoster && (
+                                    <div className="bg-[#0a1f1f] border border-[#1a4d4d] rounded-2xl overflow-hidden flex flex-col">
+                                        <div className="relative group">
+                                            <img
+                                                src={eventData.eventPoster}
+                                                alt={`${eventData.title} poster`}
+                                                className="w-full object-cover max-h-72"
+                                            />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <span className="text-white text-sm font-medium">Click below to download</span>
+                                            </div>
+                                        </div>
+                                        <div className="p-4 flex-1 flex flex-col justify-between">
+                                            <div>
+                                                <p className="text-gray-300 text-sm font-medium mb-1">Event Poster</p>
+                                                <p className="text-gray-500 text-xs">Download and upload this to your LinkedIn post</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={handleDownloadPoster}
+                                                className="mt-4 w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#00ff88] to-[#00cc70] hover:from-[#00cc70] hover:to-[#00ff88] text-black font-bold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-[#00ff88]/30 transform hover:-translate-y-0.5"
+                                            >
+                                                <Download className="w-4 h-4" />
+                                                Download Poster
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Description card */}
+                                <div className="bg-[#0a1f1f] border border-[#1a4d4d] rounded-2xl flex flex-col">
+                                    <div className="p-4 border-b border-[#1a4d4d] flex items-center justify-between">
+                                        <div>
+                                            <p className="text-gray-300 text-sm font-medium">Post Description</p>
+                                            <p className="text-gray-500 text-xs">Copy this text for your LinkedIn post</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleCopyDescription}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                                                copiedDescription
+                                                    ? 'bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]'
+                                                    : 'bg-[#1a4d4d] text-gray-300 hover:bg-[#00ff88]/10 hover:text-[#00ff88] border border-[#1a4d4d] hover:border-[#00ff88]'
+                                            }`}
+                                        >
+                                            {copiedDescription ? (
+                                                <><Check className="w-4 h-4" /> Copied!</>
+                                            ) : (
+                                                <><Copy className="w-4 h-4" /> Copy Text</>
+                                            )}
+                                        </button>
+                                    </div>
+                                    <div className="p-4 flex-1 overflow-y-auto max-h-72 custom-scrollbar">
+                                        <pre className="text-gray-300 text-xs leading-relaxed whitespace-pre-wrap font-sans select-text">
+                                            {eventData?.description || 'No description available.'}
+                                        </pre>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* LinkedIn post link input */}
+                            <div className="bg-[#0a1f1f] border-2 border-[#1a4d4d] rounded-2xl p-6 space-y-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Linkedin className="w-5 h-5 text-[#00ff88]" />
+                                    <label className="text-white font-semibold text-base">Your LinkedIn Post Link <span className="text-[#00ff88]">*</span></label>
+                                </div>
+                                <p className="text-gray-400 text-sm">Post the above content (with poster image) on LinkedIn, then paste the link to your post here.</p>
+                                <div className="relative">
+                                    <Link className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                                    <input
+                                        type="url"
+                                        value={linkedinPostLink}
+                                        onChange={(e) => {
+                                            setLinkedinPostLink(e.target.value);
+                                            if (linkedinLinkError) setLinkedinLinkError('');
+                                        }}
+                                        placeholder="https://www.linkedin.com/posts/your-post-id"
+                                        className={`w-full bg-[#060f0f] border-2 text-white py-3 pl-11 pr-4 rounded-xl focus:outline-none transition-all duration-300 ${
+                                            linkedinLinkError
+                                                ? 'border-red-500 focus:border-red-400'
+                                                : linkedinPostLink.trim()
+                                                ? 'border-[#00ff88] focus:border-[#00ff88]'
+                                                : 'border-[#1a4d4d] focus:border-[#00ff88]'
+                                        }`}
+                                    />
+                                </div>
+                                {linkedinLinkError && (
+                                    <p className="text-red-400 text-xs flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3" />{linkedinLinkError}
+                                    </p>
+                                )}
+                                {linkedinPostLink.trim() && !linkedinLinkError && (
+                                    <p className="text-[#00ff88] text-xs flex items-center gap-1">
+                                        <Check className="w-3 h-3" /> Link saved — you can now complete your registration below
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Divider to Step 2 */}
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1 border-t border-[#1a4d4d]" />
+                                <div className="flex items-center gap-2 text-gray-500 text-sm">
+                                    <div className="w-7 h-7 rounded-full bg-[#1a4d4d] flex items-center justify-center">
+                                        <span className="text-gray-300 font-bold text-xs">2</span>
+                                    </div>
+                                    Complete Your Registration
+                                </div>
+                                <div className="flex-1 border-t border-[#1a4d4d]" />
+                            </div>
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
 
                         {/* Primary Member Details */}
@@ -256,65 +493,47 @@ const EventRegistration = () => {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="text-gray-400 text-sm mb-2 block">Full Name *</label>
-                                    <input
-                                        type="text" name="name" value={form.name} onChange={handleChange} required
-                                        className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
-                                        placeholder="John Doe"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-gray-400 text-sm mb-2 block">Email Address *</label>
-                                    <input
-                                        type="email" name="email" value={form.email} onChange={handleChange} required
-                                        className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
-                                        placeholder="john@example.com"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-gray-400 text-sm mb-2 block">Phone Number *</label>
-                                    <input
-                                        type="tel" name="phone" value={form.phone} onChange={handleChange} required
-                                        className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
-                                        placeholder="+91 9876543210"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-gray-400 text-sm mb-2 block">College / Organization *</label>
-                                    <input
-                                        type="text" name="college" value={form.college} onChange={handleChange} required
-                                        className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
-                                        placeholder="University Name"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-gray-400 text-sm mb-2 block">Gender</label>
-                                    <select
-                                        name="gender" value={form.gender} onChange={handleChange}
-                                        className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
-                                    >
-                                        <option value="">Select Gender</option>
-                                        <option value="Male">Male</option>
-                                        <option value="Female">Female</option>
-                                        <option value="Other">Other</option>
-                                        <option value="Prefer not to say">Prefer not to say</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-gray-400 text-sm mb-2 block">T-Shirt Size</label>
-                                    <select
-                                        name="tshirtSize" value={form.tshirtSize} onChange={handleChange}
-                                        className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
-                                    >
-                                        <option value="">Select Size</option>
-                                        <option value="S">Small (S)</option>
-                                        <option value="M">Medium (M)</option>
-                                        <option value="L">Large (L)</option>
-                                        <option value="XL">Extra Large (XL)</option>
-                                        <option value="XXL">XXL</option>
-                                    </select>
-                                </div>
+                                {formFields.map((field, idx) => (
+                                    <div key={idx}>
+                                        <label className="text-gray-400 text-sm mb-2 block capitalize">
+                                            {field.label} {field.required && '*'}
+                                        </label>
+                                        {field.type === 'select' ? (
+                                            <select
+                                                name={field.label}
+                                                value={form[field.label] || ''}
+                                                onChange={handleChange}
+                                                required={field.required}
+                                                className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                            >
+                                                <option value="">Select {field.label}</option>
+                                                {field.options?.map((opt, i) => (
+                                                    <option key={i} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                        ) : field.type === 'textarea' ? (
+                                            <textarea
+                                                name={field.label}
+                                                value={form[field.label] || ''}
+                                                onChange={handleChange}
+                                                required={field.required}
+                                                rows="3"
+                                                className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 resize-none"
+                                                placeholder={`Enter ${field.label}`}
+                                            ></textarea>
+                                        ) : (
+                                            <input
+                                                type={field.type || 'text'}
+                                                name={field.label}
+                                                value={form[field.label] || ''}
+                                                onChange={handleChange}
+                                                required={field.required}
+                                                className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                placeholder={`Enter ${field.label}`}
+                                            />
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         </div>
 
@@ -348,41 +567,44 @@ const EventRegistration = () => {
 
                                             <h3 className="text-[#00ff88] font-medium mb-4">Team Member {index + 1}</h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="text-gray-400 text-xs mb-1 block">Full Name *</label>
-                                                    <input
-                                                        type="text" value={member.name} onChange={(e) => handleTeamMemberChange(index, 'name', e.target.value)} required
-                                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-2 px-3 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-gray-400 text-xs mb-1 block">Email Address *</label>
-                                                    <input
-                                                        type="email" value={member.email} onChange={(e) => handleTeamMemberChange(index, 'email', e.target.value)} required
-                                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-2 px-3 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-gray-400 text-xs mb-1 block">Phone Number</label>
-                                                    <input
-                                                        type="tel" value={member.phone} onChange={(e) => handleTeamMemberChange(index, 'phone', e.target.value)}
-                                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-2 px-3 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-gray-400 text-xs mb-1 block">T-Shirt Size</label>
-                                                    <select
-                                                        value={member.tshirtSize} onChange={(e) => handleTeamMemberChange(index, 'tshirtSize', e.target.value)}
-                                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-2 px-3 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
-                                                    >
-                                                        <option value="">Select Size</option>
-                                                        <option value="S">S</option>
-                                                        <option value="M">M</option>
-                                                        <option value="L">L</option>
-                                                        <option value="XL">XL</option>
-                                                        <option value="XXL">XXL</option>
-                                                    </select>
-                                                </div>
+                                                {formFields.map((field, fIdx) => (
+                                                    <div key={fIdx}>
+                                                        <label className="text-gray-400 text-xs mb-1 block capitalize">
+                                                            {field.label} {field.required && '*'}
+                                                        </label>
+                                                        {field.type === 'select' ? (
+                                                            <select
+                                                                value={member[field.label] || ''}
+                                                                onChange={(e) => handleTeamMemberChange(index, field.label, e.target.value)}
+                                                                required={field.required}
+                                                                className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-2 px-3 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
+                                                            >
+                                                                <option value="">Select {field.label}</option>
+                                                                {field.options?.map((opt, i) => (
+                                                                    <option key={i} value={opt}>{opt}</option>
+                                                                ))}
+                                                            </select>
+                                                        ) : field.type === 'textarea' ? (
+                                                            <textarea
+                                                                value={member[field.label] || ''}
+                                                                onChange={(e) => handleTeamMemberChange(index, field.label, e.target.value)}
+                                                                required={field.required}
+                                                                rows="2"
+                                                                className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-2 px-3 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm resize-none"
+                                                                placeholder={`Enter ${field.label}`}
+                                                            ></textarea>
+                                                        ) : (
+                                                            <input
+                                                                type={field.type || 'text'}
+                                                                value={member[field.label] || ''}
+                                                                onChange={(e) => handleTeamMemberChange(index, field.label, e.target.value)}
+                                                                required={field.required}
+                                                                className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-2 px-3 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
+                                                                placeholder={`Enter ${field.label}`}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     ))}
@@ -408,6 +630,88 @@ const EventRegistration = () => {
                                         <p className="text-4xl font-bold text-[#00ff88]">₹{totalPrice}</p>
                                     </div>
                                 </div>
+
+                                {/* Manual UPI Payment Section */}
+                                {paymentType === 'MANUAL_UPI' && (
+                                    <div className="space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {/* UPI QR Code */}
+                                            {eventData.upiQrCode && (
+                                                <div className="bg-[#0a1f1f] border border-[#1a4d4d] rounded-2xl p-6 flex flex-col items-center gap-4">
+                                                    <p className="text-gray-300 text-sm font-medium">Scan QR Code to Pay</p>
+                                                    <div className="bg-white rounded-xl p-3">
+                                                        <img
+                                                            src={eventData.upiQrCode}
+                                                            alt="UPI QR Code"
+                                                            className="w-48 h-48 object-contain"
+                                                        />
+                                                    </div>
+                                                    {eventData.upiId && (
+                                                        <p className="text-gray-400 text-xs">UPI ID: <span className="text-[#00ff88] font-mono">{eventData.upiId}</span></p>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Payment Proof Upload */}
+                                            <div className="bg-[#0a1f1f] border border-[#1a4d4d] rounded-2xl p-6 flex flex-col justify-center">
+                                                <p className="text-gray-300 text-sm font-medium mb-1">Upload Payment Screenshot <span className="text-[#00ff88]">*</span></p>
+                                                <p className="text-gray-500 text-xs mb-4">After paying, take a screenshot and upload it here for verification.</p>
+                                                
+                                                <label className="flex flex-col items-center justify-center border-2 border-dashed border-[#1a4d4d] rounded-xl p-6 cursor-pointer hover:border-[#00ff88] transition-all duration-300 group">
+                                                    {paymentProofFile ? (
+                                                        <div className="text-center">
+                                                            <CheckCircle2 className="w-8 h-8 text-[#00ff88] mx-auto mb-2" />
+                                                            <p className="text-[#00ff88] text-sm font-medium">{paymentProofFile.name}</p>
+                                                            <p className="text-gray-500 text-xs mt-1">{(paymentProofFile.size / 1024).toFixed(1)} KB</p>
+                                                            <p className="text-gray-500 text-xs mt-2">Click to change</p>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-center">
+                                                            <Upload className="w-8 h-8 text-gray-500 mx-auto mb-2 group-hover:text-[#00ff88] transition-colors" />
+                                                            <p className="text-gray-400 text-sm">Click to upload screenshot</p>
+                                                            <p className="text-gray-600 text-xs mt-1">PNG, JPG up to 5MB</p>
+                                                        </div>
+                                                    )}
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        className="hidden"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) {
+                                                                if (file.size > 5 * 1024 * 1024) {
+                                                                    setError('File size must be less than 5MB');
+                                                                    return;
+                                                                }
+                                                                setPaymentProofFile(file);
+                                                                setError('');
+                                                            }
+                                                        }}
+                                                    />
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* UPI ID fallback (if no QR but UPI ID exists) */}
+                                        {!eventData.upiQrCode && eventData.upiId && (
+                                            <div className="bg-[#0a1f1f] border border-[#1a4d4d] rounded-2xl p-6 text-center">
+                                                <p className="text-gray-300 text-sm mb-2">Pay via UPI</p>
+                                                <p className="text-[#00ff88] font-mono text-lg font-bold">{eventData.upiId}</p>
+                                                <p className="text-gray-500 text-xs mt-2">Send ₹{totalPrice} to the above UPI ID and upload the screenshot</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Razorpay info */}
+                                {paymentType === 'RAZORPAY' && (
+                                    <div className="bg-[#0a1f1f] border border-[#1a4d4d] rounded-2xl p-4 flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-[#00ff88]/10 flex items-center justify-center shrink-0">
+                                            <CheckCircle2 className="w-4 h-4 text-[#00ff88]" />
+                                        </div>
+                                        <p className="text-gray-400 text-sm">You'll be redirected to <span className="text-white font-medium">Razorpay</span> secure checkout to complete payment after clicking the button below.</p>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -426,7 +730,11 @@ const EventRegistration = () => {
                                         <Loader2 className="w-5 h-5 animate-spin" /> Processing...
                                     </span>
                                 ) : (
-                                    isPaid ? `Pay ₹${totalPrice} & Register` : 'Complete Registration'
+                                    isPaid
+                                        ? paymentType === 'RAZORPAY'
+                                            ? `Pay ₹${totalPrice} & Register`
+                                            : `Submit Registration (₹${totalPrice})`
+                                        : 'Complete Registration'
                                 )}
                             </button>
                             <p className="text-center text-gray-500 text-xs mt-4">

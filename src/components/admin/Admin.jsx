@@ -9,7 +9,6 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { admin } from '../../services/api';
 import { events as eventsApi } from '../../services/api';
-import EditEventModal from '../shared/EditEventModal';
 
 import { fmtNum, fmtDate, fmtDateTime } from './AdminHelpers';
 import { Badge, RoleBadge } from './Badges';
@@ -41,7 +40,7 @@ const Admin = () => {
   // All events
   const [allEvents, setAllEvents] = useState([]);
   const [loadingAllEvents, setLoadingAllEvents] = useState(false);
-  const [editingEvent, setEditingEvent] = useState(null);
+
 
   // Users
   const [users, setUsers] = useState([]);
@@ -577,7 +576,7 @@ const Admin = () => {
                         </div>
                         <div className="flex gap-2 flex-shrink-0">
                           <button
-                            onClick={(e) => { e.stopPropagation(); setEditingEvent(ev); }}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/organize/edit/${ev.id}`); }}
                             className="flex items-center gap-1.5 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all"
                           >
                             <Pencil className="w-4 h-4" />
@@ -1040,18 +1039,7 @@ const Admin = () => {
                 </div>
               )}
 
-          <EditEventModal
-            isOpen={!!editingEvent}
-            eventToEdit={editingEvent}
-            onClose={() => setEditingEvent(null)}
-            onSuccess={(payload) => {
-              setEditingEvent(null);
-              if (activeTab === 'allEvents') fetchAllEvents();
-              if (activeTab === 'events') fetchPending();
-              fetchDashboard();
-              showToast('Event updated successfully!');
-            }}
-          />
+
         </main>
       </div>
     </div>

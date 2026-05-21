@@ -19,9 +19,13 @@ const OrganizeEvent = () => {
         modeOfConduct: 'Offline',
         eventLocation: '',
         eventAccess: 'Free',
-        eventDateRange: '',
+        eventStartDate: '',
+        eventEndDate: '',
         eventTime: '',
         registrationDeadline: '',
+        registrationType: 'Individual',
+        minTeamSize: '1',
+        maxTeamSize: '4',
         // Event description
         eventDescription: '',
         prizeType: 'No prize',
@@ -40,6 +44,9 @@ const OrganizeEvent = () => {
         participantLimit: '',
         registerAction: 'Register',
         externalWebsiteLink: '',
+        paymentType: 'FREE',
+        upiId: '',
+        upiQrCode: null,
         requiredFields: {
             name: true,
             phone: true,
@@ -118,16 +125,16 @@ const OrganizeEvent = () => {
                 let rDate = new Date();
                 try {
                     const timeStr = eventData.eventTime || "00:00";
-                    if (eventData.eventDateRange.includes('-')) {
-                        const parts = eventData.eventDateRange.split('-');
-                        sDate = new Date(parts[0].trim() + " " + timeStr);
-                        eDate = new Date(parts[1].trim() + " " + timeStr);
-                    } else if (eventData.eventDateRange) {
-                        sDate = new Date(eventData.eventDateRange + " " + timeStr);
-                        eDate = new Date(eventData.eventDateRange + " " + timeStr);
+                    if (eventData.eventStartDate) {
+                        sDate = new Date(`${eventData.eventStartDate}T${timeStr}`);
+                    }
+                    if (eventData.eventEndDate) {
+                        eDate = new Date(`${eventData.eventEndDate}T${timeStr}`);
+                    } else {
+                        eDate = sDate;
                     }
                     if (eventData.registrationDeadline) {
-                        rDate = new Date(eventData.registrationDeadline + " " + timeStr);
+                        rDate = new Date(`${eventData.registrationDeadline}T${timeStr}`);
                     } else {
                         rDate = sDate;
                     }
@@ -142,6 +149,9 @@ const OrganizeEvent = () => {
                     location: {
                         mapLink: eventData.eventLocation || undefined
                     },
+                    registrationType: eventData.registrationType.toUpperCase(),
+                    minTeamSize: eventData.registrationType === 'Group' ? parseInt(eventData.minTeamSize) || 1 : undefined,
+                    maxTeamSize: eventData.registrationType === 'Group' ? parseInt(eventData.maxTeamSize) || undefined : undefined,
                     startDate: isNaN(sDate.getTime()) ? new Date().toISOString() : sDate.toISOString(),
                     endDate: isNaN(eDate.getTime()) ? new Date().toISOString() : eDate.toISOString(),
                     registrationDeadline: isNaN(rDate.getTime()) ? new Date().toISOString() : rDate.toISOString(),
@@ -158,7 +168,7 @@ const OrganizeEvent = () => {
                         .map(a => ({
                             title: a.title,
                             content: a.content,
-                            publishDate: a.publishDate ? new Date(a.publishDate).toISOString() : new Date().toISOString()
+                            publishDate: (a.publishDate && !isNaN(new Date(a.publishDate).getTime())) ? new Date(a.publishDate).toISOString() : new Date().toISOString()
                         }))
                 };
 
@@ -206,13 +216,19 @@ const OrganizeEvent = () => {
                     maxParticipants: parseInt(eventData.participantLimit) || undefined,
                     approvalMode: eventData.acceptanceMode === 'Auto approval' ? 'AUTO' : 'MANUAL',
                     designConfig: colors,
-                    customFormFields: customFields
+                    customFormFields: customFields,
+                    paymentType: eventData.paymentType,
+                    upiId: eventData.paymentType === 'MANUAL_UPI' ? eventData.upiId : undefined,
                 };
 
                 await api.events.updateDesign(registrationId, step2Payload);
 
                 if (eventData.eventBanner) {
                     await api.events.uploadBanner(registrationId, eventData.eventBanner);
+                }
+
+                if (eventData.paymentType === 'MANUAL_UPI' && eventData.upiQrCode) {
+                    await api.events.uploadUpiQrCode(registrationId, eventData.upiQrCode);
                 }
 
                 await api.events.submitForApproval(registrationId);
@@ -404,6 +420,69 @@ const OrganizeEvent = () => {
                                 </div>
                             </div>
 
+                            {/* Registration Type Section */}
+                            <div className="grid lg:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="text-white text-sm mb-4 block">
+                                        Registration Type <span className="text-red-400">*</span>
+                                    </label>
+                                    <div className="flex gap-4 border-2 border-[#1a4d4d]">
+                                        {['Individual', 'Group'].map((type) => (
+                                            <label
+                                                key={type}
+                                                className={`flex-1 flex items-center justify-center gap-3 px-6 py-3 rounded-xl cursor-pointer transition-all duration-300 ${eventData.registrationType === type
+                                                    ? 'border-[#00ff88] bg-[#00ff88]/10'
+                                                    : 'border-[#1a4d4d] hover:border-[#00ff88]/50'
+                                                    }`}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name="registrationType"
+                                                    value={type}
+                                                    checked={eventData.registrationType === type}
+                                                    onChange={handleInputChange}
+                                                    className="w-5 h-5 accent-[#00ff88]"
+                                                />
+                                                <span className="text-white">{type}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {eventData.registrationType === 'Group' && (
+                                    <div className="flex gap-4">
+                                        <div className="flex-1">
+                                            <label className="text-white text-sm mb-3 block">
+                                                Min Team Size <span className="text-red-400">*</span>
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="minTeamSize"
+                                                value={eventData.minTeamSize}
+                                                onChange={handleInputChange}
+                                                min="1"
+                                                className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="text-white text-sm mb-3 block">
+                                                Max Team Size <span className="text-red-400">*</span>
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="maxTeamSize"
+                                                value={eventData.maxTeamSize}
+                                                onChange={handleInputChange}
+                                                min="1"
+                                                className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
                             {/* Row 3: Location and Event Access */}
                             <div className="grid lg:grid-cols-2 gap-6">
                                 <div>
@@ -499,19 +578,33 @@ const OrganizeEvent = () => {
                                         {/* Date Input */}
                                         <div>
                                             <label className="text-white text-sm mb-3 block">Date</label>
-                                            <div className="flex items-center gap-3 mx-auto">
-                                                <div className="bg-[#1a4d4d] text-gray-400 px-4 py-3 rounded-lg text-sm">
-                                                    Date
+                                            <div className="flex flex-col lg:flex-row items-center gap-3 mx-auto">
+                                                <div className="flex items-center gap-3 w-full lg:w-auto flex-1">
+                                                    <div className="bg-[#1a4d4d] text-gray-400 px-4 py-3 rounded-lg text-sm">
+                                                        Start
+                                                    </div>
+                                                    <input
+                                                        type="date"
+                                                        name="eventStartDate"
+                                                        value={eventData.eventStartDate}
+                                                        onChange={handleInputChange}
+                                                        className="flex-1 bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 min-w-0"
+                                                        required
+                                                    />
                                                 </div>
-                                                <input
-                                                    type="text"
-                                                    name="eventDateRange"
-                                                    value={eventData.eventDateRange}
-                                                    onChange={handleInputChange}
-                                                    placeholder="15 Jan 2025 - 16 Jan 2025"
-                                                    className="flex-1 bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300"
-                                                    required
-                                                />
+                                                <div className="flex items-center gap-3 w-full lg:w-auto flex-1">
+                                                    <div className="bg-[#1a4d4d] text-gray-400 px-4 py-3 rounded-lg text-sm">
+                                                        End
+                                                    </div>
+                                                    <input
+                                                        type="date"
+                                                        name="eventEndDate"
+                                                        value={eventData.eventEndDate}
+                                                        onChange={handleInputChange}
+                                                        className="flex-1 bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 min-w-0"
+                                                        required
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
 
@@ -523,11 +616,10 @@ const OrganizeEvent = () => {
                                                     Time
                                                 </div>
                                                 <input
-                                                    type="text"
+                                                    type="time"
                                                     name="eventTime"
                                                     value={eventData.eventTime}
                                                     onChange={handleInputChange}
-                                                    placeholder="7:00 pm"
                                                     className="flex-1 bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2  rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300"
                                                     required
                                                 />
@@ -1097,6 +1189,88 @@ const OrganizeEvent = () => {
                                             placeholder="URL of external website"
                                             className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
                                         />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Payment Options Section */}
+                            <div>
+                                <label className="text-white text-sm mb-4 block">
+                                    Payment Options <span className="text-red-400">*</span>
+                                </label>
+                                <div className="grid lg:grid-cols-3 gap-4 mb-6">
+                                    {[
+                                        { id: 'FREE', label: 'Free (No Payment)' },
+                                        { id: 'MANUAL_UPI', label: 'Manual UPI Payment' },
+                                        { id: 'RAZORPAY', label: 'Razorpay System' }
+                                    ].map((opt) => (
+                                        <label
+                                            key={opt.id}
+                                            className={`flex items-center gap-3 px-6 py-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${eventData.paymentType === opt.id
+                                                ? 'border-[#00ff88] bg-[#00ff88]/10'
+                                                : 'border-[#1a4d4d] hover:border-[#00ff88]/50'
+                                                }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="paymentType"
+                                                value={opt.id}
+                                                checked={eventData.paymentType === opt.id}
+                                                onChange={handleInputChange}
+                                                className="w-5 h-5 accent-[#00ff88]"
+                                            />
+                                            <span className="text-white text-sm font-medium">{opt.label}</span>
+                                        </label>
+                                    ))}
+                                </div>
+
+                                {eventData.paymentType === 'MANUAL_UPI' && (
+                                    <div className="grid lg:grid-cols-2 gap-6 border-2 border-[#1a4d4d] p-6 rounded-xl">
+                                        <div>
+                                            <label className="text-white text-sm mb-3 block">
+                                                UPI ID <span className="text-red-400">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="upiId"
+                                                value={eventData.upiId}
+                                                onChange={handleInputChange}
+                                                placeholder="e.g. yourname@upi"
+                                                className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                required={eventData.paymentType === 'MANUAL_UPI'}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-white text-sm mb-3 block">
+                                                Upload Payment QR Code <span className="text-red-400">*</span>
+                                            </label>
+                                            <div className="border-2 border-dashed border-[#1a4d4d] rounded-xl p-4 text-center hover:border-[#00ff88] transition-all duration-300 relative">
+                                                <input
+                                                    type="file"
+                                                    id="upiQrCodeUpload"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files[0];
+                                                        if (file) {
+                                                            setEventData(prev => ({ ...prev, upiQrCode: file }));
+                                                        }
+                                                    }}
+                                                />
+                                                <label
+                                                    htmlFor="upiQrCodeUpload"
+                                                    className="inline-flex items-center gap-2 bg-[#1a4d4d] hover:bg-[#2a5d5d] text-white font-medium py-2 px-6 rounded-lg cursor-pointer transition-all duration-300"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                    Upload QR Code
+                                                </label>
+                                                {eventData.upiQrCode && (
+                                                    <p className="text-[#00ff88] text-sm mt-3">{eventData.upiQrCode.name}</p>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </div>

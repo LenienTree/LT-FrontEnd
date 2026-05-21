@@ -5,7 +5,6 @@ import Header from '../layout/Header';
 import Footer from '../layout/Footer';
 import { useAuth } from '../../context/AuthContext';
 import { users, bookmarks, events as eventsApi } from '../../services/api';
-import EditEventModal from '../shared/EditEventModal';
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
 
@@ -42,8 +41,7 @@ const Profile = () => {
   const [myCertificates, setMyCertificates] = useState([]);
   const [myBookmarks, setMyBookmarks] = useState([]);
 
-  // Edit event modal state
-  const [editingEvent, setEditingEvent] = useState(null);
+
 
   // UI state
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -245,11 +243,7 @@ const Profile = () => {
   // ── Edit Event Handlers ──
 
   const openEditModal = (evt) => {
-    setEditingEvent(evt);
-  };
-
-  const closeEditModal = () => {
-    setEditingEvent(null);
+    navigate(`/organize/edit/${evt.id}`);
   };
 
   // ── Loading State ──
@@ -795,16 +789,6 @@ const Profile = () => {
         </div>
       )}
 
-      {/* ── Edit Event Modal ── */}
-      <EditEventModal
-        isOpen={!!editingEvent}
-        eventToEdit={editingEvent}
-        onClose={closeEditModal}
-        onSuccess={(payload) => {
-          setMyCreatedEvents(prev => prev.map(e => e.id === payload.id ? { ...e, ...payload } : e));
-          closeEditModal();
-        }}
-      />
     </>
   );
 };

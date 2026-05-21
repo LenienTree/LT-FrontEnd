@@ -874,49 +874,7 @@ const Home = () => {
 
 
         {/* --- PARTNERS/LOGOS SECTION --- */}
-        <section className="py-32  relative bg-[#042029]"
-          style={{
-            backgroundImage: `url("/vectorhome2.png")`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}>
-          <div className="relative z-10">
-            {/* Section Header */}
-            <div className="flex justify-center mb-8 sm:mb-12">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white px-6 sm:px-10 py-2 sm:py-3 border-2 border-white rounded-full bg-[#0D3838]/80 backdrop-blur-sm ">
-                Our Partners
-              </h2>
-            </div>
-
-            {/* Top Row - Left to Right */}
-            <div className="overflow-hidden mb-8 sm:mb-12 bg-[#155B57]">
-              <div className="flex animate-scroll-left gap-12 sm:gap-16 md:gap-24">
-                {[...logos, ...logos, ...logos, ...logos].map((logo, index) => (
-                  <img
-                    key={`left-${index}`}
-                    src={logo}
-                    alt={`Partner Logo ${index}`}
-                    className="h-12 sm:h-16 md:h-20 max-w-52 flex-shrink-0 opacity-80 hover:opacity-100 transition-opacity"
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Bottom Row - Right to Left */}
-            <div className="overflow-hidden bg-[#155B57] p-2">
-              <div className="flex animate-scroll-right gap-12 sm:gap-16 md:gap-24">
-                {[...logos, ...logos, ...logos, ...logos].map((logo, index) => (
-                  <img
-                    key={`right-${index}`}
-                    src={logo}
-                    alt={`Partner Logo ${index}`}
-                    className="h-12 sm:h-16 md:h-20 max-w-52 flex-shrink-0 opacity-80 hover:opacity-100 transition-opacity"
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
+       /
 
         {/* --- TESTIMONIALS SECTION --- */}
         <section className="relative py-12 sm:py-16 md:py-20 overflow-hidden" style={{ background: "#f0f4ee" }}>

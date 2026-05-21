@@ -336,6 +336,17 @@ export const events = {
   },
 
   /**
+   * Upload the event UPI QR Code image.
+   * @param {string} eventId
+   * @param {File} file
+   */
+  uploadUpiQrCode: (eventId, file) => {
+    const formData = new FormData();
+    formData.append("file", file); // Or "qrCode", checking backend... Wait, backend uses request.file() and handles it generically, so any field name works but it's good to just send it. Actually wait, Fastify handles multipart form data if we just send any field name for `request.file()`. Wait, let's look at `uploadBanner` in backend, it just uses `request.file()`. So the field name doesn't matter too much but let's use "qrCode".
+    return post(`/api/events/${eventId}/upi-qr`, formData);
+  },
+
+  /**
    * Delete an event (organizer).
    * @param {string} eventId
    */
