@@ -100,7 +100,7 @@ export default function Header() {
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
                     <div className="flex items-center space-x-2">
-                        <img src="./logo1.png" alt="leninet tree" width={70} height={70} />
+                        <img src="/logo1.png" alt="lenient tree" width={70} height={70} />
                         <span className="text-white font-semibold hidden sm:block"></span>
                     </div>
 
@@ -147,13 +147,13 @@ export default function Header() {
                                                 Admin Dashboard
                                             </Link>
                                         )}
-                                        <a
-                                            href="/profile"
+                                        <Link
+                                            to="/profile"
                                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                                             onClick={() => setIsProfileOpen(false)}
                                         >
                                             View Profile
-                                        </a>
+                                        </Link>
 
                                         <button
                                             onClick={handleLogout}
