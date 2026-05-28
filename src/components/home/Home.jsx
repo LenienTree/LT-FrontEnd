@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
 
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -107,10 +106,7 @@ const Home = () => {
     fetchHackathons();
   }, []);
 
-  useEffect(() => {
-    console.log("dbEvents", dbEvents);
-    console.log("isLoadingEvents", isLoadingEvents);
-  }, [dbEvents, isLoadingEvents]);
+  // Debug logs removed for production performance
 
   const slidesContainerRef = useRef(null);
   const ctaTextRef = useRef(null);
@@ -497,6 +493,10 @@ const Home = () => {
                     alt={`Slide ${index + 1}`}
                     className="absolute inset-0 w-full h-full object-contain md:object-cover rounded-2xl sm:rounded-3xl"
                     draggable={false}
+                    // First slide is the LCP element — fetch it with highest priority.
+                    // All other slides are hidden initially, so lazy-load them.
+                    fetchpriority={index === 0 ? 'high' : 'low'}
+                    loading={index === 0 ? 'eager' : 'lazy'}
                   />
                 </div>
               ))}
@@ -793,6 +793,7 @@ const Home = () => {
                   src="/community/comm2.png"
                   alt="Community Event 1"
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
               </div>
 
@@ -802,6 +803,7 @@ const Home = () => {
                   src="/community/comm1.png"
                   alt="Community Event 2"
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
               </div>
 
@@ -811,6 +813,7 @@ const Home = () => {
                   src="/community/comm3.png"
                   alt="Community Event 3"
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
               </div>
             </div>
@@ -865,6 +868,7 @@ const Home = () => {
                     src="/lt-coin.png"
                     alt="Lenient Tree Coin"
                     className="w-full max-w-sm md:max-w-md lg:max-w-lg h-auto object-contain drop-shadow-2xl"
+                    loading="lazy"
                   />
                 </div>
               </div>
@@ -957,6 +961,7 @@ const Home = () => {
                     alt="Augustine Vadakumcherry"
                     className="relative z-10 w-auto h-full max-h-[380px] object-cover object-bottom grayscale"
                     style={{ display: "block" }}
+                    loading="lazy"
                   />
                 </div>
               </div>
@@ -983,6 +988,7 @@ const Home = () => {
                     src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300&auto=format&fit=crop"
                     alt="Mark Zhong"
                     className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
+                    loading="lazy"
                   />
                   <div className="text-right">
                     <p className="font-bold text-sm tracking-wider">MARK ZHONG</p>
@@ -1008,6 +1014,7 @@ const Home = () => {
                     src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=300&auto=format&fit=crop"
                     alt="Henry Dockson"
                     className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
+                    loading="lazy"
                   />
                   <div className="text-right">
                     <p className="font-bold text-sm tracking-wider">HENRY DOCKSON</p>
@@ -1032,6 +1039,7 @@ const Home = () => {
                     src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=300&auto=format&fit=crop"
                     alt="Arnav Ghani"
                     className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
+                    loading="lazy"
                   />
                   <div className="text-right">
                     <p className="font-bold text-sm tracking-wider">ARNAV GHANI</p>
