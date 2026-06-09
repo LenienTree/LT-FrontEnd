@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Bookmark, BookmarkCheck, Loader2 } from 'lucide-react';
+import { ArrowLeft, Bookmark, BookmarkCheck, Loader2, Pencil } from 'lucide-react';
 import Header from './layout/Header';
 import Footer from './layout/Footer';
 import CountdownTimer from './CountdownTimer';
@@ -39,7 +39,7 @@ const EventDetails = () => {
     const [searchParams] = useSearchParams();
     const eventId = paramId || searchParams.get('id');
 
-    const { isAuthenticated, openAuthModal } = useAuth();
+    const { isAuthenticated, openAuthModal, user } = useAuth();
 
     const [eventData, setEventData] = useState(null);
     const [announcements, setAnnouncements] = useState([]);
@@ -179,7 +179,11 @@ const EventDetails = () => {
                             <img src={eventData.bannerImage} alt="Event Banner" className="w-full h-full object-cover" loading="lazy" />
                         </div>
                     ) : (
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700" />
+                        <div className={`absolute inset-0 ${
+                            eventData.isPremium
+                                ? "bg-gradient-to-r from-amber-950 via-amber-900 to-[#1e1405]"
+                                : "bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700"
+                        }`} />
                     )}
 
                     <div className="absolute left-8 lg:left-12 top-1/2 transform -translate-y-1/2 z-10">
@@ -201,9 +205,13 @@ const EventDetails = () => {
                 <div className="grid lg:grid-cols-3 gap-8 mb-8 relative z-20 mt-[-60px] lg:mt-[-150px]">
                     {/* Poster */}
                     <div className="lg:col-span-1">
-                        <div className="bg-blue-900 rounded-2xl overflow-hidden border-4 border-blue-700 shadow-2xl">
+                        <div className={`rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 ${
+                            eventData.isPremium
+                                ? "bg-amber-950 border-4 border-amber-500/80 shadow-amber-500/20"
+                                : "bg-blue-900 border-4 border-blue-700 shadow-blue-500/10"
+                        }`}>
                             {eventData.eventPoster ? (
-                                <img src={eventData.eventPoster} alt="Event Poster" className="h-full" loading="lazy" />
+                                <img src={eventData.eventPoster} alt="Event Poster" className="w-full h-full object-cover" loading="lazy" />
                             ) : (
                                 <div className="aspect-[3/4] flex items-center justify-center text-gray-400">
                                     No poster available
@@ -215,11 +223,18 @@ const EventDetails = () => {
                     {/* Info */}
                     <div className="lg:col-span-2 space-y-6 pt-10 lg:pt-48 px-1 lg:px-20">
                         <div>
-                            <h2 className="text-white text-4xl font-bold mb-2">{eventData.title || 'Event Name'}</h2>
+                            <div className="flex flex-wrap items-center gap-3 mb-2">
+                                <h2 className="text-white text-4xl font-bold">{eventData.title || 'Event Name'}</h2>
+                                {eventData.isPremium && (
+                                    <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-extrabold text-xs px-3 py-1 rounded-full shadow-lg shadow-amber-500/20 uppercase tracking-widest animate-pulse">
+                                        👑 Premium
+                                    </span>
+                                )}
+                            </div>
                             {eventData.subtitle && <p className="text-gray-400 text-lg">{eventData.subtitle}</p>}
                         </div>
 
-                        <div className="flex flex-wrap gap-4 text-gray-400">
+                        <div className="flex flex-wrap gap-4 text-gray-400 items-center">
                             <div className="flex items-center gap-2">
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -233,14 +248,47 @@ const EventDetails = () => {
                                 <span>{eventData.mode}</span>
                             </div>
                             {eventData.category && (
-                                <span className="bg-[#1a4d4d] text-[#00ff88] px-3 py-1 rounded-full text-sm">{eventData.category}</span>
+                                <span className={`px-3 py-1 rounded-full text-sm font-medium border ${
+                                    eventData.isPremium
+                                        ? "bg-amber-950/40 text-amber-400 border-amber-500/40 shadow-sm shadow-amber-900/30"
+                                        : "bg-[#1a4d4d] text-[#00ff88] border-transparent"
+                                }`}>
+                                    {eventData.category}
+                                </span>
                             )}
                         </div>
 
+                        {eventData.isPremium && (
+                            <div className="bg-gradient-to-r from-amber-950/40 to-yellow-950/20 border border-amber-500/30 rounded-2xl p-6 flex items-start gap-4 shadow-lg shadow-amber-950/20 relative overflow-hidden backdrop-blur-md">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl" />
+                                <span className="text-3xl filter drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]">👑</span>
+                                <div>
+                                    <h4 className="text-amber-400 font-bold text-base tracking-wide uppercase">Premium Partnered Event</h4>
+                                    <p className="text-gray-300 text-sm mt-1 leading-relaxed">
+                                        Verified Official Partner. This event features exclusive perks, including guaranteed certification, prioritized support, and special eligibility for Lenient Tree career tracks.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Action Buttons */}
                         <div className="space-y-3">
+                            {isAuthenticated && (user?.role === 'ADMIN' || eventData?.organizerId === user?.id || eventData?.organizer?.id === user?.id) && (
+                                <button
+                                    onClick={() => navigate(`/organize/edit/${eventData.id}`)}
+                                    className="w-full font-bold text-lg py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg bg-yellow-600 hover:bg-yellow-500 text-white shadow-yellow-600/20 flex items-center justify-center gap-2"
+                                >
+                                    <Pencil className="w-5 h-5" />
+                                    Edit Event (Admin/Organizer)
+                                </button>
+                            )}
+
                             {isRegistered ? (
-                                <div className="w-full bg-[#0d2f2f] border-2 border-[#00ff88] text-[#00ff88] font-bold text-lg py-4 px-6 rounded-xl text-center">
+                                <div className={`w-full font-bold text-lg py-4 px-6 rounded-xl text-center border-2 ${
+                                    eventData.isPremium
+                                        ? "bg-[#181105] border-amber-400 text-amber-400"
+                                        : "bg-[#0d2f2f] border-2 border-[#00ff88] text-[#00ff88]"
+                                }`}>
                                     ✓ Registered — Status: {registrationStatus?.status || 'PENDING'}
                                 </div>
                             ) : (
@@ -248,9 +296,13 @@ const EventDetails = () => {
                                     id="register-event-btn"
                                     onClick={handleRegister}
                                     disabled={registering}
-                                    className="w-full bg-[#00ff88] hover:bg-[#00cc70] text-black font-bold text-lg py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg shadow-[#00ff88]/30 disabled:opacity-60"
+                                    className={`w-full font-bold text-lg py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-60 ${
+                                        eventData.isPremium
+                                            ? "bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-500 text-[#0c2222] shadow-amber-500/20 hover:shadow-amber-400/40"
+                                            : "bg-[#00ff88] hover:bg-[#00cc70] text-black shadow-[#00ff88]/30"
+                                    }`}
                                 >
-                                    {registering ? 'Registering…' : 'Register Now'}
+                                    {registering ? 'Registering…' : eventData.isPremium ? 'Claim Premium Pass & Register' : 'Register Now'}
                                 </button>
                             )}
 
@@ -258,9 +310,13 @@ const EventDetails = () => {
                                 id="bookmark-event-btn"
                                 onClick={handleBookmark}
                                 disabled={bookmarking}
-                                className="w-full bg-[#0d2f2f] border-2 border-[#1a4d4d] hover:border-[#00ff88] text-white font-medium text-lg py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
+                                className={`w-full border-2 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 font-medium text-lg py-4 px-6 ${
+                                    eventData.isPremium
+                                        ? "bg-amber-950/20 border-amber-500/30 hover:border-amber-400 text-amber-400 hover:bg-amber-950/40"
+                                        : "bg-[#0d2f2f] border-[#1a4d4d] hover:border-[#00ff88] text-white"
+                                }`}
                             >
-                                {isBookmarked ? <BookmarkCheck className="w-5 h-5 text-[#00ff88]" /> : <Bookmark className="w-5 h-5" />}
+                                {isBookmarked ? <BookmarkCheck className={`w-5 h-5 ${eventData.isPremium ? 'text-amber-400' : 'text-[#00ff88]'}`} /> : <Bookmark className="w-5 h-5" />}
                                 {isBookmarked ? 'Bookmarked' : 'Bookmark'}
                             </button>
                         </div>
@@ -312,7 +368,11 @@ const EventDetails = () => {
                             <div className="h-[2px] bg-[#1a4d4d] w-full" />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="bg-[#0d2f2f]/30 border-2 border-[#00ff88] rounded-2xl p-8 text-center group hover:bg-[#00ff88]/5 transition-all duration-300 transform hover:-translate-y-1">
+                            <div className={`p-8 text-center group transition-all duration-300 transform hover:-translate-y-1 rounded-2xl ${
+                                eventData.isPremium
+                                    ? "bg-amber-950/20 border-2 border-amber-500/60 hover:bg-amber-500/5 shadow-md shadow-amber-900/10"
+                                    : "bg-[#0d2f2f]/30 border-2 border-[#00ff88] hover:bg-[#00ff88]/5"
+                            }`}>
                                 <p className="text-gray-400 text-sm mb-2">{eventData.prizeType}</p>
                                 <p className="text-white text-4xl font-bold">
                                     {eventData.prizeAmount ? `₹${eventData.prizeAmount.toLocaleString()}` : 'TBA'}
@@ -329,7 +389,11 @@ const EventDetails = () => {
                         <div className="h-[2px] bg-[#1a4d4d] w-full" />
                     </div>
                     <div className="text-gray-300 leading-relaxed text-sm space-y-6">
-                        <div className="bg-[#0d2f2f]/20 border-l-4 border-[#00ff88] p-6 rounded-r-2xl">
+                        <div className={`p-6 rounded-r-2xl border-l-4 ${
+                            eventData.isPremium
+                                ? "bg-amber-950/10 border-amber-500"
+                                : "bg-[#0d2f2f]/20 border-[#00ff88]"
+                        }`}>
                             <p className="whitespace-pre-wrap">{eventData.description || 'No description provided.'}</p>
                         </div>
 
