@@ -9,9 +9,6 @@ export default defineConfig({
             '@': path.resolve(__dirname, './src'),
         },
     },
-    server: {
-        start: true,
-    },
     build: {
         outDir: 'build',
         // Raise the warning threshold so ci isn't noisy, but keep chunking tight

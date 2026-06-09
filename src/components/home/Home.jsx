@@ -877,9 +877,6 @@ const Home = () => {
         </section>
 
 
-        {/* --- PARTNERS/LOGOS SECTION --- */}
-       /
-
         {/* --- TESTIMONIALS SECTION --- */}
         <section className="relative py-12 sm:py-16 md:py-20 overflow-hidden" style={{ background: "#f0f4ee" }}>
 
