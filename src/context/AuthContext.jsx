@@ -68,6 +68,8 @@ export function AuthProvider({ children }) {
 
     const googleAuth = useCallback(async (idToken) => {
         setError(null);
+        // Backend now returns tokens in the Google auth response body too,
+        // which allows us to set the token in local storage for session rehydration.
         const data = await authApi.googleAuth({ idToken });
         if (data?.accessToken) setToken(data.accessToken);
         if (data?.user) setUser(data.user);

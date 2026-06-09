@@ -6,7 +6,15 @@ const CollaborationEventCard = React.memo(({ event }) => {
   const cardRef = useRef(null);
   const tlRef = useRef(null);
 
-  const getCardColors = (color) => {
+  const getCardColors = (color, isPremium) => {
+    if (isPremium) {
+      return {
+        borderColor: "border-amber-400",
+        glowColor: "shadow-[0_0_25px_rgba(245,158,11,0.8)]",
+        logoColor: "text-amber-400",
+        bgColor: "bg-[#1e1704]",
+      };
+    }
     switch (color) {
       case "green":
         return {
@@ -35,7 +43,7 @@ const CollaborationEventCard = React.memo(({ event }) => {
     }
   };
 
-  const colors = getCardColors(event.color);
+  const colors = getCardColors(event.color, event.isPremium);
 
   useEffect(() => {
     const card = cardRef.current;
@@ -86,16 +94,27 @@ const CollaborationEventCard = React.memo(({ event }) => {
     <div className="p-2 sm:p-3">
       <div
         ref={cardRef}
-        className={`relative w-full sm:w-80 h-[380px] sm:h-[400px] rounded-lg overflow-hidden cursor-pointer border-2 transition-shadow duration-300 ${colors.bgColor || ""} ${isHovered
-            ? `${colors.borderColor} ${colors.glowColor}`
-            : "border-white/20"
-          }`}
+        className={`relative w-full sm:w-80 h-[380px] sm:h-[400px] rounded-lg overflow-hidden cursor-pointer border-2 transition-all duration-300 ${colors.bgColor || ""} ${
+          event.isPremium
+            ? isHovered
+              ? "border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.85)] scale-[1.01]"
+              : "border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]"
+            : isHovered
+              ? `${colors.borderColor} ${colors.glowColor} scale-[1.01]`
+              : "border-white/20"
+        }`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
         <div className="relative h-full">
           {/* Front Card */}
           <div className="front-card absolute inset-0 w-full h-full text-center bg-[#0d2f2f]">
+            {event.isPremium && (
+              <div className="absolute top-3 left-3 z-10 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 text-slate-950 text-[10px] font-black tracking-wider shadow-lg shadow-amber-950/60 flex items-center gap-1 border border-yellow-300/30">
+                <span>👑</span>
+                <span>PREMIUM</span>
+              </div>
+            )}
             {event.eventPoster ? (
               <img src={event.eventPoster} alt="Event Poster" className="w-full h-full object-cover" loading="lazy" />
             ) : (
@@ -132,18 +151,27 @@ const CollaborationEventCard = React.memo(({ event }) => {
           </div>
           {/* Top Elements */}
           <div className="top-elements absolute top-0 left-0 right-0 p-3 sm:p-6 flex justify-between items-start pointer-events-none">
-            <span className="bg-black/60 text-white px-2 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium">
-              {event.prizePool}
-            </span>
+            {event.isPremium ? (
+              <span className="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 px-2 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-black shadow-md border border-yellow-300/30 flex items-center gap-1">
+                👑 {event.prizePool}
+              </span>
+            ) : (
+              <span className="bg-black/60 text-white px-2 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium">
+                {event.prizePool}
+              </span>
+            )}
             <div
-              className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full ${event.color === "blue"
-                ? "bg-blue-400"
-                : event.color === "green"
-                  ? "bg-green-400"
-                  : event.color === "red"
-                    ? "bg-red-400"
-                    : "bg-green-400"
-                }`}
+              className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full ${
+                event.isPremium
+                  ? "bg-amber-400 shadow-[0_0_8px_#f59e0b]"
+                  : event.color === "blue"
+                    ? "bg-blue-400"
+                    : event.color === "green"
+                      ? "bg-green-400"
+                      : event.color === "red"
+                        ? "bg-red-400"
+                        : "bg-green-400"
+              }`}
             ></div>
           </div>
           {/* Bottom Card */}
@@ -206,7 +234,11 @@ const CollaborationEventCard = React.memo(({ event }) => {
                 <span className="text-xs sm:text-sm">: {event.participants}</span>
               </div>
             </div>
-            <button className="w-full bg-green-400 text-black py-2 sm:py-3 rounded-xl flex justify-center items-center gap-2 font-bold text-sm sm:text-base transition-all hover:bg-green-300">
+            <button className={`w-full py-2 sm:py-3 rounded-xl flex justify-center items-center gap-2 font-bold text-sm sm:text-base transition-all ${
+              event.isPremium
+                ? "bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 shadow-lg shadow-amber-500/20"
+                : "bg-green-400 text-black hover:bg-green-300"
+            }`}>
               <span>Click to know more</span>
               <svg
                 className="w-3 h-3 sm:w-4 sm:h-4"

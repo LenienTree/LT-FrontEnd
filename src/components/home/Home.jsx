@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
 
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -28,6 +29,148 @@ const Home = () => {
   const [dbHackathons, setDbHackathons] = useState([]);
   const [isLoadingHackathons, setIsLoadingHackathons] = useState(true);
 
+  // Community Showcase Carousel States & Data
+  const communityImages = [
+    "/community/comm1.png",
+    "/community/comm2.png",
+    "/community/comm3.png",
+    "/community/comm4.jpeg",
+    "/community/comm5.jpeg",
+    "/community/comm6.jpeg",
+  ];
+
+  // Clone 2 items on the left and 2 items on the right for infinite circular appearance
+  const extendedCommunityImages = [
+    communityImages[4],
+    communityImages[5],
+    ...communityImages,
+    communityImages[0],
+    communityImages[1],
+  ];
+
+  const [currentCommunityIndex, setCurrentCommunityIndex] = useState(0); // Index from 0 to 5
+  const [slideWidth, setSlideWidth] = useState(46); // Responsive percent width of center slide
+  const [isCommunityHovered, setIsCommunityHovered] = useState(false);
+
+  // Responsive slide width logic for community showcase
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 640) {
+        setSlideWidth(75); // 75% on mobile
+      } else if (window.innerWidth < 1024) {
+        setSlideWidth(55); // 55% on tablet
+      } else {
+        setSlideWidth(46); // 46% on desktop
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Autoplay logic for community showcase (slides through index 0 to 5)
+  useEffect(() => {
+    if (isCommunityHovered) return;
+    const maxIndex = communityImages.length - 1;
+
+    const interval = setInterval(() => {
+      setCurrentCommunityIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isCommunityHovered]);
+
+  const nextCommunitySlide = () => {
+    const maxIndex = communityImages.length - 1;
+    setCurrentCommunityIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
+  };
+
+  const prevCommunitySlide = () => {
+    const maxIndex = communityImages.length - 1;
+    setCurrentCommunityIndex((prev) => (prev <= 0 ? maxIndex : prev - 1));
+  };
+
+  // Testimonials Coverflow States & Data
+  const testimonials = [
+    {
+      name: "MARK ZHONG",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300&auto=format&fit=crop",
+      badge: "a",
+      role: "aCCUTARY",
+      quote: "Hi, I am happy with Lenient Tree and hope to work with them more often."
+    },
+    {
+      name: "HENRY DOCKSON",
+      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=300&auto=format&fit=crop",
+      badge: "B",
+      role: "Bilency",
+      quote: "Lenient Tree is growing everyday, and I want to be part of it. Investment such as this is always a great option in my opinion."
+    },
+    {
+      name: "ARNAV GHANI",
+      avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=300&auto=format&fit=crop",
+      badge: "@",
+      role: "Artystry H&C",
+      quote: "Creativity is not limited for Lenient Tree, they help us get the best results. It's their ART."
+    }
+  ];
+
+  const extendedTestimonials = [
+    testimonials[1],
+    testimonials[2],
+    ...testimonials,
+    testimonials[0],
+    testimonials[1],
+  ];
+
+  const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0);
+  const [testimonialWidth, setTestimonialWidth] = useState(31.5);
+  const [testimonialGap, setTestimonialGap] = useState(24);
+  const [isTestimonialHovered, setIsTestimonialHovered] = useState(false);
+
+  // Responsive layout logic for testimonials
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 640) {
+        setTestimonialWidth(100);
+        setTestimonialGap(0);
+      } else if (window.innerWidth < 1024) {
+        setTestimonialWidth(48);
+        setTestimonialGap(20);
+      } else {
+        setTestimonialWidth(31.5);
+        setTestimonialGap(24);
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const getTestimonialStartIndex = () => {
+    if (window.innerWidth >= 1024) {
+      return currentTestimonialIndex + 1;
+    } else {
+      return currentTestimonialIndex + 2;
+    }
+  };
+
+  // Autoplay logic for testimonials
+  useEffect(() => {
+    if (isTestimonialHovered) return;
+    const interval = setInterval(() => {
+      setCurrentTestimonialIndex((prev) => (prev >= 2 ? 0 : prev + 1));
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [isTestimonialHovered]);
+
+  const nextTestimonial = () => {
+    setCurrentTestimonialIndex((prev) => (prev >= 2 ? 0 : prev + 1));
+  };
+
+  const prevTestimonial = () => {
+    setCurrentTestimonialIndex((prev) => (prev <= 0 ? 2 : prev - 1));
+  };
+
   // Map database event model to what CollaborationEventCard expects
   const mapDbEventToCard = (event) => {
     // Map categories to colors
@@ -56,6 +199,7 @@ const Home = () => {
       color: categoryColors[event.category] || "green",
       eventPoster: event.eventPoster,
       bannerImage: event.bannerImage,
+      isPremium: event.isPremium,
     };
   };
 
@@ -106,7 +250,10 @@ const Home = () => {
     fetchHackathons();
   }, []);
 
-  // Debug logs removed for production performance
+  useEffect(() => {
+    console.log("dbEvents", dbEvents);
+    console.log("isLoadingEvents", isLoadingEvents);
+  }, [dbEvents, isLoadingEvents]);
 
   const slidesContainerRef = useRef(null);
   const ctaTextRef = useRef(null);
@@ -493,10 +640,6 @@ const Home = () => {
                     alt={`Slide ${index + 1}`}
                     className="absolute inset-0 w-full h-full object-contain md:object-cover rounded-2xl sm:rounded-3xl"
                     draggable={false}
-                    // First slide is the LCP element — fetch it with highest priority.
-                    // All other slides are hidden initially, so lazy-load them.
-                    fetchpriority={index === 0 ? 'high' : 'low'}
-                    loading={index === 0 ? 'eager' : 'lazy'}
                   />
                 </div>
               ))}
@@ -612,7 +755,7 @@ const Home = () => {
               Your Gateway to
               <div className="mt-4 sm:mt-6 h-32 sm:h-40 md:h-48 lg:h-56 xl:h-64 overflow-hidden relative">
                 <span className="rotating-words block text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[12rem]  italic font-bold text-white/90">
-                  <span className="inline-block font-['Fitzgerald-Italic'] animate-scroll-up">
+                  <span className="inline-block font-['Fitzgerald-Italic'] animate-scroll-up bg-gradient-to-b from-[#FFFFFF] to-[#999999] bg-clip-text text-transparent pb-2">
                     {words[currentWordIndex]}
                   </span>
                 </span>
@@ -785,36 +928,99 @@ const Home = () => {
               </h2>
             </div>
 
-            {/* Image Gallery - Full Width Static */}
-            <div className="w-full flex gap-0">
-              {/* Left Image */}
-              <div className="w-1/3">
-                <img
-                  src="/community/comm2.png"
-                  alt="Community Event 1"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
+            {/* Image Gallery - Carousel */}
+            <div 
+              className="w-full relative group/carousel overflow-hidden py-4"
+              onMouseEnter={() => setIsCommunityHovered(true)}
+              onMouseLeave={() => setIsCommunityHovered(false)}
+            >
+              {/* Carousel Track */}
+              <div 
+                className="flex transition-transform duration-700 ease-out gap-0 items-center"
+                style={{
+                  transform: `translateX(calc(50% - ${(currentCommunityIndex + 2) * slideWidth}% - ${slideWidth / 2}%))`,
+                }}
+              >
+                {extendedCommunityImages.map((src, index) => {
+                  // Map extended array index to original 0-5 index
+                  const originalIndex = (index - 2 + 6) % 6;
+                  const isActive = originalIndex === currentCommunityIndex;
+
+                  return (
+                    <div 
+                      key={index} 
+                      onClick={() => setCurrentCommunityIndex(originalIndex)}
+                      className={`flex-shrink-0 relative transition-all duration-700 ease-out rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer ${
+                        isActive 
+                          ? "z-10 scale-100 border-4 border-[#9AE600] shadow-2xl shadow-[#9AE600]/30" 
+                          : "z-0 scale-90 sm:scale-85 opacity-70 hover:opacity-90"
+                      }`}
+                      style={{
+                        width: `${slideWidth}%`,
+                      }}
+                    >
+                      <div className="w-full h-[200px] sm:h-[300px] md:h-[380px] lg:h-[440px] relative">
+                        <img
+                          src={src}
+                          alt={`Community Event ${originalIndex + 1}`}
+                          className="w-full h-full object-cover"
+                          draggable={false}
+                        />
+                        {/* Dark Dimming Overlay for inactive slides */}
+                        <div 
+                          className={`absolute inset-0 bg-[#042029]/75 backdrop-blur-[0.5px] transition-opacity duration-700 ${
+                            isActive ? "opacity-0 pointer-events-none" : "opacity-100"
+                          }`}
+                        />
+                        {/* Subtle Gradient Text Overlay for active slide */}
+                        <div className={`absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex items-end p-4 sm:p-6 transition-opacity duration-700 ${
+                          isActive ? "opacity-100" : "opacity-0 pointer-events-none"
+                        }`}>
+                          <span className="text-white font-semibold text-sm sm:text-lg tracking-wider">
+                            Community Showcase {originalIndex + 1}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Center Image */}
-              <div className="w-1/3">
-                <img
-                  src="/community/comm1.png"
-                  alt="Community Event 2"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
+              {/* Prev/Next buttons (visible on desktop hover or touch screen always) */}
+              <button
+                onClick={prevCommunitySlide}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[#0D3838]/85 backdrop-blur-md border-2 border-[#9AE600] flex items-center justify-center text-[#9AE600] hover:bg-[#9AE600] hover:text-[#042029] hover:scale-110 shadow-lg shadow-[#9AE600]/20 active:scale-95 transition-all duration-300 z-20 md:opacity-0 md:group-hover/carousel:opacity-100"
+                aria-label="Previous community image"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+              </button>
 
-              {/* Right Image */}
-              <div className="w-1/3">
-                <img
-                  src="/community/comm3.png"
-                  alt="Community Event 3"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
+              <button
+                onClick={nextCommunitySlide}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[#0D3838]/85 backdrop-blur-md border-2 border-[#9AE600] flex items-center justify-center text-[#9AE600] hover:bg-[#9AE600] hover:text-[#042029] hover:scale-110 shadow-lg shadow-[#9AE600]/20 active:scale-95 transition-all duration-300 z-20 md:opacity-0 md:group-hover/carousel:opacity-100"
+                aria-label="Next community image"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              </button>
+
+              {/* Slide Indicators */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 bg-[#0D3838]/80 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 z-20">
+                {communityImages.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentCommunityIndex(idx)}
+                    className={`h-2.5 rounded-full transition-all duration-300 ${
+                      idx === currentCommunityIndex
+                        ? "w-8 bg-[#9AE600] shadow-md shadow-[#9AE600]/40"
+                        : "w-2.5 bg-white/40 hover:bg-white/60"
+                    }`}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  />
+                ))}
               </div>
             </div>
           </div>
@@ -868,7 +1074,6 @@ const Home = () => {
                     src="/lt-coin.png"
                     alt="Lenient Tree Coin"
                     className="w-full max-w-sm md:max-w-md lg:max-w-lg h-auto object-contain drop-shadow-2xl"
-                    loading="lazy"
                   />
                 </div>
               </div>
@@ -958,7 +1163,6 @@ const Home = () => {
                     alt="Augustine Vadakumcherry"
                     className="relative z-10 w-auto h-full max-h-[380px] object-cover object-bottom grayscale"
                     style={{ display: "block" }}
-                    loading="lazy"
                   />
                 </div>
               </div>
@@ -971,92 +1175,108 @@ const Home = () => {
                   <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </h2>
+            </div>            {/* === THREE INDIVIDUAL TESTIMONIAL CARDS === */}
+            <div 
+              className="w-full relative group/testimonials overflow-hidden py-8"
+              onMouseEnter={() => setIsTestimonialHovered(true)}
+              onMouseLeave={() => setIsTestimonialHovered(false)}
+            >
+              {/* Carousel Track */}
+              <div 
+                className="flex transition-transform duration-700 ease-out items-stretch"
+                style={{
+                  gap: `${testimonialGap}px`,
+                  transform: `translateX(calc(-${getTestimonialStartIndex() * testimonialWidth}% - ${getTestimonialStartIndex() * testimonialGap}px))`,
+                }}
+              >
+                {extendedTestimonials.map((t, index) => {
+                  const originalIndex = (index - 2 + 3) % 3;
+                  const isActive = originalIndex === currentTestimonialIndex;
+
+                  return (
+                    <div 
+                      key={index}
+                      onClick={() => setCurrentTestimonialIndex(originalIndex)}
+                      className={`flex-shrink-0 bg-[#073434] rounded-2xl p-6 text-white flex flex-col gap-4 relative overflow-hidden transition-all duration-700 ease-out cursor-pointer ${
+                        isActive 
+                          ? "z-10 scale-100 border-4 border-[#64F422] shadow-2xl shadow-[#64F422]/20" 
+                          : "z-0 scale-90 sm:scale-85 opacity-70 hover:opacity-90"
+                      }`}
+                      style={{
+                        width: `${testimonialWidth}%`,
+                      }}
+                    >
+                      {/* Header: large avatar left, name+badge right-aligned */}
+                      <div className="flex items-center justify-between gap-4 select-none">
+                        <img
+                          src={t.avatar}
+                          alt={t.name}
+                          className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
+                          draggable={false}
+                        />
+                        <div className="text-right">
+                          <p className="font-bold text-sm tracking-wider">{t.name}</p>
+                          <div className="flex items-center justify-end gap-2 mt-1.5">
+                            <span className="w-5 h-5 flex items-center justify-center text-xs font-bold bg-gray-300 text-black rounded-full flex-shrink-0">{t.badge}</span>
+                            <p className="text-xs text-gray-400">{t.role}</p>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Quote + text */}
+                      <div className="flex-grow select-none">
+                        <p className="text-3xl font-bold text-[#64F422] leading-none mb-2">"</p>
+                        <p className="text-gray-200 text-sm leading-relaxed">
+                          {t.quote}
+                        </p>
+                      </div>
+                      {/* Dark Overlay for inactive slides */}
+                      <div 
+                        className={`absolute inset-0 bg-[#073434]/80 backdrop-blur-[0.5px] transition-opacity duration-700 ${
+                          isActive ? "opacity-0 pointer-events-none" : "opacity-100"
+                        }`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Prev/Next buttons (visible on desktop hover or touch screen always) */}
+              <button
+                onClick={prevTestimonial}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[#0D3838]/85 backdrop-blur-md border-2 border-[#64F422] flex items-center justify-center text-[#64F422] hover:bg-[#64F422] hover:text-[#042029] hover:scale-110 shadow-lg shadow-[#64F422]/20 active:scale-95 transition-all duration-300 z-20 md:opacity-0 md:group-hover/testimonials:opacity-100"
+                aria-label="Previous testimonial"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+              </button>
+
+              <button
+                onClick={nextTestimonial}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[#0D3838]/85 backdrop-blur-md border-2 border-[#64F422] flex items-center justify-center text-[#64F422] hover:bg-[#64F422] hover:text-[#042029] hover:scale-110 shadow-lg shadow-[#64F422]/20 active:scale-95 transition-all duration-300 z-20 md:opacity-0 md:group-hover/testimonials:opacity-100"
+                aria-label="Next testimonial"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              </button>
+
+              {/* Slide Indicators */}
+              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-2 bg-[#0D3838]/80 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 z-20">
+                {testimonials.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentTestimonialIndex(idx)}
+                    className={`h-2.5 rounded-full transition-all duration-300 ${
+                      idx === currentTestimonialIndex
+                        ? "w-8 bg-[#64F422] shadow-md shadow-[#64F422]/40"
+                        : "w-2.5 bg-white/40 hover:bg-white/60"
+                    }`}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
             </div>
-
-
-            {/* === THREE INDIVIDUAL TESTIMONIAL CARDS === */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mt-6 sm:mt-8">
-
-              {/* Card 1: Mark Zhong */}
-              <div className="bg-[#073434] rounded-2xl p-6 text-white flex flex-col gap-4">
-                {/* Header: large avatar left, name+badge right-aligned */}
-                <div className="flex items-center justify-between gap-4">
-                  <img
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300&auto=format&fit=crop"
-                    alt="Mark Zhong"
-                    className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
-                    loading="lazy"
-                  />
-                  <div className="text-right">
-                    <p className="font-bold text-sm tracking-wider">MARK ZHONG</p>
-                    <div className="flex items-center justify-end gap-2 mt-1.5">
-                      <span className="w-5 h-5 flex items-center justify-center text-xs font-bold bg-gray-300 text-black rounded-full flex-shrink-0">a</span>
-                      <p className="text-xs text-gray-400">aCCUTARY</p>
-                    </div>
-                  </div>
-                </div>
-                {/* Quote + text */}
-                <div>
-                  <p className="text-3xl font-bold text-[#64F422] leading-none mb-2">"</p>
-                  <p className="text-gray-200 text-sm leading-relaxed">
-                    Hi, I am happy with Lenient Tree and hope to work with them more often.
-                  </p>
-                </div>
-              </div>
-
-              {/* Card 2: Henry Dockson */}
-              <div className="bg-[#073434] rounded-2xl p-6 text-white flex flex-col gap-4">
-                <div className="flex items-center justify-between gap-4">
-                  <img
-                    src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=300&auto=format&fit=crop"
-                    alt="Henry Dockson"
-                    className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
-                    loading="lazy"
-                  />
-                  <div className="text-right">
-                    <p className="font-bold text-sm tracking-wider">HENRY DOCKSON</p>
-                    <div className="flex items-center justify-end gap-2 mt-1.5">
-                      <span className="w-5 h-5 flex items-center justify-center text-xs font-bold bg-gray-500 text-white rounded-full flex-shrink-0">B</span>
-                      <p className="text-xs text-gray-400">Bilency</p>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-[#64F422] leading-none mb-2">"</p>
-                  <p className="text-gray-200 text-sm leading-relaxed">
-                    Lenient Tree is growing everyday, and I want to be part of it. Investment such as this is always a great option in my opinion.
-                  </p>
-                </div>
-              </div>
-
-              {/* Card 3: Arnav Ghani */}
-              <div className="bg-[#073434] rounded-2xl p-6 text-white flex flex-col gap-4">
-                <div className="flex items-center justify-between gap-4">
-                  <img
-                    src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=300&auto=format&fit=crop"
-                    alt="Arnav Ghani"
-                    className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
-                    loading="lazy"
-                  />
-                  <div className="text-right">
-                    <p className="font-bold text-sm tracking-wider">ARNAV GHANI</p>
-                    <div className="flex items-center justify-end gap-2 mt-1.5">
-                      <span className="w-5 h-5 flex items-center justify-center text-xs font-bold bg-gray-300 text-black rounded-full flex-shrink-0">@</span>
-                      <p className="text-xs text-gray-400">Artystry H&amp;C</p>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-[#64F422] leading-none mb-2">"</p>
-                  <p className="text-gray-200 text-sm leading-relaxed">
-                    Creativity is not limited for Lenient Tree, they help us get the best results. It's their ART.
-                  </p>
-                </div>
-              </div>
-
-            </div>
-
-
           </div>
         </section>
 

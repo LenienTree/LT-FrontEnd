@@ -6,9 +6,9 @@ import Footer from './layout/Footer';
 import { events as eventsApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-// The specific event ID that requires the GitHub post flow
+// The specific event IDs that require the LinkedIn post flow
 const GITHUB_POST_EVENT_ID = 'f1741c2e-044a-42eb-a9e3-f27eac0aa00f';
-const RESIDENCY_POST_EVENT_ID = 'd866975a-ae3e-4d58-9649-7bbf7f755f12';
+const RESIDENCY_POST_EVENT_ID = 'c603a45b-c141-42f5-8312-0a000d516ab9';
 
 const EventRegistration = () => {
     const navigate = useNavigate();
@@ -29,8 +29,10 @@ const EventRegistration = () => {
     // Manual UPI payment proof
     const [paymentProofFile, setPaymentProofFile] = useState(null);
 
-    // LinkedIn post flow (only for the special event)
+    // LinkedIn post flow (only for the special events)
     const isGithubEvent = eventId === GITHUB_POST_EVENT_ID;
+    const isResidencyEvent = eventId === RESIDENCY_POST_EVENT_ID;
+    const isShareEvent = isGithubEvent || isResidencyEvent;
     const [linkedinPostLink, setLinkedinPostLink] = useState('');
     const [copiedDescription, setCopiedDescription] = useState(false);
     const [linkedinLinkError, setLinkedinLinkError] = useState('');
@@ -155,7 +157,7 @@ const EventRegistration = () => {
             }
 
             // Validate LinkedIn post link for the special event
-            if (isGithubEvent) {
+            if (isShareEvent) {
                 if (!linkedinPostLink.trim()) {
                     throw new Error('Please paste your LinkedIn post link before registering.');
                 }
@@ -168,7 +170,7 @@ const EventRegistration = () => {
             const formDataBase = {
                 ...form,
                 teamMembers: teamMembers.length > 0 ? teamMembers : undefined,
-                ...(isGithubEvent ? { linkedinPostLink: linkedinPostLink.trim() } : {}),
+                ...(isShareEvent ? { linkedinPostLink: linkedinPostLink.trim() } : {}),
             };
 
             const getName = (data) => data.name || data.Name || data['Full Name'] || Object.values(data)[0] || '';
@@ -289,14 +291,16 @@ const EventRegistration = () => {
             }
         }
         // LinkedIn post link required for special event
-        if (isGithubEvent && !linkedinPostLink.trim()) return false;
+        if (isShareEvent && !linkedinPostLink.trim()) return false;
         // Payment screenshot required for manual UPI events
         if (isPaid && paymentType === 'MANUAL_UPI' && !paymentProofFile) return false;
         return true;
     })();
 
     const handleCopyDescription = async () => {
-        const text = eventData?.description || '';
+        const text = isResidencyEvent
+            ? "𝐋𝐞𝐧𝐢𝐞𝐧𝐭 𝐭𝐫𝐞𝐞  is looking for 15 𝐓𝐀𝐋𝐄𝐍𝐓𝐄𝐃 𝐅𝐎𝐔𝐍𝐃𝐄𝐑𝐒, 𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐑𝐒 \n𝐀𝐍𝐃 𝐂𝐑𝐄𝐀𝐓𝐎𝐑𝐒  for our 𝐑𝐞𝐬𝐢𝐝𝐞𝐧𝐜𝐲 𝐈𝐧𝐭𝐞𝐫𝐧𝐬𝐡𝐢𝐩 𝐏𝐫𝐨𝐠𝐫𝐚𝐦"
+            : (eventData?.description || '');
         try {
             await navigator.clipboard.writeText(text);
             setCopiedDescription(true);
@@ -315,10 +319,15 @@ const EventRegistration = () => {
     };
 
     const handleDownloadPoster = () => {
-        if (!eventData?.eventPoster) return;
+        const posterUrl = isResidencyEvent
+            ? '/residency-internship.jpg'
+            : eventData?.eventPoster;
+        if (!posterUrl) return;
         const link = document.createElement('a');
-        link.href = eventData.eventPoster;
-        link.download = `${eventData.title.replace(/\s+/g, '_')}_poster.jpg`;
+        link.href = posterUrl;
+        link.download = isResidencyEvent
+            ? 'residency_internship_poster.jpg'
+            : `${eventData.title.replace(/\s+/g, '_')}_poster.jpg`;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
         document.body.appendChild(link);
@@ -368,8 +377,8 @@ const EventRegistration = () => {
                         </div>
                     )}
 
-                    {/* ── GitHub Post Flow (Special Event Only) ── */}
-                    {isGithubEvent && (
+                    {/* ── LinkedIn Post Flow (Special Event Only) ── */}
+                    {isShareEvent && (
                         <div className="mb-10 space-y-6 relative z-10">
                             {/* Step badge */}
                             <div className="flex items-center gap-3 border-b border-[#1a4d4d] pb-3">
@@ -385,11 +394,11 @@ const EventRegistration = () => {
                             {/* Poster + Description side-by-side or stacked */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 {/* Poster card */}
-                                {eventData?.eventPoster && (
+                                {(isResidencyEvent || eventData?.eventPoster) && (
                                     <div className="bg-[#0a1f1f] border border-[#1a4d4d] rounded-2xl overflow-hidden flex flex-col">
                                         <div className="relative group">
                                             <img
-                                                src={eventData.eventPoster}
+                                                src={isResidencyEvent ? '/residency-internship.jpg' : eventData.eventPoster}
                                                 alt={`${eventData.title} poster`}
                                                 className="w-full object-cover max-h-72"
                                             />
@@ -439,7 +448,9 @@ const EventRegistration = () => {
                                     </div>
                                     <div className="p-4 flex-1 overflow-y-auto max-h-72 custom-scrollbar">
                                         <pre className="text-gray-300 text-xs leading-relaxed whitespace-pre-wrap font-sans select-text">
-                                            {eventData?.description || 'No description available.'}
+                                            {isResidencyEvent
+                                                ? "𝐋𝐞𝐧𝐢𝐞𝐧𝐭 𝐭𝐫𝐞𝐞  is looking for 15 𝐓𝐀𝐋𝐄𝐍𝐓𝐄𝐃 𝐅𝐎𝐔𝐍𝐃𝐄𝐑𝐒, 𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐑𝐒 \n𝐀𝐍𝐃 𝐂𝐑𝐄𝐀𝐓𝐎𝐑𝐒  for our 𝐑𝐞𝐬𝐢𝐝𝐞𝐧𝐜𝐲 𝐈𝐧𝐭𝐞𝐫𝐧𝐬𝐡𝐢𝐩 𝐏𝐫𝐨𝐠𝐫𝐚𝐦"
+                                                : (eventData?.description || 'No description available.')}
                                         </pre>
                                     </div>
                                 </div>
