@@ -10,8 +10,7 @@ const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
     <BrowserRouter>
-      {/* 1. Add the Google Provider using your environment variable */}
-      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "12115422240-e1tu82v90923bag477h0go41vtf2bk0f.apps.googleusercontent.com"}>
         <AuthProvider>
           <App />
         </AuthProvider>

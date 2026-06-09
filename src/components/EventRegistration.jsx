@@ -51,6 +51,19 @@ const EventRegistration = () => {
                 if (!e) throw new Error('Event not found');
                 setEventData(e);
                 
+                if (isAuthenticated) {
+                    try {
+                        const statusRes = await eventsApi.checkRegistrationStatus(eventId);
+                        if (statusRes?.isRegistered) {
+                            setError('You are already registered for this event. Redirecting...');
+                            setTimeout(() => {
+                                navigate(`/event/${eventId}`);
+                            }, 3000);
+                            return;
+                        }
+                    } catch (_) { /* silent */ }
+                }
+
                 const defaultFields = [
                     { label: 'name', type: 'text', required: true },
                     { label: 'email', type: 'email', required: true },
@@ -83,7 +96,7 @@ const EventRegistration = () => {
             }
         };
         fetchEvent();
-    }, [eventId]);
+    }, [eventId, isAuthenticated, user, navigate]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
