@@ -487,8 +487,12 @@ export const admin = {
     get(`/api/admin/pending-events?page=${page}&limit=${limit}`),
 
   /** PUT /api/admin/events/:id/approve */
-  approveEvent: (id, isFeatured = false) =>
-    put(`/api/admin/events/${id}/approve`, { isFeatured }),
+  approveEvent: (id, isFeatured = false, isPremium = false) =>
+    put(`/api/admin/events/${id}/approve`, { isFeatured, isPremium }),
+
+  /** PUT /api/admin/events/:id/premium */
+  togglePremium: (id, isPremium = false) =>
+    put(`/api/admin/events/${id}/premium`, { isPremium }),
 
   /** PUT /api/admin/events/:id/reject */
   rejectEvent: (id, reason) =>

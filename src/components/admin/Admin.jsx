@@ -14,6 +14,7 @@ import { fmtNum, fmtDate, fmtDateTime } from './AdminHelpers';
 import { Badge, RoleBadge } from './Badges';
 import StatCard from './StatCard';
 import SectionHeader from './SectionHeader';
+import Header from '../layout/Header';
 
 // ─── Admin Component ──────────────────────────────────────────────────────────
 
@@ -36,6 +37,11 @@ const Admin = () => {
   const [loadingPending, setLoadingPending] = useState(false);
   const [rejectModal, setRejectModal] = useState(null); // { id, title }
   const [rejectReason, setRejectReason] = useState('');
+
+  // Approve Modal & options
+  const [approveModal, setApproveModal] = useState(null); // { id, title }
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
 
   // All events
   const [allEvents, setAllEvents] = useState([]);
@@ -171,14 +177,32 @@ const Admin = () => {
 
   // ── Actions ──
 
-  const handleApproveEvent = async (id) => {
+  const handleApproveEvent = async (id, feat = false, prem = false) => {
     try {
-      await admin.approveEvent(id);
+      await admin.approveEvent(id, feat, prem);
       showToast('Event approved!');
+      setApproveModal(null);
+      setIsFeatured(false);
+      setIsPremium(false);
       fetchPending();
       fetchDashboard();
     } catch (e) {
       showToast(e.message || 'Failed to approve event', 'error');
+    }
+  };
+
+  const handleTogglePremium = async (id, currentStatus) => {
+    try {
+      const nextStatus = !currentStatus;
+      await admin.togglePremium(id, nextStatus);
+      showToast(nextStatus ? 'Event marked as Premium!' : 'Premium status removed.');
+      
+      // Update local state for allEvents
+      setAllEvents(prev => prev.map(ev => ev.id === id ? { ...ev, isPremium: nextStatus } : ev));
+      // Update local state for recentEvents
+      setRecentEvents(prev => prev.map(ev => ev.id === id ? { ...ev, isPremium: nextStatus } : ev));
+    } catch (e) {
+      showToast(e.message || 'Failed to toggle premium status', 'error');
     }
   };
 
@@ -261,24 +285,19 @@ const Admin = () => {
       )}
 
       <aside className={`
-        fixed top-0 left-0 h-full w-64 bg-[#061818] border-r border-[#1a4d4d] z-40
+        fixed top-0 left-0 h-82 w-64 bg-[#061818] border-r border-[#1a4d4d] z-40
         flex flex-col transition-transform duration-300
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static lg:z-auto
       `}>
         {/* Logo */}
-        <div className="flex items-center gap-3 p-6 border-b border-[#1a4d4d]">
-          <div className="w-10 h-10 bg-[#00ff88] rounded-xl flex items-center justify-center">
-            <Shield className="w-5 h-5 text-[#0a1f1f]" />
-          </div>
-          <div>
-            <p className="text-white font-bold text-sm">Lenient Tree</p>
-            <p className="text-[#00ff88] text-xs">Admin Panel</p>
-          </div>
+        <div className="flex items-center gap-3 p-6 pt-20  border-b border-[#1a4d4d]">
+          
+
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-5 space-y-1 overflow-y-auto">
           {navItems.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -327,47 +346,7 @@ const Admin = () => {
 
       {/* ── Main ── */}
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
-
-        {/* Top bar */}
-        <header className="sticky top-0 z-20 bg-[#061818]/80 backdrop-blur-md border-b border-[#1a4d4d] px-4 sm:px-8 h-16 flex items-center justify-between gap-4">
-          {/* Hamburger */}
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden text-gray-400 hover:text-white p-2 rounded-lg hover:bg-[#1a4d4d] transition-colors"
-          >
-            <div className="space-y-1">
-              <span className="block w-5 h-0.5 bg-current" />
-              <span className="block w-5 h-0.5 bg-current" />
-              <span className="block w-5 h-0.5 bg-current" />
-            </div>
-          </button>
-
-          <div className="hidden lg:flex items-center gap-2">
-            <Shield className="w-5 h-5 text-[#00ff88]" />
-            <span className="text-white font-semibold text-sm">
-              {navItems.find(n => n.key === activeTab)?.label}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3 ml-auto">
-            <button
-              onClick={fetchDashboard}
-              className="text-gray-400 hover:text-[#00ff88] p-2 rounded-lg hover:bg-[#1a4d4d] transition-colors"
-              title="Refresh"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-            <button className="relative text-gray-400 hover:text-white p-2 rounded-lg hover:bg-[#1a4d4d] transition-colors">
-              <Bell className="w-4 h-4" />
-              {(pendingEvents.length + orgRequests.length) > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-              )}
-            </button>
-            <div className="w-8 h-8 rounded-full bg-[#1a4d4d] border border-[#00ff88]/40 flex items-center justify-center">
-              <Shield className="w-4 h-4 text-[#00ff88]" />
-            </div>
-          </div>
-        </header>
+<Header/>
 
         {/* Page content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
@@ -385,19 +364,14 @@ const Admin = () => {
           {/* ── DASHBOARD TAB ── */}
           {activeTab === 'dashboard' && (
             <div>
+              <div className='h-15'></div>
               {/* Overview header */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
                 <div className="flex items-center gap-2">
                   <BarChart2 className="w-5 h-5 text-[#00ff88]" />
                   <h1 className="text-white text-xl font-bold">Analytics Overview</h1>
                 </div>
-                <div className="flex items-center gap-2 text-gray-400 text-xs">
-                  Last Updated:&nbsp;
-                  <span className="text-white font-mono">
-                    {lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                  </span>
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#00ff88] animate-pulse" />
-                </div>
+             
               </div>
 
               {loadingDash ? (
@@ -493,7 +467,12 @@ const Admin = () => {
                         </div>
                         <div className="flex gap-2 flex-shrink-0">
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleApproveEvent(ev.id); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsFeatured(false);
+                              setIsPremium(false);
+                              setApproveModal({ id: ev.id, title: ev.title });
+                            }}
                             className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all"
                           >
                             <CheckCircle className="w-4 h-4" />
@@ -544,6 +523,79 @@ const Admin = () => {
                   </div>
                 </div>
               )}
+
+              {/* Approve Event Modal */}
+              {approveModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+                  <div className="w-full max-w-md bg-[#0d2f2f] border-2 border-green-500/40 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+                    {/* Background glow decoration */}
+                    <div className="absolute top-[-50px] right-[-50px] w-36 h-36 bg-green-500/10 rounded-full blur-3xl" />
+                    <div className="absolute bottom-[-50px] left-[-50px] w-36 h-36 bg-amber-500/10 rounded-full blur-3xl" />
+                    
+                    <div className="flex items-center gap-2 mb-4 relative z-10">
+                      <CheckCircle className="w-5 h-5 text-green-400" />
+                      <h3 className="text-white font-semibold text-lg">Approve Event</h3>
+                    </div>
+                    
+                    <p className="text-gray-400 text-sm mb-6 relative z-10">
+                      Approving: <span className="text-white font-medium">"{approveModal.title}"</span>
+                    </p>
+                    
+                    <div className="space-y-4 mb-6 relative z-10">
+                      {/* Featured Event Option */}
+                      <label className="flex items-start gap-3 p-3 rounded-xl bg-[#061818]/60 border border-[#1a4d4d] cursor-pointer hover:border-green-500/30 transition-all">
+                        <input
+                          type="checkbox"
+                          checked={isFeatured}
+                          onChange={(e) => setIsFeatured(e.target.checked)}
+                          className="mt-1 accent-green-500 rounded focus:ring-green-500"
+                        />
+                        <div>
+                          <p className="text-white font-medium text-sm flex items-center gap-1.5">
+                            ★ Mark as Featured
+                          </p>
+                          <p className="text-gray-500 text-xs mt-0.5">
+                            Featured events will show up in the carousel or highlights section.
+                          </p>
+                        </div>
+                      </label>
+                      
+                      {/* Premium Event Option */}
+                      <label className="flex items-start gap-3 p-3 rounded-xl bg-[#061818]/60 border border-[#1a4d4d] cursor-pointer hover:border-amber-500/30 transition-all">
+                        <input
+                          type="checkbox"
+                          checked={isPremium}
+                          onChange={(e) => setIsPremium(e.target.checked)}
+                          className="mt-1 accent-amber-500 rounded focus:ring-amber-500"
+                        />
+                        <div>
+                          <p className="text-amber-400 font-semibold text-sm flex items-center gap-1.5">
+                            👑 Mark as Premium Event
+                          </p>
+                          <p className="text-gray-500 text-xs mt-0.5">
+                            Premium events represent official company prompts and get a gold glowing border and verified badge.
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                    
+                    <div className="flex gap-3 relative z-10">
+                      <button
+                        onClick={() => { setApproveModal(null); setIsFeatured(false); setIsPremium(false); }}
+                        className="flex-1 py-2.5 rounded-xl border border-[#1a4d4d] text-gray-400 hover:text-white hover:border-[#00ff88] transition-all text-sm font-medium bg-[#061818]/30"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => handleApproveEvent(approveModal.id, isFeatured, isPremium)}
+                        className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-semibold shadow-lg shadow-green-900/30 hover:shadow-green-500/20 hover:scale-[1.02] transition-all text-sm"
+                      >
+                        Confirm & Approve
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -568,16 +620,31 @@ const Admin = () => {
                           <div className="flex flex-wrap items-center gap-2 mb-2">
                             <h3 className="text-white font-semibold">{ev.title}</h3>
                             <Badge status={ev.status} />
+                            {ev.isPremium && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-500/40 text-amber-400 bg-amber-900/20 flex items-center gap-1">
+                                👑 Premium
+                              </span>
+                            )}
                           </div>
                           <p className="text-gray-400 text-sm">{ev.category} · {ev.mode}</p>
                           <p className="text-gray-500 text-xs mt-1">
                             By {ev.organizer?.name || '—'} · {fmtDate(ev.startDate)}
                           </p>
                         </div>
-                        <div className="flex gap-2 flex-shrink-0">
+                        <div className="flex gap-2 flex-shrink-0 items-center">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleTogglePremium(ev.id, ev.isPremium); }}
+                            className={`flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-xl transition-all ${
+                              ev.isPremium
+                                ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-900/30 hover:scale-[1.02]'
+                                : 'bg-[#061818]/60 border border-[#1a4d4d] hover:border-amber-500/50 text-gray-400 hover:text-amber-400 hover:scale-[1.02]'
+                            }`}
+                          >
+                            👑 {ev.isPremium ? 'Premium' : 'Make Premium'}
+                          </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); navigate(`/organize/edit/${ev.id}`); }}
-                            className="flex items-center gap-1.5 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all"
+                            className="flex items-center gap-1.5 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all hover:scale-[1.02]"
                           >
                             <Pencil className="w-4 h-4" />
                             Edit
