@@ -1,5 +1,6 @@
 // src/components/About.jsx
 import React, { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import clsx from "clsx";
@@ -1239,20 +1240,20 @@ const About = () => {
                 </h4>
                 <ul className="space-y-4">
                   <li>
-                    <a
-                      href="#"
+                    <Link
+                      to="/terms"
                       className="text-white/80 hover:text-[#9ef01a] transition-colors duration-300"
                     >
                       Terms &amp; Conditions
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a
-                      href="#"
+                    <Link
+                      to="/privacy"
                       className="text-white/80 hover:text-[#9ef01a] transition-colors duration-300"
                     >
                       Privacy Policy
-                    </a>
+                    </Link>
                   </li>
                   <li>
                     <a

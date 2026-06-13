@@ -1,4 +1,5 @@
 import { FaChevronRight } from "react-icons/fa6";
+import { Link } from "react-router-dom";
 import { LuCalendarClock } from "react-icons/lu";
 import { FaLinkedin } from "react-icons/fa";
 import { FaSquareXTwitter } from "react-icons/fa6";
@@ -1264,8 +1265,8 @@ function AboutNew() {
             </div>
             <div className="flex  flex-col gap-3 text-[#D8F999]">
               <h1 className="font-bold">Essentials</h1>
-              <h1>Terms & Conditions</h1>
-              <h1>Privacy Policy</h1>
+              <Link to="/terms" className="hover:text-white transition-colors duration-300">Terms &amp; Conditions</Link>
+              <Link to="/privacy" className="hover:text-white transition-colors duration-300">Privacy Policy</Link>
               <h1>Blogs</h1>
             </div>
             <div className="flex  flex-col gap-3 text-[#D8F999]">

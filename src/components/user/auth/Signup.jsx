@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { Eye, EyeOff } from 'lucide-react';
 
 const Signup = ({ switchToLogin, onSuccess }) => {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const Signup = ({ switchToLogin, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const passwordRules = [
     { id: 'length', label: 'Minimum 8 characters', test: (p) => p.length >= 8 },
@@ -152,22 +154,36 @@ const Signup = ({ switchToLogin, onSuccess }) => {
             </div>
 
             <div>
-              <input
-                id="signup-password"
-                type="password"
-                name="password"
-                placeholder="Password"
-                value={formData.password}
-                onChange={handleChange}
-                onFocus={() => setPasswordFocused(true)}
-                className={`w-full bg-transparent border-2 text-white placeholder-gray-500 py-3 px-6 rounded-xl focus:outline-none transition-all duration-300 backdrop-blur-sm ${formData.password === ''
-                    ? 'border-[#1a4d4d] focus:border-[#00ff88]'
-                    : allRulesPassed
-                      ? 'border-[#00ff88]'
-                      : 'border-red-500'
-                  }`}
-                required
-              />
+              <div className="relative">
+                <input
+                  id="signup-password"
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  onFocus={() => setPasswordFocused(true)}
+                  className={`w-full bg-transparent border-2 text-white placeholder-gray-500 py-3 pl-6 pr-12 rounded-xl focus:outline-none transition-all duration-300 backdrop-blur-sm ${formData.password === ''
+                      ? 'border-[#1a4d4d] focus:border-[#00ff88]'
+                      : allRulesPassed
+                        ? 'border-[#00ff88]'
+                        : 'border-red-500'
+                    }`}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#00ff88] transition-colors focus:outline-none flex items-center justify-center"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
 
               {/* Password Rules Checklist */}
               {passwordFocused && (
@@ -204,7 +220,7 @@ const Signup = ({ switchToLogin, onSuccess }) => {
               />
               <label htmlFor="agreeToTerms" className="text-gray-400 text-sm cursor-pointer">
                 I agree to the{' '}
-                <span className="text-[#00ff88] hover:underline">terms and conditions</span>
+                <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-[#00ff88] hover:underline">terms and conditions</Link>
               </label>
             </div>
 

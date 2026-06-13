@@ -1355,7 +1355,7 @@ const OrganizeEvent = () => {
                                     />
                                     <span className="text-white text-sm group-hover:text-[#00ff88] transition-colors">
                                         I have read and agree to the{' '}
-                                        <a href="#" className="text-blue-400 hover:text-blue-300 underline">
+                                        <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">
                                             terms and conditions
                                         </a>
                                     </span>

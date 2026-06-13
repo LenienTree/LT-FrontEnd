@@ -5,7 +5,10 @@ import AboutNew from "./components/AboutNew";
 import TeamHalfCircle from "./components/TeamHalfCircle";
 import AuthModal from "./components/user/auth/AuthModal";
 import Profile from "./components/user/Profile";
+import InternshipPopup from "./components/user/InternshipPopup";
 import CalenderPage from "./pages/calender";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsConditions from "./pages/TermsConditions";
 import OrganizeEvent from "./components/organizer/OrganizeEvent";
 import EditEventPage from "./components/organizer/EditEventPage";
 import EventDetails from "./components/EventDetails";
@@ -44,6 +47,7 @@ function App() {
   return (
     <div className="text-white font-urbanist overflow-x-hidden">
       <AuthModal />
+      <InternshipPopup />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<AuthRedirect view="login" />} />
@@ -60,6 +64,8 @@ function App() {
         <Route path="/event/:id" element={<EventDetails />} />
         <Route path="/event" element={<EventDetails />} />
         <Route path="/event/:id/register" element={<EventRegistration />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsConditions />} />
       </Routes>
     </div>
   );
