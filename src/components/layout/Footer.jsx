@@ -122,14 +122,7 @@ export default function Footer() {
                                     Calendar
                                 </a>
                             </li>
-                            <li>
-                                <a
-                                    href="#"
-                                    className="text-white/80 hover:text-[#9ef01a] transition-colors duration-300"
-                                >
-                                    About
-                                </a>
-                            </li>
+
                             <li>
                                 <a
                                     href="#"

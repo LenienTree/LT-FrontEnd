@@ -176,7 +176,7 @@ const EventDetails = () => {
                 <div className="rounded-3xl p-8 lg:p-12 mb-8 relative overflow-hidden min-h-[300px] lg:min-h-[500px]">
                     {eventData.bannerImage ? (
                         <div className="absolute inset-0">
-                            <img src={eventData.bannerImage} alt="Event Banner" className="w-full h-full object-cover" />
+                            <img src={eventData.bannerImage} alt="Event Banner" className="w-full h-full object-cover" loading="lazy" />
                         </div>
                     ) : (
                         <div className={`absolute inset-0 ${
@@ -211,7 +211,7 @@ const EventDetails = () => {
                                 : "bg-blue-900 border-4 border-blue-700 shadow-blue-500/10"
                         }`}>
                             {eventData.eventPoster ? (
-                                <img src={eventData.eventPoster} alt="Event Poster" className="w-full h-full object-cover" />
+                                <img src={eventData.eventPoster} alt="Event Poster" className="w-full h-full object-cover" loading="lazy" />
                             ) : (
                                 <div className="aspect-[3/4] flex items-center justify-center text-gray-400">
                                     No poster available

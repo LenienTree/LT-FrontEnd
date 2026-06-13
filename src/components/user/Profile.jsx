@@ -76,28 +76,12 @@ const Profile = () => {
         if (profileRes.status === 'fulfilled') {
           const profile = profileRes.value;
           setProfileData(profile);
-
-          // If the user is an organizer, fetch the events they created
-          if (profile?.isOrganizer && profile?.id) {
-            setLoadingCreatedEvents(true);
-            eventsApi.getAll({ organizerId: profile.id, limit: 100 })
-              .then(res => {
-                const list = (Array.isArray(res) ? res : res.data) || [];
-                // Strictly filter by organizer ID
-                const filtered = list.filter(evt => 
-                  evt.organizerId === profile.id || 
-                  evt.organizer?.id === profile.id
-                );
-                setMyCreatedEvents(filtered);
-              })
-              .catch(() => {})
-              .finally(() => setLoadingCreatedEvents(false));
-          }
         }
 
         if (eventsRes.status === 'fulfilled') {
           setMyEvents(eventsRes.value.registered || []);
           setMyBookmarks(eventsRes.value.bookmarked || []);
+          setMyCreatedEvents(eventsRes.value.organized || []);
         }
         if (certsRes.status === 'fulfilled') setMyCertificates(certsRes.value || []);
         if (bookmarksRes.status === 'fulfilled' && !eventsRes.value?.bookmarked) {

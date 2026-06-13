@@ -116,7 +116,7 @@ const CollaborationEventCard = React.memo(({ event }) => {
               </div>
             )}
             {event.eventPoster ? (
-              <img src={event.eventPoster} alt="Event Poster" className="w-full h-full object-cover" />
+              <img src={event.eventPoster} alt="Event Poster" className="w-full h-full object-cover" loading="lazy" />
             ) : (
               <div className="absolute inset-0 flex flex-col justify-between p-4 sm:p-8">
                 <div>

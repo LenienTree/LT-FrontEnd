@@ -5,18 +5,28 @@
   <meta charset="utf-8" />
   <link rel="icon" href="logo1.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" content="#022F2E" />
+
+  <!-- Google Fonts — preconnect + display=swap prevents render-blocking -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap"
-    rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap"
+    rel="stylesheet"
+  />
 
-  <meta name="description" content="Web site created using create-react-app" />
+  <!-- Preload the first hero slide so the LCP image is fetched immediately -->
+  <link rel="preload" as="image" href="/Hero/1.png" fetchpriority="high" />
+
+  <meta
+    name="description"
+    content="LenientTree — discover and register for hackathons, ideathons, webinars and conclaves happening across India. Join 4000+ students in your tech community."
+  />
+
   <link rel="apple-touch-icon" href="/logo192.png" />
-
   <link rel="manifest" href="/manifest.json" />
 
-  <title>Lenient Tree</title>
+  <title>LenientTree — Find Tech Events Near You</title>
 </head>
 
 <body>
@@ -25,4 +35,4 @@
   <script type="module" src="/src/index.jsx"></script>
 </body>
 
-</html>
+</html>

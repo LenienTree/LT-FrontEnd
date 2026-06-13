@@ -1,6 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
-
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import GrowthChart from "../animations/GrowthChart";
@@ -1081,9 +1079,6 @@ const Home = () => {
           </div>
         </section>
 
-
-        {/* --- PARTNERS/LOGOS SECTION --- */}
-       
 
         {/* --- TESTIMONIALS SECTION --- */}
         <section className="relative py-12 sm:py-16 md:py-20 overflow-hidden" style={{ background: "#f0f4ee" }}>
