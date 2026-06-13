@@ -2,18 +2,9 @@ import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./components/home/Home";
 import AboutNew from "./components/AboutNew";
-import TeamHalfCircle from "./components/TeamHalfCircle";
-import AuthModal from "./components/user/auth/AuthModal";
-import Profile from "./components/user/Profile";
 import InternshipPopup from "./components/user/InternshipPopup";
-import CalenderPage from "./pages/calender";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsConditions from "./pages/TermsConditions";
-import OrganizeEvent from "./components/organizer/OrganizeEvent";
-import EditEventPage from "./components/organizer/EditEventPage";
-import EventDetails from "./components/EventDetails";
-import Admin from "./components/admin/Admin";
-import EventRegistration from "./components/EventRegistration";
 import { useAuth } from "./context/AuthContext";
 
 // Heavy pages are lazy-loaded so they are excluded from the initial JS bundle.
@@ -68,27 +59,29 @@ function AdminRoute({ children }) {
 function App() {
   return (
     <div className="text-white font-urbanist overflow-x-hidden">
-      <AuthModal />
-      <InternshipPopup />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<AuthRedirect view="login" />} />
-        <Route path="/signup" element={<AuthRedirect view="signup" />} />
-        <Route path="/about" element={<AboutNew />} />
-        <Route path="/test" element={<AboutNew />} />
-        <Route path="/test1" element={<TeamHalfCircle />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/calender" element={<CalenderPage />} />
-        <Route path="/organize" element={<OrganizerRoute><OrganizeEvent /></OrganizerRoute>} />
-        <Route path="/organize/edit/:id" element={<OrganizerRoute><EditEventPage /></OrganizerRoute>} />
-        <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-        {/* Event detail — supports both /event/:id and legacy /event?id=... */}
-        <Route path="/event/:id" element={<EventDetails />} />
-        <Route path="/event" element={<EventDetails />} />
-        <Route path="/event/:id/register" element={<EventRegistration />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/terms" element={<TermsConditions />} />
-      </Routes>
+      <Suspense fallback={<PageLoader />}>
+        <AuthModal />
+        <InternshipPopup />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<AuthRedirect view="login" />} />
+          <Route path="/signup" element={<AuthRedirect view="signup" />} />
+          <Route path="/about" element={<AboutNew />} />
+          <Route path="/test" element={<AboutNew />} />
+          <Route path="/test1" element={<TeamHalfCircle />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/calender" element={<CalenderPage />} />
+          <Route path="/organize" element={<OrganizerRoute><OrganizeEvent /></OrganizerRoute>} />
+          <Route path="/organize/edit/:id" element={<OrganizerRoute><EditEventPage /></OrganizerRoute>} />
+          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+          {/* Event detail — supports both /event/:id and legacy /event?id=... */}
+          <Route path="/event/:id" element={<EventDetails />} />
+          <Route path="/event" element={<EventDetails />} />
+          <Route path="/event/:id/register" element={<EventRegistration />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsConditions />} />
+        </Routes>
+      </Suspense>
     </div>
   );
 }
