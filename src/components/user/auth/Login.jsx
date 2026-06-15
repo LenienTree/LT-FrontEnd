@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
+import { Eye, EyeOff } from 'lucide-react';
 
 const Login = ({ switchToSignup, onSuccess }) => {
     const navigate = useNavigate();
@@ -15,6 +16,7 @@ const Login = ({ switchToSignup, onSuccess }) => {
     const [error, setError] = useState('');
     const [forgotSuccess, setForgotSuccess] = useState('');
     const [showForgot, setShowForgot] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -145,16 +147,28 @@ const Login = ({ switchToSignup, onSuccess }) => {
                                     />
                                 </div>
 
-                                <div>
+                                <div className="relative">
                                     <input
                                         id="login-password"
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         placeholder="password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-6 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 backdrop-blur-sm"
+                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 pl-6 pr-12 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 backdrop-blur-sm"
                                         required
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#00ff88] transition-colors focus:outline-none flex items-center justify-center"
+                                        aria-label={showPassword ? "Hide password" : "Show password"}
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="w-5 h-5" />
+                                        ) : (
+                                            <Eye className="w-5 h-5" />
+                                        )}
+                                    </button>
                                 </div>
 
                                 {/* Forgot password link */}

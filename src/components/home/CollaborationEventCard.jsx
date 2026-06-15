@@ -94,15 +94,14 @@ const CollaborationEventCard = React.memo(({ event }) => {
     <div className="p-2 sm:p-3">
       <div
         ref={cardRef}
-        className={`relative w-full sm:w-80 h-[380px] sm:h-[400px] rounded-lg overflow-hidden cursor-pointer border-2 transition-all duration-300 ${colors.bgColor || ""} ${
-          event.isPremium
-            ? isHovered
-              ? "border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.85)] scale-[1.01]"
-              : "border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]"
-            : isHovered
-              ? `${colors.borderColor} ${colors.glowColor} scale-[1.01]`
-              : "border-white/20"
-        }`}
+        className={`relative w-full sm:w-80 h-[380px] sm:h-[400px] rounded-lg overflow-hidden cursor-pointer border-2 transition-all duration-300 ${colors.bgColor || ""} ${event.isPremium
+          ? isHovered
+            ? "border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.85)] scale-[1.01]"
+            : "border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]"
+          : isHovered
+            ? `${colors.borderColor} ${colors.glowColor} scale-[1.01]`
+            : "border-white/20"
+          }`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -126,18 +125,12 @@ const CollaborationEventCard = React.memo(({ event }) => {
                 </div>
                 <div className="flex-1 flex items-center justify-center">
                   <div className={`text-6xl sm:text-8xl font-bold ${colors.logoColor}`}>
-                    <svg
-                      className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-2 sm:mb-4"
-                      viewBox="0 0 100 100"
-                      fill="currentColor"
-                    >
-                      <path d="M20 20 L20 80 L40 80 L40 60 L50 60 C60 60 65 55 65 45 C65 35 60 30 50 30 L40 30 L40 50 L50 50 C52 50 54 48 54 45 C54 42 52 40 50 40 L30 40 L30 20 Z" />
-                      <circle cx="70" cy="25" r="3" fill="currentColor" />
-                      <circle cx="75" cy="30" r="2.5" fill="currentColor" />
-                      <circle cx="72" cy="35" r="2" fill="currentColor" />
-                      <circle cx="78" cy="28" r="2" fill="currentColor" />
-                      <circle cx="76" cy="22" r="2" fill="currentColor" />
-                    </svg>
+                    <img
+                      src="/logo1.png"
+                      alt="Lenient Tree Logo"
+                      className="w-24 h-24 sm:w-32 sm:h-32"
+                      loading="lazy"
+                    ></img>
                   </div>
                 </div>
                 <div>
@@ -161,17 +154,16 @@ const CollaborationEventCard = React.memo(({ event }) => {
               </span>
             )}
             <div
-              className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full ${
-                event.isPremium
-                  ? "bg-amber-400 shadow-[0_0_8px_#f59e0b]"
-                  : event.color === "blue"
-                    ? "bg-blue-400"
-                    : event.color === "green"
-                      ? "bg-green-400"
-                      : event.color === "red"
-                        ? "bg-red-400"
-                        : "bg-green-400"
-              }`}
+              className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full ${event.isPremium
+                ? "bg-amber-400 shadow-[0_0_8px_#f59e0b]"
+                : event.color === "blue"
+                  ? "bg-blue-400"
+                  : event.color === "green"
+                    ? "bg-green-400"
+                    : event.color === "red"
+                      ? "bg-red-400"
+                      : "bg-green-400"
+                }`}
             ></div>
           </div>
           {/* Bottom Card */}
@@ -234,11 +226,10 @@ const CollaborationEventCard = React.memo(({ event }) => {
                 <span className="text-xs sm:text-sm">: {event.participants}</span>
               </div>
             </div>
-            <button className={`w-full py-2 sm:py-3 rounded-xl flex justify-center items-center gap-2 font-bold text-sm sm:text-base transition-all ${
-              event.isPremium
-                ? "bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 shadow-lg shadow-amber-500/20"
-                : "bg-green-400 text-black hover:bg-green-300"
-            }`}>
+            <button className={`w-full py-2 sm:py-3 rounded-xl flex justify-center items-center gap-2 font-bold text-sm sm:text-base transition-all ${event.isPremium
+              ? "bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 shadow-lg shadow-amber-500/20"
+              : "bg-green-400 text-black hover:bg-green-300"
+              }`}>
               <span>Click to know more</span>
               <svg
                 className="w-3 h-3 sm:w-4 sm:h-4"

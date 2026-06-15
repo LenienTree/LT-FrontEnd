@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Bell, User, Upload, Menu, X } from 'lucide-react';
 
 export default function Organize() {
@@ -381,8 +382,8 @@ export default function Organize() {
           </div>
           <div>
             <h3 className="font-semibold mb-3">Essentials</h3>
-            <p className="text-gray-400 text-xs mb-2">Terms & Conditions</p>
-            <p className="text-gray-400 text-xs mb-2">Privacy Policy</p>
+            <Link to="/terms" className="block text-gray-400 text-xs mb-2 hover:text-lime-400 transition-colors">Terms &amp; Conditions</Link>
+            <Link to="/privacy" className="block text-gray-400 text-xs mb-2 hover:text-lime-400 transition-colors">Privacy Policy</Link>
             <p className="text-gray-400 text-xs">Blogs</p>
           </div>
           <div>

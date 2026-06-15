@@ -90,25 +90,28 @@ const Home = () => {
   // Testimonials Coverflow States & Data
   const testimonials = [
     {
-      name: "MARK ZHONG",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300&auto=format&fit=crop",
-      badge: "a",
-      role: "aCCUTARY",
-      quote: "Hi, I am happy with Lenient Tree and hope to work with them more often."
+      name: "Abdul Samad",
+      avatar: "/testimonial/abdul-samad.jpg",
+      badge: "A",
+      role: "CEO, Appetite Studio",
+      quote: "Hack for Good was a great initiative to support impactful ideas. Augustine was supportive throughout the event from the very beginning and helped us with volunteer coordination during the hackathon. Wishing Augustine and Lenient Tree the best for more such community-driven events ahead.",
+      link: "https://www.linkedin.com/in/4samad?utm_source=share_via&utm_content=profile&utm_medium=member_android"
     },
     {
-      name: "HENRY DOCKSON",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=300&auto=format&fit=crop",
-      badge: "B",
-      role: "Bilency",
-      quote: "Lenient Tree is growing everyday, and I want to be part of it. Investment such as this is always a great option in my opinion."
+      name: "Ray Podder",
+      avatar: "/testimonial/ray-podder.jpeg",
+      badge: "O",
+      role: "One Network Solutions",
+      quote: "It was a privilege working with the Lenient Tree. What impressed me wasn't just their talent, but their willingness to question assumptions, think differently, and embrace uncertainty. As AI makes knowledge and execution increasingly abundant, the future belongs to those who can turn insight into impact and imagination into value. The students I met showed exactly that potential. That's the kind of creator mindset the future demands.",
+      link: "https://www.linkedin.com/in/raypodder?utm_source=share_via&utm_content=profile&utm_medium=member_android"
     },
     {
-      name: "ARNAV GHANI",
-      avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=300&auto=format&fit=crop",
-      badge: "@",
-      role: "Artystry H&C",
-      quote: "Creativity is not limited for Lenient Tree, they help us get the best results. It's their ART."
+      name: "Soham Chatterjee",
+      avatar: "/testimonial/soham.jpeg",
+      badge: "I",
+      role: "IISER Berhampur",
+      quote: "It was a privilege to collaborate with Lenient Tree for the successful conduct of the ThinkerRoot Ideathon. We are proud to have supported the initiative as the educational partner from Indian Institute of Science Education and Research Berhampur.",
+      link: "https://www.linkedin.com/in/soham-chatterjee-908510256?utm_source=share_via&utm_content=profile&utm_medium=member_android"
     }
   ];
 
@@ -1213,7 +1216,18 @@ const Home = () => {
                           draggable={false}
                         />
                         <div className="text-right">
-                          <p className="font-bold text-sm tracking-wider">{t.name}</p>
+                          {t.link ? (
+                            <a 
+                              href={t.link} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="font-bold text-sm tracking-wider hover:text-[#64F422] transition-colors duration-300 hover:underline"
+                            >
+                              {t.name}
+                            </a>
+                          ) : (
+                            <p className="font-bold text-sm tracking-wider">{t.name}</p>
+                          )}
                           <div className="flex items-center justify-end gap-2 mt-1.5">
                             <span className="w-5 h-5 flex items-center justify-center text-xs font-bold bg-gray-300 text-black rounded-full flex-shrink-0">{t.badge}</span>
                             <p className="text-xs text-gray-400">{t.role}</p>

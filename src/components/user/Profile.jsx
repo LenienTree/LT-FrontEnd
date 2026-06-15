@@ -117,6 +117,7 @@ const Profile = () => {
         bio: profileData.bio,
         skills: profileData.skills,
         socialLinks: profileData.socialLinks,
+        dateOfBirth: profileData.dateOfBirth,
       });
       setProfileData(updated?.user || updated || profileData);
       setProfileSuccess('Profile saved successfully!');
@@ -345,6 +346,13 @@ const Profile = () => {
                   <Field label="Phone number" name="phone" type="tel" value={profileData?.phone || ''} onChange={handleInputChange} />
                   <Field label="College" name="college" value={profileData?.college || ''} onChange={handleInputChange} />
                   <Field label="Graduation Year" name="graduationYear" type="number" value={profileData?.graduationYear || ''} onChange={handleInputChange} />
+                  <Field 
+                    label="Date of Birth" 
+                    name="dateOfBirth" 
+                    type="date" 
+                    value={profileData?.dateOfBirth ? new Date(profileData.dateOfBirth).toISOString().split('T')[0] : ''} 
+                    onChange={handleInputChange} 
+                  />
                   <div>
                     <label className="text-gray-400 text-sm mb-2 block">Bio</label>
                     <textarea
