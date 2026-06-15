@@ -12,6 +12,7 @@ const Signup = ({ switchToLogin, onSuccess }) => {
     phone: '',
     college: '',
     graduationYear: '',
+    dateOfBirth: '',
     email: '',
     password: '',
     agreeToTerms: false
@@ -134,6 +135,19 @@ const Signup = ({ switchToLogin, onSuccess }) => {
                 name="graduationYear"
                 placeholder="Year of graduation (e.g. 2026)"
                 value={formData.graduationYear}
+                onChange={handleChange}
+                className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-6 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 backdrop-blur-sm"
+                required
+              />
+            </div>
+
+            <div>
+              <input
+                id="signup-dob"
+                type="date"
+                name="dateOfBirth"
+                placeholder="Date of Birth"
+                value={formData.dateOfBirth}
                 onChange={handleChange}
                 className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-6 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 backdrop-blur-sm"
                 required

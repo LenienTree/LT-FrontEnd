@@ -34,12 +34,29 @@ export default function InternshipPopup() {
     }
   }, []);
 
-  // Determine if popup should be shown
+  // Helper to calculate age from Date of Birth string
+  const getAge = (dobString) => {
+    if (!dobString) return null;
+    const today = new Date();
+    const birthDate = new Date(dobString);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const age = user ? getAge(user.dateOfBirth) : null;
+
+  // Determine if popup should be shown (only for users below 23)
   const shouldShow = 
     isAuthenticated && 
     !loading && 
     user && 
     user.internshipInterest === null && 
+    age !== null &&
+    age < 23 &&
     !dismissed;
 
   if (!shouldShow) return null;
