@@ -4,10 +4,11 @@ import {
   Users, CalendarDays, TrendingUp, Eye, Clock, BarChart2,
   CheckCircle, XCircle, Shield, Search, Bell, LogOut,
   ChevronLeft, ChevronRight, RefreshCw, Loader2,
-  UserCheck, AlertTriangle, Pencil, Trash2, SlidersHorizontal
+  UserCheck, AlertTriangle, Pencil, Trash2, SlidersHorizontal,
+  Upload, Plus, ArrowUp, ArrowDown, Image, Settings, Home
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { admin } from '../../services/api';
+import { admin, homepage as homepageApi } from '../../services/api';
 import { events as eventsApi } from '../../services/api';
 
 import { fmtNum, fmtDate, fmtDateTime } from './AdminHelpers';
@@ -73,6 +74,255 @@ const Admin = () => {
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  // Homepage state
+  const [homepageData, setHomepageData] = useState({ banners: [], community: [], testimonials: [], sections: [] });
+  const [loadingHomepage, setLoadingHomepage] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadingCommunity, setUploadingCommunity] = useState(false);
+  const [testimonialModal, setTestimonialModal] = useState(null); // { mode: 'add'|'edit', data?: testimonialObj }
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [submittingTestimonial, setSubmittingTestimonial] = useState(false);
+  const [updatingSections, setUpdatingSections] = useState(false);
+  const [eventsList, setEventsList] = useState([]);
+  const [selectedSectionKey, setSelectedSectionKey] = useState('');
+  const [updatingEventsOrder, setUpdatingEventsOrder] = useState(false);
+
+  const fetchHomepageData = useCallback(async () => {
+    setLoadingHomepage(true);
+    try {
+      const [homepageRes, eventsRes] = await Promise.all([
+        homepageApi.get(),
+        eventsApi.getAll({ limit: 100 })
+      ]);
+      setHomepageData(homepageRes || { banners: [], community: [], testimonials: [], sections: [] });
+      const eventsArr = (Array.isArray(eventsRes) ? eventsRes : eventsRes?.data) || [];
+      setEventsList(eventsArr);
+    } catch (e) {
+      showToast('Failed to load homepage configuration', 'error');
+    } finally {
+      setLoadingHomepage(false);
+    }
+  }, []);
+
+  const handleMoveSection = async (index, direction) => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === homepageData.sections.length - 1) return;
+    
+    const newSections = [...homepageData.sections];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    // Swap orders
+    const tempOrder = newSections[index].order;
+    newSections[index].order = newSections[targetIndex].order;
+    newSections[targetIndex].order = tempOrder;
+    
+    // Sort
+    newSections.sort((a, b) => a.order - b.order);
+    setHomepageData((prev) => ({ ...prev, sections: newSections }));
+    
+    setUpdatingSections(true);
+    try {
+      const res = await admin.homepage.updateSectionsOrder(newSections.map(s => ({ id: s.id, order: s.order })));
+      setHomepageData((prev) => ({ ...prev, sections: res || newSections }));
+      showToast('Homepage sections order updated successfully!', 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to update section order', 'error');
+      fetchHomepageData();
+    } finally {
+      setUpdatingSections(false);
+    }
+  };
+
+  const getFilteredEventsForSection = (sectionKey) => {
+    return eventsList.filter((event) => {
+      const cat = event.category;
+      if (sectionKey === 'hackathons') return cat === 'Hackathon';
+      if (sectionKey === 'ideathons') return cat === 'Ideathon';
+      if (sectionKey === 'webinars') return cat === 'Webinar';
+      if (sectionKey === 'events') {
+        return cat !== 'Hackathon' && cat !== 'Ideathon' && cat !== 'Webinar';
+      }
+      return false;
+    }).sort((a, b) => {
+      if ((a.displayOrder || 0) !== (b.displayOrder || 0)) {
+        return (a.displayOrder || 0) - (b.displayOrder || 0);
+      }
+      return new Date(a.startDate) - new Date(b.startDate);
+    });
+  };
+
+  const handleMoveEvent = async (index, direction, filteredEvents) => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === filteredEvents.length - 1) return;
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const reorderedEvents = [...filteredEvents];
+    const temp = reorderedEvents[index];
+    reorderedEvents[index] = reorderedEvents[targetIndex];
+    reorderedEvents[targetIndex] = temp;
+
+    const updatedEventsPayload = reorderedEvents.map((ev, idx) => ({
+      id: ev.id,
+      displayOrder: idx + 1
+    }));
+
+    setEventsList(prev => {
+      return prev.map(ev => {
+        const match = updatedEventsPayload.find(p => p.id === ev.id);
+        return match ? { ...ev, displayOrder: match.displayOrder } : ev;
+      });
+    });
+
+    setUpdatingEventsOrder(true);
+    try {
+      await admin.updateEventsOrder(updatedEventsPayload);
+      showToast('Events order updated successfully!', 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to update events order', 'error');
+      fetchHomepageData();
+    } finally {
+      setUpdatingEventsOrder(false);
+    }
+  };
+
+  const handleBannerUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingBanner(true);
+    try {
+      await admin.homepage.uploadBanner(file);
+      showToast('Banner slide uploaded successfully!');
+      fetchHomepageData();
+    } catch (err) {
+      showToast(err.message || 'Failed to upload banner', 'error');
+    } finally {
+      setUploadingBanner(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleBannerDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this banner slide?')) return;
+    try {
+      await admin.homepage.deleteBanner(id);
+      showToast('Banner slide deleted successfully!');
+      fetchHomepageData();
+    } catch (err) {
+      showToast(err.message || 'Failed to delete banner', 'error');
+    }
+  };
+
+  const handleBannerOrderChange = async (id, newOrder) => {
+    try {
+      await admin.homepage.updateBannerOrder(id, parseInt(newOrder));
+      showToast('Banner order updated!');
+      fetchHomepageData();
+    } catch (err) {
+      showToast(err.message || 'Failed to update banner order', 'error');
+    }
+  };
+
+  const handleCommunityUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingCommunity(true);
+    try {
+      await admin.homepage.uploadCommunityImage(file);
+      showToast('Community image uploaded successfully!');
+      fetchHomepageData();
+    } catch (err) {
+      showToast(err.message || 'Failed to upload community image', 'error');
+    } finally {
+      setUploadingCommunity(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleCommunityDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this community image?')) return;
+    try {
+      await admin.homepage.deleteCommunityImage(id);
+      showToast('Community image deleted successfully!');
+      fetchHomepageData();
+    } catch (err) {
+      showToast(err.message || 'Failed to delete community image', 'error');
+    }
+  };
+
+  const handleCommunityOrderChange = async (id, newOrder) => {
+    try {
+      await admin.homepage.updateCommunityImageOrder(id, parseInt(newOrder));
+      showToast('Community image order updated!');
+      fetchHomepageData();
+    } catch (err) {
+      showToast(err.message || 'Failed to update community image order', 'error');
+    }
+  };
+
+  const handleTestimonialAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      const res = await admin.homepage.uploadTestimonialAvatar(file);
+      setTestimonialModal(prev => ({
+        ...prev,
+        data: { ...prev.data, avatarUrl: res.avatarUrl }
+      }));
+      showToast('Avatar uploaded successfully!');
+    } catch (err) {
+      showToast(err.message || 'Failed to upload avatar', 'error');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleTestimonialSubmit = async (e) => {
+    e.preventDefault();
+    const { mode, data } = testimonialModal;
+    setSubmittingTestimonial(true);
+    try {
+      if (!data.name || !data.role || !data.quote) {
+        throw new Error('Name, Role, and Quote are required');
+      }
+      
+      const payload = {
+        name: data.name,
+        role: data.role,
+        quote: data.quote,
+        avatarUrl: data.avatarUrl || null,
+        badge: data.badge || null,
+        link: data.link || null,
+        order: data.order !== undefined ? parseInt(data.order) : undefined,
+      };
+
+      if (mode === 'add') {
+        await admin.homepage.addTestimonial(payload);
+        showToast('Testimonial added successfully!');
+      } else {
+        await admin.homepage.updateTestimonial(data.id, payload);
+        showToast('Testimonial updated successfully!');
+      }
+      setTestimonialModal(null);
+      fetchHomepageData();
+    } catch (err) {
+      showToast(err.message || 'Failed to save testimonial', 'error');
+    } finally {
+      setSubmittingTestimonial(false);
+    }
+  };
+
+  const handleTestimonialDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this testimonial?')) return;
+    try {
+      await admin.homepage.deleteTestimonial(id);
+      showToast('Testimonial deleted successfully!');
+      fetchHomepageData();
+    } catch (err) {
+      showToast(err.message || 'Failed to delete testimonial', 'error');
+    }
   };
 
   // ── Fetch Dashboard ──
@@ -173,6 +423,7 @@ const Admin = () => {
     if (activeTab === 'users') fetchUsers(1);
     if (activeTab === 'organizer') fetchOrgRequests();
     if (activeTab === 'recentUsers') fetchRecentUsers(1);
+    if (activeTab === 'homepage') fetchHomepageData();
   }, [activeTab]);
 
   // ── Actions ──
@@ -259,6 +510,7 @@ const Admin = () => {
     { key: 'organizer', label: 'Organizer Requests', icon: UserCheck },
     { key: 'recentUsers', label: 'Recent Users', icon: Users },
     { key: 'users', label: 'All Users', icon: SlidersHorizontal },
+    { key: 'homepage', label: 'Homepage Config', icon: Settings },
   ];
 
   const statCards = stats ? [
@@ -1073,6 +1325,491 @@ const Admin = () => {
                   )}
                 </>
               )}
+            </div>
+          )}
+
+          {activeTab === 'homepage' && (
+            <div>
+              <SectionHeader title="Homepage Configurator" onRefresh={fetchHomepageData} />
+              
+              {loadingHomepage ? (
+                <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-[#00ff88] animate-spin" /></div>
+              ) : (
+                <div className="space-y-10">
+
+                  {/* HOMEPAGE SECTIONS ORDER */}
+                  <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                    <div className="mb-6">
+                      <h2 className="text-white text-lg font-semibold flex items-center gap-2">
+                        <SlidersHorizontal className="w-5 h-5 text-[#00ff88]" />
+                        Homepage Event Sections Order
+                      </h2>
+                      <p className="text-gray-400 text-xs mt-1">Reorder the upcoming event categories sections displayed on the homepage.</p>
+                    </div>
+
+                    {!homepageData.sections || homepageData.sections.length === 0 ? (
+                      <p className="text-gray-500 text-sm py-4">No sections configured. Database will seed defaults on homepage refresh.</p>
+                    ) : (
+                      <div className="space-y-3 max-w-xl">
+                        {homepageData.sections.map((section, idx) => (
+                          <div key={section.id} className="bg-[#061818]/60 border border-[#1a4d4d] rounded-xl p-4 flex items-center justify-between gap-4 hover:border-[#00ff88]/30 transition-all">
+                            <div>
+                              <p className="text-white font-medium text-sm">{section.title}</p>
+                              <p className="text-gray-500 text-xs mt-0.5">Key: {section.key} · Order: {section.order}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                disabled={idx === 0 || updatingSections}
+                                onClick={() => handleMoveSection(idx, 'up')}
+                                className="p-1.5 bg-[#1a4d4d] hover:bg-[#256e6e] text-white disabled:opacity-30 disabled:hover:bg-[#1a4d4d] rounded-lg transition-all"
+                                title="Move Up"
+                              >
+                                <ArrowUp className="w-4 h-4" />
+                              </button>
+                              <button
+                                disabled={idx === homepageData.sections.length - 1 || updatingSections}
+                                onClick={() => handleMoveSection(idx, 'down')}
+                                className="p-1.5 bg-[#1a4d4d] hover:bg-[#256e6e] text-white disabled:opacity-30 disabled:hover:bg-[#1a4d4d] rounded-lg transition-all"
+                                title="Move Down"
+                              >
+                                <ArrowDown className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* EVENTS ORDER IN SECTIONS */}
+                  <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                    <div className="mb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                      <div>
+                        <h2 className="text-white text-lg font-semibold flex items-center gap-2">
+                          <SlidersHorizontal className="w-5 h-5 text-[#00ff88]" />
+                          Order Events in Homepage Sections
+                        </h2>
+                        <p className="text-gray-400 text-xs mt-1">Reorder individual events displayed under each section on the homepage.</p>
+                      </div>
+
+                      {/* Section Selector */}
+                      <div>
+                        <select
+                          value={selectedSectionKey || (homepageData.sections && homepageData.sections[0]?.key) || ''}
+                          onChange={(e) => setSelectedSectionKey(e.target.value)}
+                          className="bg-[#0c2424] border border-[#1a4d4d] text-white text-sm px-4 py-2 rounded-xl focus:outline-none focus:border-[#00ff88] cursor-pointer"
+                        >
+                          {(homepageData.sections || []).map((sec) => (
+                            <option key={sec.key} value={sec.key}>
+                              {sec.title}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const activeSecKey = selectedSectionKey || (homepageData.sections && homepageData.sections[0]?.key) || 'hackathons';
+                      const sectionEvents = getFilteredEventsForSection(activeSecKey);
+
+                      if (sectionEvents.length === 0) {
+                        return <p className="text-gray-500 text-sm py-4">No events found in this category.</p>;
+                      }
+
+                      return (
+                        <div className="space-y-3 max-w-2xl">
+                          {sectionEvents.map((event, idx) => (
+                            <div key={event.id} className="bg-[#061818]/60 border border-[#1a4d4d] rounded-xl p-4 flex items-center justify-between gap-4 hover:border-[#00ff88]/30 transition-all">
+                              <div className="flex items-center gap-3">
+                                {event.eventPoster || event.bannerImage ? (
+                                  <img
+                                    src={event.eventPoster || event.bannerImage}
+                                    alt="Event Thumbnail"
+                                    className="w-12 h-12 object-cover rounded-lg border border-[#1a4d4d]"
+                                  />
+                                ) : (
+                                  <div className="w-12 h-12 bg-[#0c2424] flex items-center justify-center rounded-lg border border-[#1a4d4d]">
+                                    <CalendarDays className="w-6 h-6 text-gray-500" />
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="text-white font-medium text-sm line-clamp-1">{event.title}</p>
+                                  <p className="text-gray-500 text-xs mt-0.5">
+                                    Date: {fmtDate(event.startDate)} · Display Order: {event.displayOrder || 0}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  disabled={idx === 0 || updatingEventsOrder}
+                                  onClick={() => handleMoveEvent(idx, 'up', sectionEvents)}
+                                  className="p-1.5 bg-[#1a4d4d] hover:bg-[#256e6e] text-white disabled:opacity-30 disabled:hover:bg-[#1a4d4d] rounded-lg transition-all"
+                                  title="Move Up"
+                                >
+                                  <ArrowUp className="w-4 h-4" />
+                                </button>
+                                <button
+                                  disabled={idx === sectionEvents.length - 1 || updatingEventsOrder}
+                                  onClick={() => handleMoveEvent(idx, 'down', sectionEvents)}
+                                  className="p-1.5 bg-[#1a4d4d] hover:bg-[#256e6e] text-white disabled:opacity-30 disabled:hover:bg-[#1a4d4d] rounded-lg transition-all"
+                                  title="Move Down"
+                                >
+                                  <ArrowDown className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  
+                  {/* HERO BANNERS */}
+                  <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
+                      <div>
+                        <h2 className="text-white text-lg font-semibold flex items-center gap-2">
+                          <Image className="w-5 h-5 text-[#00ff88]" />
+                          Hero Carousel Banners
+                        </h2>
+                        <p className="text-gray-400 text-xs mt-1">Manage the large images scrolling in the main home banner.</p>
+                      </div>
+                      
+                      <label className={`cursor-pointer flex items-center gap-2 bg-[#00ff88] text-[#0a1f1f] font-bold px-4 py-2 rounded-xl hover:bg-[#00cc70] transition-all text-sm ${uploadingBanner ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <Upload className="w-4 h-4" />
+                        {uploadingBanner ? 'Uploading...' : 'Add Banner'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleBannerUpload}
+                          disabled={uploadingBanner}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    {homepageData.banners.length === 0 ? (
+                      <p className="text-gray-500 text-sm py-4">No banners configured. Add a new banner image above.</p>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {homepageData.banners.map((banner) => (
+                          <div key={banner.id} className="bg-[#061818]/60 border border-[#1a4d4d] rounded-xl overflow-hidden hover:border-[#00ff88]/30 transition-all flex flex-col">
+                            <div className="relative aspect-[21/9] bg-[#0c2424] flex items-center justify-center">
+                              <img src={banner.secureUrl || banner.imageUrl} alt="Banner" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="p-3 flex items-center justify-between gap-3 border-t border-[#1a4d4d]">
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-400 text-xs">Order:</span>
+                                <input
+                                  type="number"
+                                  value={banner.order}
+                                  onChange={(e) => handleBannerOrderChange(banner.id, e.target.value)}
+                                  className="w-16 bg-[#0d2f2f] border border-[#1a4d4d] text-white text-xs px-2 py-1 rounded focus:outline-none focus:border-[#00ff88]"
+                                />
+                              </div>
+                              <button
+                                onClick={() => handleBannerDelete(banner.id)}
+                                className="text-red-400 hover:text-red-300 hover:bg-red-950/40 p-1.5 rounded-lg transition-all"
+                                title="Delete Banner"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* COMMUNITY SHOWCASE */}
+                  <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
+                      <div>
+                        <h2 className="text-white text-lg font-semibold flex items-center gap-2">
+                          <Image className="w-5 h-5 text-[#00ff88]" />
+                          Community Showcase Images
+                        </h2>
+                        <p className="text-gray-400 text-xs mt-1">Configure images for the interactive community section on the homepage.</p>
+                      </div>
+                      
+                      <label className={`cursor-pointer flex items-center gap-2 bg-[#00ff88] text-[#0a1f1f] font-bold px-4 py-2 rounded-xl hover:bg-[#00cc70] transition-all text-sm ${uploadingCommunity ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <Upload className="w-4 h-4" />
+                        {uploadingCommunity ? 'Uploading...' : 'Add Image'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleCommunityUpload}
+                          disabled={uploadingCommunity}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    {homepageData.community.length === 0 ? (
+                      <p className="text-gray-500 text-sm py-4">No community images configured. Add a new image above.</p>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        {homepageData.community.map((img) => (
+                          <div key={img.id} className="bg-[#061818]/60 border border-[#1a4d4d] rounded-xl overflow-hidden hover:border-[#00ff88]/30 transition-all flex flex-col">
+                            <div className="relative aspect-square bg-[#0c2424] flex items-center justify-center">
+                              <img src={img.secureUrl || img.imageUrl} alt="Community" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="p-2.5 flex items-center justify-between gap-2 border-t border-[#1a4d4d]">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-gray-500 text-[10px]">Ord:</span>
+                                <input
+                                  type="number"
+                                  value={img.order}
+                                  onChange={(e) => handleCommunityOrderChange(img.id, e.target.value)}
+                                  className="w-10 bg-[#0d2f2f] border border-[#1a4d4d] text-white text-[10px] px-1 py-0.5 rounded text-center focus:outline-none focus:border-[#00ff88]"
+                                />
+                              </div>
+                              <button
+                                onClick={() => handleCommunityDelete(img.id)}
+                                className="text-red-400 hover:text-red-300 hover:bg-red-950/40 p-1 rounded transition-all"
+                                title="Delete Image"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* TESTIMONIALS */}
+                  <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
+                      <div>
+                        <h2 className="text-white text-lg font-semibold flex items-center gap-2">
+                          <Users className="w-5 h-5 text-[#00ff88]" />
+                          Testimonials Carousel
+                        </h2>
+                        <p className="text-gray-400 text-xs mt-1">Configure client/member reviews and quotes shown on the homepage.</p>
+                      </div>
+                      
+                      <button
+                        onClick={() => setTestimonialModal({ mode: 'add', data: { name: '', role: '', quote: '', avatarUrl: '', badge: '', link: '', order: 0 } })}
+                        className="flex items-center gap-2 bg-[#00ff88] text-[#0a1f1f] font-bold px-4 py-2 rounded-xl hover:bg-[#00cc70] transition-all text-sm"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Testimonial
+                      </button>
+                    </div>
+
+                    {homepageData.testimonials.length === 0 ? (
+                      <p className="text-gray-500 text-sm py-4">No testimonials configured. Add a new testimonial review above.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {homepageData.testimonials.map((t) => (
+                          <div key={t.id} className="bg-[#061818]/60 border border-[#1a4d4d] rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-[#00ff88]/30 transition-all">
+                            <div className="flex items-start gap-3">
+                              <div className="w-12 h-12 rounded-full bg-[#1a4d4d] flex items-center justify-center flex-shrink-0">
+                                {t.avatarUrl ? (
+                                  <img src={t.avatarUrl} alt="" className="w-full h-full object-cover rounded-full" />
+                                ) : (
+                                  <Users className="w-6 h-6 text-gray-400" />
+                                )}
+                              </div>
+                              <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-white font-medium text-sm">{t.name}</span>
+                                  {t.badge && (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border border-[#00ff88]/40 text-[#00ff88] bg-[#00ff88]/10 uppercase">
+                                      {t.badge}
+                                    </span>
+                                  )}
+                                  <span className="text-gray-500 text-xs">Order: {t.order}</span>
+                                </div>
+                                <p className="text-[#00ff88] text-xs mt-0.5">{t.role}</p>
+                                <p className="text-gray-300 text-xs mt-2 italic font-serif">"{t.quote}"</p>
+                                {t.link && (
+                                  <a href={t.link} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-[10px] mt-1 inline-block">
+                                    {t.link}
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="flex gap-2 self-end md:self-auto">
+                              <button
+                                onClick={() => setTestimonialModal({ mode: 'edit', data: { ...t } })}
+                                className="flex items-center gap-1 bg-[#1a4d4d] hover:bg-[#256e6e] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleTestimonialDelete(t.id)}
+                                className="flex items-center gap-1 bg-red-950/40 hover:bg-red-800 text-red-400 hover:text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-900/50 transition-all"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Testimonial Form Modal */}
+          {testimonialModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+              <div className="w-full max-w-lg bg-[#0d2f2f] border-2 border-[#1a4d4d] rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-white font-semibold text-lg">
+                    {testimonialModal.mode === 'add' ? 'Add Testimonial' : 'Edit Testimonial'}
+                  </h3>
+                  <button onClick={() => setTestimonialModal(null)} className="text-gray-400 hover:text-white transition-colors">
+                    <XCircle className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <form onSubmit={handleTestimonialSubmit} className="space-y-4">
+                  {/* Avatar upload */}
+                  <div>
+                    <span className="text-gray-400 text-xs block mb-2">Avatar Image</span>
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-full bg-[#1a4d4d] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {testimonialModal.data.avatarUrl ? (
+                          <img src={testimonialModal.data.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <Users className="w-7 h-7 text-gray-400" />
+                        )}
+                      </div>
+                      <label className={`cursor-pointer bg-[#1a4d4d] text-white hover:bg-[#256e6e] text-xs font-semibold px-3 py-2 rounded-xl transition-all ${uploadingAvatar ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        {uploadingAvatar ? 'Uploading...' : 'Upload Avatar'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleTestimonialAvatarUpload}
+                          disabled={uploadingAvatar}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Name */}
+                  <div>
+                    <label className="text-gray-400 text-xs block mb-1">Author Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={testimonialModal.data.name || ''}
+                      onChange={(e) => setTestimonialModal(prev => ({
+                        ...prev,
+                        data: { ...prev.data, name: e.target.value }
+                      }))}
+                      className="w-full bg-[#061818]/60 border border-[#1a4d4d] text-white placeholder-gray-500 py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all text-sm"
+                      placeholder="e.g. John Doe"
+                    />
+                  </div>
+
+                  {/* Role */}
+                  <div>
+                    <label className="text-gray-400 text-xs block mb-1">Role / Affiliation *</label>
+                    <input
+                      type="text"
+                      required
+                      value={testimonialModal.data.role || ''}
+                      onChange={(e) => setTestimonialModal(prev => ({
+                        ...prev,
+                        data: { ...prev.data, role: e.target.value }
+                      }))}
+                      className="w-full bg-[#061818]/60 border border-[#1a4d4d] text-white placeholder-gray-500 py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all text-sm"
+                      placeholder="e.g. Founder at TechCorp"
+                    />
+                  </div>
+
+                  {/* Quote */}
+                  <div>
+                    <label className="text-gray-400 text-xs block mb-1">Testimonial Quote *</label>
+                    <textarea
+                      required
+                      rows={3}
+                      value={testimonialModal.data.quote || ''}
+                      onChange={(e) => setTestimonialModal(prev => ({
+                        ...prev,
+                        data: { ...prev.data, quote: e.target.value }
+                      }))}
+                      className="w-full bg-[#061818]/60 border border-[#1a4d4d] text-white placeholder-gray-500 py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all text-sm resize-none"
+                      placeholder="Write the quote text here..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Badge */}
+                    <div>
+                      <label className="text-gray-400 text-xs block mb-1">Badge (optional)</label>
+                      <input
+                        type="text"
+                        maxLength={10}
+                        value={testimonialModal.data.badge || ''}
+                        onChange={(e) => setTestimonialModal(prev => ({
+                          ...prev,
+                          data: { ...prev.data, badge: e.target.value }
+                        }))}
+                        className="w-full bg-[#061818]/60 border border-[#1a4d4d] text-white placeholder-gray-500 py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all text-sm"
+                        placeholder="e.g. Winner"
+                      />
+                    </div>
+
+                    {/* Order */}
+                    <div>
+                      <label className="text-gray-400 text-xs block mb-1">Display Order</label>
+                      <input
+                        type="number"
+                        value={testimonialModal.data.order || 0}
+                        onChange={(e) => setTestimonialModal(prev => ({
+                          ...prev,
+                          data: { ...prev.data, order: parseInt(e.target.value) || 0 }
+                        }))}
+                        className="w-full bg-[#061818]/60 border border-[#1a4d4d] text-white placeholder-gray-500 py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Link */}
+                  <div>
+                    <label className="text-gray-400 text-xs block mb-1">Social/External Link (optional)</label>
+                    <input
+                      type="url"
+                      value={testimonialModal.data.link || ''}
+                      onChange={(e) => setTestimonialModal(prev => ({
+                        ...prev,
+                        data: { ...prev.data, link: e.target.value }
+                      }))}
+                      className="w-full bg-[#061818]/60 border border-[#1a4d4d] text-white placeholder-gray-500 py-2.5 px-3 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all text-sm"
+                      placeholder="e.g. https://linkedin.com/in/username"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 mt-6 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setTestimonialModal(null)}
+                      className="flex-1 py-2.5 rounded-xl border border-[#1a4d4d] text-gray-400 hover:text-white transition-all text-sm font-semibold"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submittingTestimonial}
+                      className="flex-1 py-2.5 rounded-xl bg-[#00ff88] text-[#0a1f1f] font-bold hover:bg-[#00cc70] disabled:opacity-50 transition-all text-sm flex items-center justify-center gap-2"
+                    >
+                      {submittingTestimonial && <Loader2 className="w-4 h-4 animate-spin" />}
+                      Save
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
 

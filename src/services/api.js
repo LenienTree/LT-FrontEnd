@@ -335,6 +335,12 @@ export const events = {
     return post(`/api/events/${eventId}/poster`, formData);
   },
 
+  uploadLinkedinPoster: (eventId, file) => {
+    const formData = new FormData();
+    formData.append("poster", file);
+    return post(`/api/events/${eventId}/linkedin-poster`, formData);
+  },
+
   /**
    * Upload the event UPI QR Code image.
    * @param {string} eventId
@@ -498,6 +504,9 @@ export const admin = {
   rejectEvent: (id, reason) =>
     put(`/api/admin/events/${id}/reject`, { reason }),
 
+  /** PUT /api/admin/events/order */
+  updateEventsOrder: (events) => put("/api/admin/events/order", { events }),
+
   /** GET /api/admin/users */
   getUsers: (page = 1, limit = 10, search = "") =>
     get(`/api/admin/users?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`),
@@ -520,6 +529,39 @@ export const admin = {
 
   /** Approve organizer request: sets isOrganizer = true on the user */
   approveOrganizer: (userId) => put(`/api/admin/users/${userId}/approve-organizer`, {}),
+
+  // Homepage Config admin actions
+  homepage: {
+    uploadBanner: (file) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      return post("/api/homepage/banners", formData);
+    },
+    updateBannerOrder: (id, order) => put(`/api/homepage/banners/${id}`, { order }),
+    deleteBanner: (id) => del(`/api/homepage/banners/${id}`),
+    uploadCommunityImage: (file) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      return post("/api/homepage/community", formData);
+    },
+    updateCommunityImageOrder: (id, order) => put(`/api/homepage/community/${id}`, { order }),
+    deleteCommunityImage: (id) => del(`/api/homepage/community/${id}`),
+    uploadTestimonialAvatar: (file) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      return post("/api/homepage/testimonials/avatar", formData);
+    },
+    addTestimonial: (data) => post("/api/homepage/testimonials", data),
+    updateTestimonial: (id, data) => put(`/api/homepage/testimonials/${id}`, data),
+    deleteTestimonial: (id) => del(`/api/homepage/testimonials/${id}`),
+    updateSectionsOrder: (sections) => put("/api/homepage/sections/order", { sections }),
+  }
+};
+
+// ─── Public Homepage ───────────────────────────────────────────────────────────
+
+export const homepage = {
+  get: () => get("/api/homepage"),
 };
 
 // ─── Default export (grouped) ─────────────────────────────────────────────────
@@ -531,6 +573,8 @@ const api = {
   bookmarks,
   organizer,
   admin,
+  homepage,
 };
 
 export default api;
+

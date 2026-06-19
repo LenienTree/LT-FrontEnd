@@ -38,12 +38,20 @@ function EventCard({ event, onClick }) {
                 <div className="relative w-full overflow-hidden bg-gradient-to-br from-[#0a1f1f] to-[#0d3333]" style={{ paddingBottom: "133.33%" }}>
                     <div className="absolute inset-0">
                         {poster ? (
-                            <img
-                                src={poster}
-                                alt={event.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                onError={() => setImgError(true)}
-                            />
+                            <>
+                                {/* Blurred background image to handle non-fitting posters */}
+                                <div 
+                                    className="absolute inset-0 w-full h-full bg-center bg-cover scale-110 filter blur-xl opacity-40 pointer-events-none"
+                                    style={{ backgroundImage: `url(${poster})` }}
+                                />
+                                {/* Clean object-contain foreground image */}
+                                <img
+                                    src={poster}
+                                    alt={event.title}
+                                    className="absolute inset-0 w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-500 z-10"
+                                    onError={() => setImgError(true)}
+                                />
+                            </>
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-4">
                                 <Calendar size={30} className="text-[#9AE600]/40" />
@@ -51,12 +59,12 @@ function EventCard({ event, onClick }) {
                             </div>
                         )}
                         {/* Mode badge */}
-                        <div className="absolute top-2 right-2">
+                        <div className="absolute top-2 right-2 z-20">
                             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border backdrop-blur-sm ${event.mode === "ONLINE" ? "bg-blue-500/20 text-blue-300 border-blue-500/30" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"}`}>
                                 {event.mode === "ONLINE" ? "🌐 Online" : "📍 Offline"}
                             </span>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0D3838] via-transparent to-transparent opacity-70" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0D3838]/80 via-transparent to-transparent opacity-70 z-20 pointer-events-none" />
                     </div>
                 </div>
 

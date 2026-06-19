@@ -152,7 +152,7 @@ const EventDetails = () => {
         <div className="min-h-screen  bg-[#0a1f1f]">
             <Header />
 
-            <div className="container pl-10 pr-10 pt-24 mx-auto px-4 py-8">
+            <div className="container mx-auto px-4 sm:px-6 md:px-10 pt-24 py-8">
                 {/* Top Navigation */}
                 <div className="flex justify-between items-center mb-8">
                     <button
@@ -173,7 +173,7 @@ const EventDetails = () => {
                 )}
 
                 {/* Event Banner */}
-                <div className="rounded-3xl p-8 lg:p-12 mb-8 relative overflow-hidden min-h-[300px] lg:min-h-[500px]">
+                <div className="rounded-3xl p-6 sm:p-8 lg:p-12 mb-8 relative overflow-hidden min-h-[300px] lg:min-h-[500px]">
                     {eventData.bannerImage ? (
                         <div className="absolute inset-0">
                             <img src={eventData.bannerImage} alt="Event Banner" className="w-full h-full object-cover" loading="lazy" />
@@ -186,7 +186,7 @@ const EventDetails = () => {
                         }`} />
                     )}
 
-                    <div className="absolute left-8 lg:left-12 top-1/2 transform -translate-y-1/2 z-10">
+                    <div className="hidden sm:block absolute left-8 lg:left-12 top-1/2 transform -translate-y-1/2 z-10">
                         <div className="text-white text-6xl lg:text-7xl font-bold opacity-80">••••</div>
                     </div>
 
@@ -221,10 +221,10 @@ const EventDetails = () => {
                     </div>
 
                     {/* Info */}
-                    <div className="lg:col-span-2 space-y-6 pt-10 lg:pt-48 px-1 lg:px-20">
+                    <div className="lg:col-span-2 space-y-6 pt-6 lg:pt-48 px-2 sm:px-4 lg:px-20">
                         <div>
                             <div className="flex flex-wrap items-center gap-3 mb-2">
-                                <h2 className="text-white text-4xl font-bold">{eventData.title || 'Event Name'}</h2>
+                                <h2 className="text-white text-2xl sm:text-3xl lg:text-4xl font-bold">{eventData.title || 'Event Name'}</h2>
                                 {eventData.isPremium && (
                                     <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-extrabold text-xs px-3 py-1 rounded-full shadow-lg shadow-amber-500/20 uppercase tracking-widest animate-pulse">
                                         👑 Premium

@@ -6,10 +6,6 @@ import Footer from './layout/Footer';
 import { events as eventsApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-// The specific event IDs that require the LinkedIn post flow
-const GITHUB_POST_EVENT_ID = 'f1741c2e-044a-42eb-a9e3-f27eac0aa00f';
-const RESIDENCY_POST_EVENT_ID = 'c603a45b-c141-42f5-8312-0a000d516ab9';
-
 const EventRegistration = () => {
     const navigate = useNavigate();
     const { id: eventId } = useParams();
@@ -29,10 +25,8 @@ const EventRegistration = () => {
     // Manual UPI payment proof
     const [paymentProofFile, setPaymentProofFile] = useState(null);
 
-    // LinkedIn post flow (only for the special events)
-    const isGithubEvent = eventId === GITHUB_POST_EVENT_ID;
-    const isResidencyEvent = eventId === RESIDENCY_POST_EVENT_ID;
-    const isShareEvent = isGithubEvent || isResidencyEvent;
+    // LinkedIn post flow (only for the special events / premium settings)
+    const isShareEvent = eventData?.requiresLinkedinShare ?? false;
     const [linkedinPostLink, setLinkedinPostLink] = useState('');
     const [copiedDescription, setCopiedDescription] = useState(false);
     const [linkedinLinkError, setLinkedinLinkError] = useState('');
@@ -298,9 +292,7 @@ const EventRegistration = () => {
     })();
 
     const handleCopyDescription = async () => {
-        const text = isResidencyEvent
-            ? "𝐋𝐞𝐧𝐢𝐞𝐧𝐭 𝐭𝐫𝐞𝐞  is looking for 15 𝐓𝐀𝐋𝐄𝐍𝐓𝐄𝐃 𝐅𝐎𝐔𝐍𝐃𝐄𝐑𝐒, 𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐑𝐒 \n𝐀𝐍𝐃 𝐂𝐑𝐄𝐀𝐓𝐎𝐑𝐒  for our 𝐑𝐞𝐬𝐢𝐝𝐞𝐧𝐜𝐲 𝐈𝐧𝐭𝐞𝐫𝐧𝐬𝐡𝐢𝐩 𝐏𝐫𝐨𝐠𝐫𝐚𝐦"
-            : (eventData?.description || '');
+        const text = eventData?.linkedinShareDescription || eventData?.description || '';
         try {
             await navigator.clipboard.writeText(text);
             setCopiedDescription(true);
@@ -319,15 +311,11 @@ const EventRegistration = () => {
     };
 
     const handleDownloadPoster = () => {
-        const posterUrl = isResidencyEvent
-            ? '/residency-internship.jpg'
-            : eventData?.eventPoster;
+        const posterUrl = eventData?.linkedinSharePoster || eventData?.eventPoster;
         if (!posterUrl) return;
         const link = document.createElement('a');
         link.href = posterUrl;
-        link.download = isResidencyEvent
-            ? 'residency_internship_poster.jpg'
-            : `${eventData.title.replace(/\s+/g, '_')}_poster.jpg`;
+        link.download = `${eventData.title.replace(/\s+/g, '_')}_poster.jpg`;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
         document.body.appendChild(link);
@@ -359,7 +347,7 @@ const EventRegistration = () => {
                     <span className="font-medium">Back to Event</span>
                 </button>
 
-                <div className="bg-[#0d2f2f] border-2 border-[#1a4d4d] rounded-3xl p-8 lg:p-12 shadow-2xl relative overflow-hidden">
+                <div className="bg-[#0d2f2f] border-2 border-[#1a4d4d] rounded-3xl p-4 sm:p-8 lg:p-12 shadow-2xl relative overflow-hidden">
                     {/* Background decoration */}
                     <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-[#00ff88]/10 rounded-full blur-3xl" />
 
@@ -394,11 +382,11 @@ const EventRegistration = () => {
                             {/* Poster + Description side-by-side or stacked */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 {/* Poster card */}
-                                {(isResidencyEvent || eventData?.eventPoster) && (
+                                {(eventData?.linkedinSharePoster || eventData?.eventPoster) && (
                                     <div className="bg-[#0a1f1f] border border-[#1a4d4d] rounded-2xl overflow-hidden flex flex-col">
                                         <div className="relative group">
                                             <img
-                                                src={isResidencyEvent ? '/residency-internship.jpg' : eventData.eventPoster}
+                                                src={eventData.linkedinSharePoster || eventData.eventPoster}
                                                 alt={`${eventData.title} poster`}
                                                 className="w-full object-cover max-h-72"
                                             />
@@ -425,7 +413,7 @@ const EventRegistration = () => {
 
                                 {/* Description card */}
                                 <div className="bg-[#0a1f1f] border border-[#1a4d4d] rounded-2xl flex flex-col">
-                                    <div className="p-4 border-b border-[#1a4d4d] flex items-center justify-between">
+                                     <div className="p-4 border-b border-[#1a4d4d] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                         <div>
                                             <p className="text-gray-300 text-sm font-medium">Post Description</p>
                                             <p className="text-gray-500 text-xs">Copy this text for your LinkedIn post</p>
@@ -448,9 +436,7 @@ const EventRegistration = () => {
                                     </div>
                                     <div className="p-4 flex-1 overflow-y-auto max-h-72 custom-scrollbar">
                                         <pre className="text-gray-300 text-xs leading-relaxed whitespace-pre-wrap font-sans select-text">
-                                            {isResidencyEvent
-                                                ? "𝐋𝐞𝐧𝐢𝐞𝐧𝐭 𝐭𝐫𝐞𝐞  is looking for 15 𝐓𝐀𝐋𝐄𝐍𝐓𝐄𝐃 𝐅𝐎𝐔𝐍𝐃𝐄𝐑𝐒, 𝐃𝐄𝐕𝐄𝐋𝐎𝐏𝐄𝐑𝐒 \n𝐀𝐍𝐃 𝐂𝐑𝐄𝐀𝐓𝐎𝐑𝐒  for our 𝐑𝐞𝐬𝐢𝐝𝐞𝐧𝐜𝐲 𝐈𝐧𝐭𝐞𝐫𝐧𝐬𝐡𝐢𝐩 𝐏𝐫𝐨𝐠𝐫𝐚𝐦"
-                                                : (eventData?.description || 'No description available.')}
+                                            {eventData?.linkedinShareDescription || eventData?.description || 'No description available.'}
                                         </pre>
                                     </div>
                                 </div>
@@ -644,12 +630,12 @@ const EventRegistration = () => {
                                 </div>
 
                                 <div className="bg-gradient-to-r from-[#0a1f1f] to-[#1a4d4d]/30 border border-[#1a4d4d] p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
-                                    <div>
+                                    <div className="w-full md:w-auto">
                                         <p className="text-gray-400 text-sm mb-1">Registration Fee</p>
                                         <p className="text-2xl font-bold text-white">₹{ticketPrice} <span className="text-sm font-normal text-gray-500">per person</span></p>
                                         <p className="text-sm text-[#00ff88] mt-2">Total Participants: {1 + teamMembers.length}</p>
                                     </div>
-                                    <div className="text-right">
+                                    <div className="text-left md:text-right w-full md:w-auto">
                                         <p className="text-gray-400 text-sm mb-1">Total Amount Payable</p>
                                         <p className="text-4xl font-bold text-[#00ff88]">₹{totalPrice}</p>
                                     </div>
