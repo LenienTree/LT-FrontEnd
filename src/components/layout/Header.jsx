@@ -98,10 +98,10 @@ export default function Header() {
             <div className="container mx-auto p-5">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
-                    <div className="flex items-center space-x-2">
+                    <Link to="/" className="flex items-center space-x-2">
                         <img src="/logo1.png" alt="lenient tree" width={70} height={70} />
                         <span className="text-white font-semibold hidden sm:block"></span>
-                    </div>
+                    </Link>
 
                     {/* Desktop Navigation */}
                     <div className="rounded-full hidden md:block  p-4 bg-white/10 shadow-md  ">

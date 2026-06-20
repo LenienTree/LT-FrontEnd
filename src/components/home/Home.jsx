@@ -535,50 +535,11 @@ const Home = () => {
       }
     );
 
-    const ctaTl = gsap.timeline({
-      scrollTrigger: {
-        trigger: ctaRef.current,
-        start: "top 90%",
-        end: "bottom 25%",
-        toggleActions: "play none none reverse",
-      },
-    });
-
-    ctaTl
-      .from(ctaTextRef.current, {
-        y: -80,
-        opacity: 0,
-        scale: 0.9,
-        filter: "blur(10px)",
-        duration: 1.8,
-        ease: "power3.inOut",
-      })
-      .from(
-        ctaSubtitleRef.current,
-        {
-          y: -50,
-          opacity: 0,
-          duration: 1.2,
-          ease: "power2.out",
-        },
-        "-=1.5"
-      )
-      .from(
-        ctaButtonRef.current,
-        {
-          y: -30,
-          opacity: 0,
-          scale: 0.8,
-          duration: 2,
-          ease: "back.out(1.7)",
-        },
-        "-=1.2"
-      );
-
-    // --- ADDED: Community section animation ---
+    // --- Community section animation ---
     const communityContent = communityRef.current?.querySelector(".flex-col");
+    let communityTween;
     if (communityContent) {
-      gsap.fromTo(
+      communityTween = gsap.fromTo(
         communityContent.children,
         { y: 100, opacity: 0 },
         {
@@ -595,12 +556,15 @@ const Home = () => {
         }
       );
     }
-    // --- END: Community section animation ---
 
     return () => {
-      // Clean up all ScrollTriggers created in this effect
-      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-      ctaTl.kill();
+      // Clean up specific community scroll trigger and tween
+      if (communityTween) {
+        if (communityTween.scrollTrigger) {
+          communityTween.scrollTrigger.kill();
+        }
+        communityTween.kill();
+      }
     };
   }, []);
 
@@ -626,6 +590,15 @@ const Home = () => {
     }
   };
 
+  useEffect(() => {
+    if (!isLoadingEvents && !isLoadingSections) {
+      const timer = setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoadingEvents, isLoadingSections]);
+
   return (
     <div className="min-h-screen bg-[#022F2E] text-white overflow-x-hidden">
       {/* Add CSS for flashing animation */}
@@ -649,7 +622,7 @@ const Home = () => {
       <main className="relative bg-[#022F2E]">
         <Header />
         <section className="container mt-20 mx-auto px-3 sm:px-6 pt-4 sm:pt-8 max-w-[1360px] bg-[#022F2E]">
-          <div className="relative h-72 sm:h-80 md:h-96 lg:h-[500px]  rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
+          <div className="relative w-full aspect-[2/1] sm:aspect-[3.4/1] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
             <div
               ref={slidesContainerRef}
               className="relative w-full h-full inset-0 rounded-2xl sm:rounded-3xl overflow-hidden"
@@ -662,7 +635,7 @@ const Home = () => {
                   <img
                     src={src}
                     alt={`Slide ${index + 1}`}
-                    className="absolute inset-0 w-full h-full object-contain md:object-cover rounded-2xl sm:rounded-3xl"
+                    className="absolute inset-0 w-full h-full object-cover sm:object-contain rounded-2xl sm:rounded-3xl"
                     draggable={false}
                   />
                 </div>
@@ -700,10 +673,10 @@ const Home = () => {
                 <div className="mb-4 px-2 sm:px-3">
                   <div className="h-8 w-48 bg-slate-800/50 rounded animate-pulse"></div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 min-h-[400px]">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 min-h-[280px] sm:min-h-[400px]">
                   {Array(4).fill(0).map((_, i) => (
-                    <div key={i} className="p-4 animate-pulse">
-                      <div className="w-full h-[380px] sm:h-[400px] bg-slate-800/50 rounded-2xl border-2 border-white/5"></div>
+                    <div key={i} className="p-1 sm:p-4 animate-pulse">
+                      <div className="w-full h-[280px] sm:h-[400px] bg-slate-800/50 rounded-2xl border-2 border-white/5"></div>
                     </div>
                   ))}
                 </div>
@@ -729,7 +702,7 @@ const Home = () => {
                       {section.title}
                     </h2>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 min-h-[400px]">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 min-h-[280px] sm:min-h-[400px]">
                     {filteredEvents.length > 0 ? (
                       filteredEvents.map((event) => {
                         const mappedEvent = mapDbEventToCard(event);
@@ -825,10 +798,10 @@ const Home = () => {
           </div>
 
           <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6">
-            <h2 ref={ctaTextRef} className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-4 mt-8 px-2 ">
+            <h2 ref={ctaTextRef} className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-4 mt-8 px-2 ">
               Your Gateway to
-              <div className="mt-4 sm:mt-6 h-32 sm:h-40 md:h-48 lg:h-56 xl:h-64 overflow-hidden relative">
-                <span className="rotating-words block text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[12rem]  italic font-bold text-white/90">
+              <div className="mt-4 sm:mt-6 h-24 sm:h-40 md:h-48 lg:h-56 xl:h-64 overflow-hidden relative">
+                <span className="rotating-words block text-6xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[12rem]  italic font-bold text-white/90">
                   <span className="inline-block font-['Fitzgerald-Italic'] animate-scroll-up bg-gradient-to-b from-[#FFFFFF] to-[#999999] bg-clip-text text-transparent pb-2">
                     {words[currentWordIndex]}
                   </span>
@@ -849,7 +822,7 @@ const Home = () => {
         {/* Community Section */}
         <section
           ref={communityRef}
-          className="py-32  relative bg-[#042029]"
+          className="py-12 sm:py-32 relative bg-[#042029]"
           style={{
             backgroundImage: `url("/vectorhome2.png")`,
             backgroundSize: "cover",
@@ -974,7 +947,7 @@ const Home = () => {
         {/* Community Showcase Section */}
         <section
           ref={communityRef}
-          className="py-32  relative bg-[#042029]"
+          className="py-12 sm:py-32 relative bg-[#042029]"
           style={{
             backgroundImage: `url("/vectorhome2.png")`,
             backgroundSize: "cover",

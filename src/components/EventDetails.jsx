@@ -173,7 +173,7 @@ const EventDetails = () => {
                 )}
 
                 {/* Event Banner */}
-                <div className="rounded-3xl p-6 sm:p-8 lg:p-12 mb-8 relative overflow-hidden min-h-[300px] lg:min-h-[500px]">
+                <div className="hidden sm:block rounded-3xl mb-8 relative overflow-hidden min-h-[300px] lg:min-h-[500px]">
                     {eventData.bannerImage ? (
                         <div className="absolute inset-0">
                             <img src={eventData.bannerImage} alt="Event Banner" className="w-full h-full object-cover" loading="lazy" />
@@ -185,24 +185,10 @@ const EventDetails = () => {
                                 : "bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700"
                         }`} />
                     )}
-
-                    <div className="hidden sm:block absolute left-8 lg:left-12 top-1/2 transform -translate-y-1/2 z-10">
-                        <div className="text-white text-6xl lg:text-7xl font-bold opacity-80">••••</div>
-                    </div>
-
-                    <div className="relative z-10 text-center text-white ml-0 lg:ml-32">
-                        <h1 className="text-3xl lg:text-5xl font-bold mb-4">{dateRange || 'TBD'}</h1>
-                        <p className="text-xl lg:text-2xl mb-2">Mode: {eventData.mode}</p>
-                        {(eventData.venueName || eventData.mapLink) && (
-                            <p className="text-lg text-gray-200">
-                                {eventData.venueName} {eventData.mapLink && `(${eventData.mapLink})`}
-                            </p>
-                        )}
-                    </div>
                 </div>
 
                 {/* Event Details Section */}
-                <div className="grid lg:grid-cols-3 gap-8 mb-8 relative z-20 mt-[-60px] lg:mt-[-150px]">
+                <div className="grid lg:grid-cols-3 gap-8 mb-8 relative z-20 mt-0 sm:mt-[-60px] lg:mt-[-150px]">
                     {/* Poster */}
                     <div className="lg:col-span-1">
                         <div className={`rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 ${
@@ -236,13 +222,13 @@ const EventDetails = () => {
 
                         <div className="flex flex-wrap gap-4 text-gray-400 items-center">
                             <div className="flex items-center gap-2">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
                                 <span>{dateRange || 'TBD'}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
                                 </svg>
                                 <span>{eventData.mode}</span>
@@ -255,6 +241,22 @@ const EventDetails = () => {
                                 }`}>
                                     {eventData.category}
                                 </span>
+                            )}
+                            {(eventData.venueName || eventData.mapLink) && (
+                                <div className="flex items-center gap-2">
+                                    <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span>
+                                        {eventData.venueName}
+                                        {eventData.mapLink && (
+                                            <a href={eventData.mapLink.startsWith('http') ? eventData.mapLink : `https://${eventData.mapLink}`} target="_blank" rel="noopener noreferrer" className="ml-1.5 text-[#00ff88] hover:underline font-medium">
+                                                (Map)
+                                            </a>
+                                        )}
+                                    </span>
+                                </div>
                             )}
                         </div>
 

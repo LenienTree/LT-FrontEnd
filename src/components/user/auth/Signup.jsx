@@ -72,11 +72,11 @@ const Signup = ({ switchToLogin, onSuccess }) => {
   return (
     <>
       {/* Left Panel - Signup Form */}
-      <div className="w-full md:w-1/2 flex items-center justify-center p-8">
+      <div className="w-full md:w-1/2 flex items-center justify-center px-5 py-6 sm:p-8">
         <div className="w-full max-w-md">
           {/* Heading */}
-          <div className="mb-8">
-            <h1 className="text-white text-4xl font-bold mb-2">Create an account</h1>
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-white text-3xl sm:text-4xl font-bold mb-2">Create an account</h1>
             <p className="text-gray-400 text-sm">Get started with an account.</p>
           </div>
 
