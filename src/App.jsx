@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./components/home/Home";
 import AboutNew from "./components/AboutNew";
+import TeamHalfCircle from "./components/TeamHalfCircle";
 import InternshipPopup from "./components/user/InternshipPopup";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsConditions from "./pages/TermsConditions";
@@ -10,7 +11,6 @@ import { useAuth } from "./context/AuthContext";
 // Heavy pages are lazy-loaded so they are excluded from the initial JS bundle.
 // Each import() creates its own async chunk that is only fetched when the user
 // navigates to that route for the first time.
-const TeamHalfCircle   = lazy(() => import("./components/TeamHalfCircle"));
 const AuthModal        = lazy(() => import("./components/user/auth/AuthModal"));
 const Profile          = lazy(() => import("./components/user/Profile"));
 const CalenderPage     = lazy(() => import("./pages/calender"));
