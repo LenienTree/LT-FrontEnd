@@ -560,6 +560,17 @@ export const admin = {
   /** GET /api/admin/organizer-requests — only pending (isOrganizer=false) */
   getOrganizerRequests: () => get("/api/admin/organizer-requests"),
 
+  /** GET /api/admin/events — all events, any status */
+  getAllEvents: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set('page', params.page);
+    if (params.limit) q.set('limit', params.limit);
+    if (params.status) q.set('status', params.status);
+    if (params.search) q.set('search', params.search);
+    const qs = q.toString();
+    return get(`/api/admin/events${qs ? `?${qs}` : ''}`);
+  },
+
   /** Approve organizer request: sets isOrganizer = true on the user */
   approveOrganizer: (userId) => put(`/api/admin/users/${userId}/approve-organizer`, {}),
 

@@ -354,7 +354,7 @@ const Admin = () => {
   const fetchAllEvents = useCallback(async () => {
     setLoadingAllEvents(true);
     try {
-      const data = await eventsApi.getAll({ limit: 1000 });
+      const data = await admin.getAllEvents({ limit: 1000 });
       setAllEvents(data?.data || data || []);
     } catch {
       showToast('Failed to load all events', 'error');
@@ -557,7 +557,7 @@ const Admin = () => {
       )}
 
       <aside className={`
-        fixed top-0 left-0 h-82 w-64 bg-[#061818] border-r border-[#1a4d4d] z-40
+        fixed top-0 left-0 h-screen w-64 bg-[#061818] border-r border-[#1a4d4d] z-40
         flex flex-col transition-transform duration-300
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static lg:z-auto
@@ -620,8 +620,8 @@ const Admin = () => {
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
 <Header/>
 
-        {/* Page content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        {/* Page content — pt offset clears the fixed floating header */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 pt-24 sm:pt-24 lg:pt-24 overflow-y-auto">
 
           {/* Toast */}
           {toast && (
