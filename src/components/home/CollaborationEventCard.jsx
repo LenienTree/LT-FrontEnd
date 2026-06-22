@@ -91,10 +91,10 @@ const CollaborationEventCard = React.memo(({ event }) => {
   };
 
   return (
-    <div className="p-2 sm:p-3">
+    <div className="p-1 sm:p-3">
       <div
         ref={cardRef}
-        className={`relative w-full sm:w-80 h-[380px] sm:h-[400px] rounded-lg overflow-hidden cursor-pointer border-2 transition-all duration-300 ${colors.bgColor || ""} ${event.isPremium
+        className={`relative w-full sm:w-80 h-[280px] sm:h-[400px] rounded-lg overflow-hidden cursor-pointer border-2 transition-all duration-300 ${colors.bgColor || ""} ${event.isPremium
           ? isHovered
             ? "border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.85)] scale-[1.01]"
             : "border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]"
@@ -109,7 +109,7 @@ const CollaborationEventCard = React.memo(({ event }) => {
           {/* Front Card */}
           <div className="front-card absolute inset-0 w-full h-full text-center bg-[#0d2f2f]">
             {event.isPremium && (
-              <div className="absolute top-3 left-3 z-10 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 text-slate-950 text-[10px] font-black tracking-wider shadow-lg shadow-amber-950/60 flex items-center gap-1 border border-yellow-300/30">
+              <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 text-slate-950 text-[8px] sm:text-[10px] font-black tracking-wider shadow-lg shadow-amber-950/60 flex items-center gap-1 border border-yellow-300/30">
                 <span>👑</span>
                 <span>PREMIUM</span>
               </div>
@@ -117,9 +117,9 @@ const CollaborationEventCard = React.memo(({ event }) => {
             {event.eventPoster ? (
               <img src={event.eventPoster} alt="Event Poster" className="w-full h-full object-cover" loading="lazy" />
             ) : (
-              <div className="absolute inset-0 flex flex-col justify-between p-4 sm:p-8">
+              <div className="absolute inset-0 flex flex-col justify-between p-3 sm:p-8">
                 <div>
-                  <p className="text-sm sm:text-lg font-medium text-white/90 mb-4 sm:mb-8">
+                  <p className="text-[10px] sm:text-lg font-medium text-white/90 mb-2 sm:mb-8">
                     In collaboration with
                   </p>
                 </div>
@@ -128,33 +128,33 @@ const CollaborationEventCard = React.memo(({ event }) => {
                     <img
                       src="/logo1.png"
                       alt="Lenient Tree Logo"
-                      className="w-24 h-24 sm:w-32 sm:h-32"
+                      className="w-16 h-16 sm:w-32 sm:h-32"
                       loading="lazy"
                     ></img>
                   </div>
                 </div>
                 <div>
-                  <h3 className={`text-xl sm:text-2xl font-bold mb-2 sm:mb-4 ${colors.logoColor}`}>
+                  <h3 className={`text-sm sm:text-2xl font-bold mb-1 sm:mb-4 ${colors.logoColor}`}>
                     Lenient Tree
                   </h3>
-                  <p className="text-base sm:text-lg text-white/80">Community Partner</p>
+                  <p className="text-[10px] sm:text-lg text-white/80">Community Partner</p>
                 </div>
               </div>
             )}
           </div>
           {/* Top Elements */}
-          <div className="top-elements absolute top-0 left-0 right-0 p-3 sm:p-6 flex justify-between items-start pointer-events-none">
+          <div className="top-elements absolute top-0 left-0 right-0 p-2 sm:p-6 flex justify-between items-start pointer-events-none">
             {event.isPremium ? (
-              <span className="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 px-2 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-black shadow-md border border-yellow-300/30 flex items-center gap-1">
+              <span className="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 px-2 py-0.5 sm:px-4 sm:py-2 rounded-full text-[10px] sm:text-sm font-black shadow-md border border-yellow-300/30 flex items-center gap-1">
                 👑 {event.prizePool}
               </span>
             ) : (
-              <span className="bg-black/60 text-white px-2 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium">
+              <span className="bg-black/60 text-white px-2 py-0.5 sm:px-4 sm:py-2 rounded-full text-[10px] sm:text-sm font-medium">
                 {event.prizePool}
               </span>
             )}
             <div
-              className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full ${event.isPremium
+              className={`w-2 h-2 sm:w-4 sm:h-4 rounded-full ${event.isPremium
                 ? "bg-amber-400 shadow-[0_0_8px_#f59e0b]"
                 : event.color === "blue"
                   ? "bg-blue-400"
@@ -167,15 +167,15 @@ const CollaborationEventCard = React.memo(({ event }) => {
             ></div>
           </div>
           {/* Bottom Card */}
-          <div className="bottom-card absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-sm p-4 sm:p-6 rounded-b-2xl">
-            <h4 className="text-lg sm:text-2xl font-bold text-white mb-3 sm:mb-6">
+          <div className="bottom-card absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-sm p-3 sm:p-6 rounded-b-2xl">
+            <h4 className="text-sm sm:text-2xl font-bold text-white mb-1 sm:mb-6 line-clamp-1">
               {event.title}
             </h4>
-            <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
+            <div className="space-y-1.5 sm:space-y-3 mb-2 sm:mb-6">
               {event.location && (
-                <div className="flex items-center gap-2 sm:gap-3 text-white/90">
+                <div className="flex items-center gap-1.5 sm:gap-3 text-white/90">
                   <svg
-                    className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0"
+                    className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
@@ -184,13 +184,13 @@ const CollaborationEventCard = React.memo(({ event }) => {
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                     <circle cx="12" cy="10" r="3"></circle>
                   </svg>
-                  <span className="text-xs sm:text-sm">: {event.location}</span>
+                  <span className="text-[10px] sm:text-sm line-clamp-1">: {event.location}</span>
                 </div>
               )}
               {event.format && (
-                <div className="flex items-center gap-2 sm:gap-3 text-white/90">
+                <div className="flex items-center gap-1.5 sm:gap-3 text-white/90">
                   <svg
-                    className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 flex-shrink-0"
+                    className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-green-400 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
@@ -207,12 +207,12 @@ const CollaborationEventCard = React.memo(({ event }) => {
                     <line x1="8" y1="21" x2="16" y2="21"></line>
                     <line x1="12" y1="17" x2="12" y2="21"></line>
                   </svg>
-                  <span className="text-xs sm:text-sm">: {event.format}</span>
+                  <span className="text-[10px] sm:text-sm">: {event.format}</span>
                 </div>
               )}
-              <div className="flex items-center gap-2 sm:gap-3 text-white/90">
+              <div className="flex items-center gap-1.5 sm:gap-3 text-white/90">
                 <svg
-                  className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0"
+                  className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
@@ -223,16 +223,16 @@ const CollaborationEventCard = React.memo(({ event }) => {
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
-                <span className="text-xs sm:text-sm">: {event.participants}</span>
+                <span className="text-[10px] sm:text-sm">: {event.participants}</span>
               </div>
             </div>
-            <button className={`w-full py-2 sm:py-3 rounded-xl flex justify-center items-center gap-2 font-bold text-sm sm:text-base transition-all ${event.isPremium
+            <button className={`w-full py-1.5 sm:py-3 rounded-xl flex justify-center items-center gap-2 font-bold text-xs sm:text-base transition-all ${event.isPremium
               ? "bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 shadow-lg shadow-amber-500/20"
               : "bg-green-400 text-black hover:bg-green-300"
               }`}>
               <span>Click to know more</span>
               <svg
-                className="w-3 h-3 sm:w-4 sm:h-4"
+                className="w-3.5 h-3.5 sm:w-4 sm:h-4"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"

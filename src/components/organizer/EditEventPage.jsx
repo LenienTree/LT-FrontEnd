@@ -70,6 +70,14 @@ const EditEventPage = () => {
     upiId: '',
     upiQrCode: ''
   });
+
+  // Premium Event Configuration
+  const [premiumConfig, setPremiumConfig] = useState({
+    requiresLinkedinShare: false,
+    linkedinShareDescription: '',
+    linkedinSharePoster: ''
+  });
+  const linkedinPosterInputRef = useRef(null);
   
   // Tab 4: Attendees list & manual validation
   const [attendees, setAttendees] = useState([]);
@@ -143,6 +151,13 @@ const EditEventPage = () => {
         ticketPrice: e.ticketPrice ?? 0,
         upiId: e.upiId || '',
         upiQrCode: e.upiQrCode || ''
+      });
+
+      // Populate Premium Event Configuration
+      setPremiumConfig({
+        requiresLinkedinShare: e.requiresLinkedinShare ?? false,
+        linkedinShareDescription: e.linkedinShareDescription || '',
+        linkedinSharePoster: e.linkedinSharePoster || ''
       });
       
       // Fetch attendees immediately in background or if tab is active
@@ -266,6 +281,48 @@ const EditEventPage = () => {
       fetchEventDetails();
     } catch (err) {
       setError(err.message || 'Failed to update payment settings.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSavePremiumConfig = async () => {
+    setSaving(true);
+    setError('');
+    setSuccess('');
+    try {
+      const payload = {
+        requiresLinkedinShare: premiumConfig.requiresLinkedinShare,
+        linkedinShareDescription: premiumConfig.linkedinShareDescription || null
+      };
+      
+      await eventsApi.update(id, payload);
+      setSuccess('Premium features configuration updated successfully!');
+      setTimeout(() => setSuccess(''), 4000);
+      fetchEventDetails();
+    } catch (err) {
+      setError(err.message || 'Failed to update premium settings.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLinkedinPosterUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setSaving(true);
+      setError('');
+      const res = await eventsApi.uploadLinkedinPoster(id, file);
+      setPremiumConfig(prev => ({ 
+        ...prev, 
+        linkedinSharePoster: res?.linkedinSharePoster || URL.createObjectURL(file) 
+      }));
+      setSuccess('LinkedIn share poster uploaded successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+      fetchEventDetails();
+    } catch (err) {
+      setError(err.message || 'LinkedIn poster upload failed.');
     } finally {
       setSaving(false);
     }
@@ -554,6 +611,9 @@ const EditEventPage = () => {
                   { key: 'info', label: 'Event Details', icon: Info },
                   { key: 'fields', label: 'Form Builder', icon: Clipboard },
                   { key: 'payment', label: 'Payment Settings', icon: CreditCard },
+                  ...(eventData?.isPremium
+                    ? [{ key: 'premium', label: 'Premium Features', icon: Award }]
+                    : []),
                   { key: 'attendees', label: 'Attendees & Proofs', icon: Users, count: pendingApprovals }
                 ].map(({ key, label, icon: Icon, count }) => (
                   <button
@@ -595,12 +655,14 @@ const EditEventPage = () => {
                   {activeTab === 'info' && 'Event Details'}
                   {activeTab === 'fields' && 'Registration Form Builder'}
                   {activeTab === 'payment' && 'Payment Configuration'}
+                  {activeTab === 'premium' && 'Premium Features'}
                   {activeTab === 'attendees' && 'Attendee Database & Verification'}
                 </h1>
                 <p className="text-gray-400 text-sm mt-1 sm:mt-2">
                   {activeTab === 'info' && 'Manage core parameters, poster uploads, FAQs and notices'}
                   {activeTab === 'fields' && 'Visual designer for collected attendee registration fields'}
                   {activeTab === 'payment' && 'Setup pricing models, QR uploads, and UPI coordinates'}
+                  {activeTab === 'premium' && 'Configure custom LinkedIn sharing settings for premium event verification'}
                   {activeTab === 'attendees' && 'Verify screenshot proofs, approve pending tickets, and view responses'}
                 </p>
               </div>
@@ -1268,6 +1330,97 @@ const EditEventPage = () => {
                   >
                     {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                     <span>Save Payments Settings</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Tab Premium: Premium Features Configuration */}
+            {activeTab === 'premium' && eventData?.isPremium && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="bg-[#0d2f2f] border-2 border-[#1a4d4d] rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+                  
+                  <div className="flex items-center gap-3 border-b border-[#1a4d4d] pb-3">
+                    <Award className="w-6 h-6 text-amber-400" />
+                    <h3 className="text-lg font-bold text-white">LinkedIn Verification Flow Settings</h3>
+                  </div>
+
+                  <div className="flex items-center pb-3">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={premiumConfig.requiresLinkedinShare}
+                        onChange={e => {
+                          const checked = e.target.checked;
+                          setPremiumConfig(prev => ({ 
+                            ...prev, 
+                            requiresLinkedinShare: checked
+                          }));
+                        }}
+                        className="w-6 h-6 rounded border-2 border-[#1a4d4d] bg-transparent checked:bg-amber-400 checked:border-amber-400 focus:ring-0 cursor-pointer accent-amber-400"
+                      />
+                      <div>
+                        <span className="text-white text-base font-bold block">Require LinkedIn Share to Register</span>
+                        <span className="text-xs text-gray-400 block mt-0.5 font-medium">If checked, users must copy your provided description, download the poster, post it on LinkedIn, and provide the post link before they can submit their registration.</span>
+                      </div>
+                    </label>
+                  </div>
+
+                  {premiumConfig.requiresLinkedinShare && (
+                    <div className="space-y-6 pt-2 animate-fadeIn">
+                      <div>
+                        <label className="text-gray-400 text-sm mb-2 block font-semibold">LinkedIn Post Description / Copy-paste text *</label>
+                        <textarea
+                          value={premiumConfig.linkedinShareDescription}
+                          onChange={e => setPremiumConfig(prev => ({ ...prev, linkedinShareDescription: e.target.value }))}
+                          rows={6}
+                          className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-amber-400 transition-all duration-300 text-sm leading-relaxed"
+                          placeholder="Provide the exact promotional text you want the users to copy and post on their LinkedIn profile."
+                        />
+                        <p className="text-xs text-gray-500 mt-2 font-medium">
+                          Keep it professional and clear. Users will copy this text with a single click.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <label className="text-gray-400 text-sm font-semibold block">Custom LinkedIn Poster Image (Optional)</label>
+                          {premiumConfig.linkedinSharePoster ? (
+                            <div className="relative group overflow-hidden rounded-2xl border-2 border-[#1a4d4d] max-w-[280px]">
+                              <img src={premiumConfig.linkedinSharePoster} alt="LinkedIn Share Poster" className="w-full h-auto object-cover max-h-[160px]" />
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center p-4 bg-[#0a1f1f]/50 border-2 border-dashed border-[#1a4d4d] rounded-2xl text-gray-500 max-w-[280px] h-[160px] text-center">
+                              <span className="text-xs">No custom poster uploaded.</span>
+                              <span className="text-[10px] text-gray-600 mt-1">Falls back to the main Event Poster.</span>
+                            </div>
+                          )}
+                          <input type="file" ref={linkedinPosterInputRef} onChange={handleLinkedinPosterUpload} accept="image/*" className="hidden" />
+                          <button
+                            type="button"
+                            onClick={() => linkedinPosterInputRef.current?.click()}
+                            disabled={saving}
+                            className="w-full flex items-center justify-center gap-2 text-xs text-gray-300 border border-dashed border-[#1a4d4d] hover:border-amber-400 hover:text-amber-400 py-2.5 rounded-xl transition-all duration-300 bg-[#0a1f1f]/50 disabled:opacity-50 max-w-[280px]"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            {premiumConfig.linkedinSharePoster ? 'Replace Poster' : 'Upload Custom Poster'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSavePremiumConfig}
+                    disabled={saving}
+                    className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-yellow-400 hover:to-amber-500 text-[#0a1f1f] font-extrabold px-8 py-4 rounded-2xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-60 shadow-xl shadow-amber-500/10"
+                  >
+                    {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                    <span>Save Premium Settings</span>
                   </button>
                 </div>
               </div>

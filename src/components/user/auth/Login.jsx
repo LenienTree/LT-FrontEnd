@@ -51,12 +51,12 @@ const Login = ({ switchToSignup, onSuccess }) => {
     return (
         <>
             {/* Left Panel - Login Form */}
-            <div className="w-full md:w-1/2 flex items-center justify-center p-8">
+            <div className="w-full md:w-1/2 flex items-center justify-center px-5 py-6 sm:p-8">
                 <div className="w-full max-w-md">
                     {/* Branding */}
-                    <div className="mb-8">
-                        <h1 className="text-[#00ff88] text-2xl font-bold mb-2">Lenient Tree</h1>
-                        <h2 className="text-white text-4xl font-bold mb-3">Welcome to LenientTree</h2>
+                    <div className="mb-6 sm:mb-8">
+                        <h1 className="text-[#00ff88] text-xl sm:text-2xl font-bold mb-2">Lenient Tree</h1>
+                        <h2 className="text-white text-3xl sm:text-4xl font-bold mb-3">Welcome to LenientTree</h2>
                         <p className="text-gray-400 text-sm">Discover events, track peers, solve awareness gap</p>
                     </div>
 

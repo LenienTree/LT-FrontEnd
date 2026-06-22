@@ -6,8 +6,9 @@ import AnimatedBadge from "../animations/AnimateRibbon";
 import ContactPage from "../ContactPage";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
-import { events as eventsApi } from "../../services/api";
+import { events as eventsApi, homepage as homepageApi } from "../../services/api";
 import { Link } from "react-router-dom";
+import { CalendarDays } from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -22,13 +23,20 @@ const Home = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [dbEvents, setDbEvents] = useState([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
-  const [dbHackathons, setDbHackathons] = useState([]);
-  const [isLoadingHackathons, setIsLoadingHackathons] = useState(true);
+  const [sections, setSections] = useState([]);
+  const [isLoadingSections, setIsLoadingSections] = useState(true);
 
-  // Community Showcase Carousel States & Data
-  const communityImages = [
+  // Default/Fallback homepage configurator values
+  const DEFAULT_HERO_SLIDES = [
+    "./Hero/1.png",
+    "./Hero/2.png",
+    "./Hero/3.png",
+    "./Hero/4.png",
+    "./Hero/5.png"
+  ];
+
+  const DEFAULT_COMMUNITY_IMAGES = [
     "/community/comm1.png",
     "/community/comm2.png",
     "/community/comm3.png",
@@ -37,14 +45,48 @@ const Home = () => {
     "/community/comm6.jpeg",
   ];
 
+  const DEFAULT_TESTIMONIALS = [
+    {
+      name: "Abdul Samad",
+      avatar: "/testimonial/abdul-samad.jpg",
+      avatarUrl: "/testimonial/abdul-samad.jpg",
+      badge: "A",
+      role: "CEO, Appetite Studio",
+      quote: "Hack for Good was a great initiative to support impactful ideas. Augustine was supportive throughout the event from the very beginning and helped us with volunteer coordination during the hackathon. Wishing Augustine and Lenient Tree the best for more such community-driven events ahead.",
+      link: "https://www.linkedin.com/in/4samad?utm_source=share_via&utm_content=profile&utm_medium=member_android"
+    },
+    {
+      name: "Ray Podder",
+      avatar: "/testimonial/ray-podder.jpeg",
+      avatarUrl: "/testimonial/ray-podder.jpeg",
+      badge: "O",
+      role: "One Network Solutions",
+      quote: "It was a privilege working with the Lenient Tree. What impressed me wasn't just their talent, but their willingness to question assumptions, think differently, and embrace uncertainty. As AI makes knowledge and execution increasingly abundant, the future belongs to those who can turn insight into impact and imagination into value. The students I met showed exactly that potential. That's the kind of creator mindset the future demands.",
+      link: "https://www.linkedin.com/in/raypodder?utm_source=share_via&utm_content=profile&utm_medium=member_android"
+    },
+    {
+      name: "Soham Chatterjee",
+      avatar: "/testimonial/soham.jpeg",
+      avatarUrl: "/testimonial/soham.jpeg",
+      badge: "I",
+      role: "IISER Berhampur",
+      quote: "It was a privilege to collaborate with Lenient Tree for the successful conduct of the ThinkerRoot Ideathon. We are proud to have supported the initiative as the educational partner from Indian Institute of Science Education and Research Berhampur.",
+      link: "https://www.linkedin.com/in/soham-chatterjee-908510256?utm_source=share_via&utm_content=profile&utm_medium=member_android"
+    }
+  ];
+
+  const [heroSlides, setHeroSlides] = useState(DEFAULT_HERO_SLIDES);
+  const [communityImages, setCommunityImages] = useState(DEFAULT_COMMUNITY_IMAGES);
+  const [testimonials, setTestimonials] = useState(DEFAULT_TESTIMONIALS);
+
   // Clone 2 items on the left and 2 items on the right for infinite circular appearance
-  const extendedCommunityImages = [
-    communityImages[4],
-    communityImages[5],
+  const extendedCommunityImages = communityImages.length >= 2 ? [
+    communityImages[communityImages.length - 2],
+    communityImages[communityImages.length - 1],
     ...communityImages,
     communityImages[0],
     communityImages[1],
-  ];
+  ] : [...communityImages];
 
   const [currentCommunityIndex, setCurrentCommunityIndex] = useState(0); // Index from 0 to 5
   const [slideWidth, setSlideWidth] = useState(46); // Responsive percent width of center slide
@@ -75,7 +117,7 @@ const Home = () => {
       setCurrentCommunityIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
     }, 3000);
     return () => clearInterval(interval);
-  }, [isCommunityHovered]);
+  }, [isCommunityHovered, communityImages]);
 
   const nextCommunitySlide = () => {
     const maxIndex = communityImages.length - 1;
@@ -87,41 +129,13 @@ const Home = () => {
     setCurrentCommunityIndex((prev) => (prev <= 0 ? maxIndex : prev - 1));
   };
 
-  // Testimonials Coverflow States & Data
-  const testimonials = [
-    {
-      name: "Abdul Samad",
-      avatar: "/testimonial/abdul-samad.jpg",
-      badge: "A",
-      role: "CEO, Appetite Studio",
-      quote: "Hack for Good was a great initiative to support impactful ideas. Augustine was supportive throughout the event from the very beginning and helped us with volunteer coordination during the hackathon. Wishing Augustine and Lenient Tree the best for more such community-driven events ahead.",
-      link: "https://www.linkedin.com/in/4samad?utm_source=share_via&utm_content=profile&utm_medium=member_android"
-    },
-    {
-      name: "Ray Podder",
-      avatar: "/testimonial/ray-podder.jpeg",
-      badge: "O",
-      role: "One Network Solutions",
-      quote: "It was a privilege working with the Lenient Tree. What impressed me wasn't just their talent, but their willingness to question assumptions, think differently, and embrace uncertainty. As AI makes knowledge and execution increasingly abundant, the future belongs to those who can turn insight into impact and imagination into value. The students I met showed exactly that potential. That's the kind of creator mindset the future demands.",
-      link: "https://www.linkedin.com/in/raypodder?utm_source=share_via&utm_content=profile&utm_medium=member_android"
-    },
-    {
-      name: "Soham Chatterjee",
-      avatar: "/testimonial/soham.jpeg",
-      badge: "I",
-      role: "IISER Berhampur",
-      quote: "It was a privilege to collaborate with Lenient Tree for the successful conduct of the ThinkerRoot Ideathon. We are proud to have supported the initiative as the educational partner from Indian Institute of Science Education and Research Berhampur.",
-      link: "https://www.linkedin.com/in/soham-chatterjee-908510256?utm_source=share_via&utm_content=profile&utm_medium=member_android"
-    }
-  ];
-
-  const extendedTestimonials = [
-    testimonials[1],
-    testimonials[2],
+  const extendedTestimonials = testimonials.length >= 2 ? [
+    testimonials[testimonials.length - 2],
+    testimonials[testimonials.length - 1],
     ...testimonials,
     testimonials[0],
     testimonials[1],
-  ];
+  ] : [...testimonials];
 
   const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0);
   const [testimonialWidth, setTestimonialWidth] = useState(31.5);
@@ -158,18 +172,21 @@ const Home = () => {
   // Autoplay logic for testimonials
   useEffect(() => {
     if (isTestimonialHovered) return;
+    const maxIndex = testimonials.length - 1;
     const interval = setInterval(() => {
-      setCurrentTestimonialIndex((prev) => (prev >= 2 ? 0 : prev + 1));
+      setCurrentTestimonialIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
     }, 4000);
     return () => clearInterval(interval);
-  }, [isTestimonialHovered]);
+  }, [isTestimonialHovered, testimonials]);
 
   const nextTestimonial = () => {
-    setCurrentTestimonialIndex((prev) => (prev >= 2 ? 0 : prev + 1));
+    const maxIndex = testimonials.length - 1;
+    setCurrentTestimonialIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
   };
 
   const prevTestimonial = () => {
-    setCurrentTestimonialIndex((prev) => (prev <= 0 ? 2 : prev - 1));
+    const maxIndex = testimonials.length - 1;
+    setCurrentTestimonialIndex((prev) => (prev <= 0 ? maxIndex : prev - 1));
   };
 
   // Map database event model to what CollaborationEventCard expects
@@ -186,6 +203,7 @@ const Home = () => {
     return {
       id: event.id,
       title: event.title,
+      category: event.category,
       prizePool:
         event.prizeAmount && event.prizeAmount > 0
           ? `₹ ${event.prizeAmount.toLocaleString()} Prize`
@@ -207,54 +225,66 @@ const Home = () => {
   const [allDbEvents, setAllDbEvents] = useState([]);
 
   useEffect(() => {
+    const fetchSections = async () => {
+      try {
+        setIsLoadingSections(true);
+        const data = await homepageApi.get();
+        const sorted = (data?.sections || []).sort((a, b) => a.order - b.order);
+        setSections(sorted);
+      } catch (err) {
+        console.error("Failed to fetch homepage sections:", err);
+        setSections([
+          { id: '1', key: 'hackathons', title: 'Upcoming Hackathons', order: 1 },
+          { id: '2', key: 'ideathons', title: 'Upcoming Ideathons', order: 2 },
+          { id: '3', key: 'webinars', title: 'Upcoming Webinars', order: 3 },
+          { id: '4', key: 'events', title: 'Upcoming Events', order: 4 },
+        ]);
+      } finally {
+        setIsLoadingSections(false);
+      }
+    };
+
     const fetchEvents = async () => {
       try {
         setIsLoadingEvents(true);
-        const res = await eventsApi.getAll();
-        console.log("Fetched events", res);
-
-        // Backend returns result of buildPaginatedResult: { data: events[], meta: {} }
-        // Our api.js wrapper returns the 'data' field of the response
+        const res = await eventsApi.getAll({ limit: 100 });
         const eventArray = (Array.isArray(res) ? res : res.data) || [];
         setAllDbEvents(eventArray);
-
-        const mapped = eventArray.map(mapDbEventToCard);
-        const revesed = [...mapped].reverse().slice(0, 4);
-        setDbEvents(revesed);
       } catch (error) {
         console.error("Failed to fetch events:", error);
-        // Fallback to dummy data if API fails or returns empty
-        setDbEvents(dummyEventsData);
       } finally {
         setIsLoadingEvents(false);
       }
     };
 
-    const fetchHackathons = async () => {
+    const fetchHomepageConfig = async () => {
       try {
-        setIsLoadingHackathons(true);
-        const res = await eventsApi.getAll({ category: 'Hackathon' });
-        const eventArray = (Array.isArray(res) ? res : res.data) || [];
-
-        const mapped = eventArray.map(mapDbEventToCard);
-        const revesed = [...mapped].reverse().slice(0, 4);
-        setDbHackathons(revesed);
+        const data = await homepageApi.get();
+        if (data) {
+          if (data.banners && data.banners.length > 0) {
+            setHeroSlides(data.banners.map(b => b.secureUrl || b.imageUrl));
+          }
+          if (data.community && data.community.length > 0) {
+            setCommunityImages(data.community.map(c => c.secureUrl || c.imageUrl));
+          }
+          if (data.testimonials && data.testimonials.length > 0) {
+            setTestimonials(data.testimonials);
+          }
+        }
       } catch (error) {
-        console.error("Failed to fetch hackathons:", error);
-        setDbHackathons([]);
-      } finally {
-        setIsLoadingHackathons(false);
+        console.error("Failed to fetch homepage configurator data:", error);
       }
     };
 
+    fetchSections();
     fetchEvents();
-    fetchHackathons();
+    fetchHomepageConfig();
   }, []);
 
   useEffect(() => {
-    console.log("dbEvents", dbEvents);
+    console.log("allDbEvents", allDbEvents);
     console.log("isLoadingEvents", isLoadingEvents);
-  }, [dbEvents, isLoadingEvents]);
+  }, [allDbEvents, isLoadingEvents]);
 
   const slidesContainerRef = useRef(null);
   const ctaTextRef = useRef(null);
@@ -264,13 +294,6 @@ const Home = () => {
   const communityRef = useRef(null);
   const marqueeRef = useRef(null);
 
-  const heroSlides = [
-    "./Hero/1.png",
-    "./Hero/2.png",
-    "./Hero/3.png",
-    "./Hero/4.png",
-    "./Hero/5.png"
-  ];
 
   const timelineRef = useRef(null);
   const eventsRef = useRef(null);
@@ -459,7 +482,7 @@ const Home = () => {
     }
     timelineRef.current = tl;
     return () => tl.kill();
-  }, []);
+  }, [heroSlides]);
 
   const words = ["Techfests", "Ideathon", "Hackathon", "Webinar", "Conclaves"];
 
@@ -512,50 +535,11 @@ const Home = () => {
       }
     );
 
-    const ctaTl = gsap.timeline({
-      scrollTrigger: {
-        trigger: ctaRef.current,
-        start: "top 90%",
-        end: "bottom 25%",
-        toggleActions: "play none none reverse",
-      },
-    });
-
-    ctaTl
-      .from(ctaTextRef.current, {
-        y: -80,
-        opacity: 0,
-        scale: 0.9,
-        filter: "blur(10px)",
-        duration: 1.8,
-        ease: "power3.inOut",
-      })
-      .from(
-        ctaSubtitleRef.current,
-        {
-          y: -50,
-          opacity: 0,
-          duration: 1.2,
-          ease: "power2.out",
-        },
-        "-=1.5"
-      )
-      .from(
-        ctaButtonRef.current,
-        {
-          y: -30,
-          opacity: 0,
-          scale: 0.8,
-          duration: 2,
-          ease: "back.out(1.7)",
-        },
-        "-=1.2"
-      );
-
-    // --- ADDED: Community section animation ---
+    // --- Community section animation ---
     const communityContent = communityRef.current?.querySelector(".flex-col");
+    let communityTween;
     if (communityContent) {
-      gsap.fromTo(
+      communityTween = gsap.fromTo(
         communityContent.children,
         { y: 100, opacity: 0 },
         {
@@ -572,12 +556,15 @@ const Home = () => {
         }
       );
     }
-    // --- END: Community section animation ---
 
     return () => {
-      // Clean up all ScrollTriggers created in this effect
-      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-      ctaTl.kill();
+      // Clean up specific community scroll trigger and tween
+      if (communityTween) {
+        if (communityTween.scrollTrigger) {
+          communityTween.scrollTrigger.kill();
+        }
+        communityTween.kill();
+      }
     };
   }, []);
 
@@ -603,6 +590,15 @@ const Home = () => {
     }
   };
 
+  useEffect(() => {
+    if (!isLoadingEvents && !isLoadingSections) {
+      const timer = setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoadingEvents, isLoadingSections]);
+
   return (
     <div className="min-h-screen bg-[#022F2E] text-white overflow-x-hidden">
       {/* Add CSS for flashing animation */}
@@ -626,7 +622,7 @@ const Home = () => {
       <main className="relative bg-[#022F2E]">
         <Header />
         <section className="container mt-20 mx-auto px-3 sm:px-6 pt-4 sm:pt-8 max-w-[1360px] bg-[#022F2E]">
-          <div className="relative h-72 sm:h-80 md:h-96 lg:h-[500px]  rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
+          <div className="relative w-full aspect-[2/1] sm:aspect-[3.4/1] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
             <div
               ref={slidesContainerRef}
               className="relative w-full h-full inset-0 rounded-2xl sm:rounded-3xl overflow-hidden"
@@ -639,7 +635,7 @@ const Home = () => {
                   <img
                     src={src}
                     alt={`Slide ${index + 1}`}
-                    className="absolute inset-0 w-full h-full object-contain md:object-cover rounded-2xl sm:rounded-3xl"
+                    className="absolute inset-0 w-full h-full object-cover sm:object-contain rounded-2xl sm:rounded-3xl"
                     draggable={false}
                   />
                 </div>
@@ -670,53 +666,64 @@ const Home = () => {
           ref={eventsRef}
           className="container mt-10 sm:mt-16 md:mt-24 mx-auto px-3 sm:px-6 py-4 sm:py-12 md:py-12 bg-[#022F2E]"
         >
-          <div className="mb-2 sm:mb-2 px-2 sm:px-3">
-            <h2 className="text-2xl sm:text-3xl md:text-3xl font-bold text-[#A1A1A1]">Upcoming Events</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 min-h-[400px] sm:min-h-[500px]">
-            {isLoadingEvents ? (
-              // Loading Skeleton
-              Array(4).fill(0).map((_, i) => (
-                <div key={i} className="p-4 animate-pulse">
-                  <div className="w-full h-[380px] sm:h-[400px] bg-slate-800/50 rounded-2xl border-2 border-white/5"></div>
+          {isLoadingSections || isLoadingEvents ? (
+            // Render loading skeletons
+            [1, 2].map((dummyIdx) => (
+              <div key={dummyIdx} className="mb-10">
+                <div className="mb-4 px-2 sm:px-3">
+                  <div className="h-8 w-48 bg-slate-800/50 rounded animate-pulse"></div>
                 </div>
-              ))
-            ) : dbEvents.length > 0 ? (
-              dbEvents.map((event) => (
-                <Link key={event.id} to={`/event/${event.id}`}>
-                  <CollaborationEventCard event={event} />
-                </Link>
-              ))
-            ) : (
-              <div className="col-span-full py-20 text-center text-white/50">
-                <p className="text-xl">No upcoming events found.</p>
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 min-h-[280px] sm:min-h-[400px]">
+                  {Array(4).fill(0).map((_, i) => (
+                    <div key={i} className="p-1 sm:p-4 animate-pulse">
+                      <div className="w-full h-[280px] sm:h-[400px] bg-slate-800/50 rounded-2xl border-2 border-white/5"></div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            )}
-          </div>
+            ))
+          ) : (
+            sections.map((section) => {
+              const filteredEvents = allDbEvents.filter((event) => {
+                const cat = event.category;
+                if (section.key === 'hackathons') return cat === 'Hackathon';
+                if (section.key === 'ideathons') return cat === 'Ideathon';
+                if (section.key === 'webinars') return cat === 'Webinar';
+                if (section.key === 'events') {
+                  return cat !== 'Hackathon' && cat !== 'Ideathon' && cat !== 'Webinar';
+                }
+                return false;
+              });
 
-          <div className="mt-1 sm:mt-3 mb-1 px-2 sm:px-3">
-            <h2 className="text-2xl sm:text-3xl md:text-3xl font-bold text-[#A1A1A1]">Upcoming Hackathons</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 min-h-[400px]">
-            {isLoadingHackathons ? (
-              // Loading Skeleton
-              Array(4).fill(0).map((_, i) => (
-                <div key={i} className="p-4 animate-pulse">
-                  <div className="w-full h-[380px] sm:h-[400px] bg-slate-800/50 rounded-2xl border-2 border-white/5"></div>
+              return (
+                <div key={section.id} className="mb-10">
+                  <div className="mb-4 px-2 sm:px-3 flex items-center justify-between">
+                    <h2 className="text-2xl sm:text-3xl md:text-3xl font-bold text-[#A1A1A1]">
+                      {section.title}
+                    </h2>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 min-h-[280px] sm:min-h-[400px]">
+                    {filteredEvents.length > 0 ? (
+                      filteredEvents.map((event) => {
+                        const mappedEvent = mapDbEventToCard(event);
+                        return (
+                          <Link key={event.id} to={`/event/${event.id}`}>
+                            <CollaborationEventCard event={mappedEvent} />
+                          </Link>
+                        );
+                      })
+                    ) : (
+                      <div className="col-span-full py-20 text-center text-white/50 bg-[#041a1a]/40 border border-[#143d3d] rounded-2xl p-8 flex flex-col items-center justify-center gap-3">
+                        <CalendarDays className="w-12 h-12 text-[#64F422]/60" />
+                        <p className="text-xl font-semibold text-white/80">No upcoming {section.title.toLowerCase()} found.</p>
+                        <p className="text-sm text-gray-400">Stay tuned! We are planning exciting events for you.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ))
-            ) : dbHackathons.length > 0 ? (
-              dbHackathons.map((event) => (
-                <Link key={event.id} to={`/event/${event.id}`}>
-                  <CollaborationEventCard event={event} />
-                </Link>
-              ))
-            ) : (
-              <div className="col-span-full py-20 text-center text-white/50">
-                <p className="text-xl">No upcoming hackathons found.</p>
-              </div>
-            )}
-          </div>
+              );
+            })
+          )}
           <a
             href="/calender"
             className="block w-80 text-center mx-auto mt-4 sm:mt-4 bg-[#64F422] text-slate-900 px-4 sm:px-8 py-2.5 sm:py-3 rounded-[12px] text-sm sm:text-base font-bold transition-all hover:scale-105 hover:shadow-lg hover:shadow-green-400/40"
@@ -729,33 +736,72 @@ const Home = () => {
 
         <section
           ref={ctaRef}
-          className="w-full relative py-20 sm:py-32 md:py-40 lg:py-48 bg-[#042029] text-center overflow-hidden border-t-2 sm:border-t-4 border-green-400"
+          className="w-full relative py-20 sm:py-32 md:py-40 lg:py-48 bg-[#042029] text-center overflow-hidden"
           style={{
             backgroundImage: `url("/vectorhome2.png")`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
         >
+          {/* Glowing Top Light Strip */}
+          <div className="absolute top-0 inset-x-0 h-[2px] sm:h-[4px] bg-[#9AE600] shadow-[0_0_8px_#9AE600,0_0_15px_rgba(154,230,0,0.8)] z-10" />
+
           {/* Spotlight Lighting UI */}
           <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+            {/* Volumetric glow coming down from the entire top light strip */}
             <div
-              className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[500px] opacity-40 blur-[120px]"
+              className="absolute top-0 inset-x-0 h-[300px] opacity-30 blur-[40px]"
               style={{
-                background: 'radial-gradient(ellipse at top, #042029 0%, transparent 80%)',
+                background: 'linear-gradient(to bottom, #9AE600 0%, rgba(154,230,0,0.2) 40%, transparent 100%)',
               }}
             />
+
+            {/* Ambient neon-green glow at the top center */}
+            <div
+              className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[350px] opacity-40 blur-[100px]"
+              style={{
+                background: 'radial-gradient(ellipse at top, #9AE600 0%, transparent 80%)',
+              }}
+            />
+
+            {/* Volumetric Spotlight 1 (Left-ish, pointing right-down) */}
+            <div 
+              className="absolute top-0 left-[30%] sm:left-[35%] -translate-x-1/2 w-[250px] sm:w-[350px] md:w-[450px] h-[350px] sm:h-[500px] md:h-[600px] opacity-40 blur-[40px] sm:blur-[60px] md:blur-[80px]"
+              style={{
+                transformOrigin: 'top center',
+                transform: 'rotate(12deg)',
+              }}
+            >
+              <div 
+                className="w-full h-full bg-gradient-to-b from-white via-[#9AE600]/10 via-white/5 to-transparent"
+                style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }}
+              />
+            </div>
+
+            {/* Volumetric Spotlight 2 (Right-ish, pointing left-down) */}
+            <div 
+              className="absolute top-0 left-[70%] sm:left-[65%] -translate-x-1/2 w-[250px] sm:w-[350px] md:w-[450px] h-[350px] sm:h-[500px] md:h-[600px] opacity-40 blur-[40px] sm:blur-[60px] md:blur-[80px]"
+              style={{
+                transformOrigin: 'top center',
+                transform: 'rotate(-12deg)',
+              }}
+            >
+              <div 
+                className="w-full h-full bg-gradient-to-b from-white via-[#9AE600]/10 via-white/5 to-transparent"
+                style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }}
+              />
+            </div>
+
+            {/* Bright Source Flares on the top border strip */}
+            <div className="absolute top-0 left-[30%] sm:left-[35%] -translate-x-1/2 w-[60px] sm:w-[90px] h-[6px] sm:h-[8px] bg-white rounded-full blur-[2px] opacity-90" />
+            <div className="absolute top-0 left-[70%] sm:left-[65%] -translate-x-1/2 w-[60px] sm:w-[90px] h-[6px] sm:h-[8px] bg-white rounded-full blur-[2px] opacity-90" />
           </div>
 
-          <div className="pointer-events-none absolute inset-0">
-            <div className="absolute inset-x-0 -top-40 sm:-top-80 h-[400px] sm:h-[900px] bg-[radial-gradient(ellipse_at_bottom,_rgba(124,255,79,0.9),_transparent_65%)] blur-3xl opacity-80" />
-          </div>
-          <div className="hidden md:block absolute bottom-0 left-6 sm:left-12 w-16 h-16 sm:w-32 sm:h-32 bg-gradient-to-br from-purple-500 to-purple-800 transform -skew-x-12 -mb-4 sm:-mb-8"></div>
-          <div className="hidden md:block absolute bottom-0 right-6 sm:right-12 w-16 h-16 sm:w-32 sm:h-32 bg-red-600 transform skew-x-12 -mb-4 sm:-mb-8"></div>
           <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6">
-            <h2 ref={ctaTextRef} className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-4 mt-8 px-2 ">
+            <h2 ref={ctaTextRef} className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-4 mt-8 px-2 ">
               Your Gateway to
-              <div className="mt-4 sm:mt-6 h-32 sm:h-40 md:h-48 lg:h-56 xl:h-64 overflow-hidden relative">
-                <span className="rotating-words block text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[12rem]  italic font-bold text-white/90">
+              <div className="mt-4 sm:mt-6 h-24 sm:h-40 md:h-48 lg:h-56 xl:h-64 overflow-hidden relative">
+                <span className="rotating-words block text-6xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[12rem]  italic font-bold text-white/90">
                   <span className="inline-block font-['Fitzgerald-Italic'] animate-scroll-up bg-gradient-to-b from-[#FFFFFF] to-[#999999] bg-clip-text text-transparent pb-2">
                     {words[currentWordIndex]}
                   </span>
@@ -776,7 +822,7 @@ const Home = () => {
         {/* Community Section */}
         <section
           ref={communityRef}
-          className="py-32  relative bg-[#042029]"
+          className="py-12 sm:py-32 relative bg-[#042029]"
           style={{
             backgroundImage: `url("/vectorhome2.png")`,
             backgroundSize: "cover",
@@ -901,7 +947,7 @@ const Home = () => {
         {/* Community Showcase Section */}
         <section
           ref={communityRef}
-          className="py-32  relative bg-[#042029]"
+          className="py-12 sm:py-32 relative bg-[#042029]"
           style={{
             backgroundImage: `url("/vectorhome2.png")`,
             backgroundSize: "cover",
@@ -1210,7 +1256,7 @@ const Home = () => {
                       {/* Header: large avatar left, name+badge right-aligned */}
                       <div className="flex items-center justify-between gap-4 select-none">
                         <img
-                          src={t.avatar}
+                          src={t.avatar || t.avatarUrl}
                           alt={t.name}
                           className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
                           draggable={false}
