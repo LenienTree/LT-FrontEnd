@@ -608,6 +608,36 @@ export const homepage = {
   get: () => get("/api/homepage"),
 };
 
+// ─── Referral / UTM tracking ────────────────────────────────────────────────────
+
+export const referral = {
+  /** Public: record a click on a referral link. Body: { code } */
+  trackClick: (code) => post("/api/referral/click", { code }),
+
+  // ── Admin (any event) ──
+  admin: {
+    listColleges: () => get("/api/referral/admin/colleges"),
+    listStudents: (college) =>
+      get(`/api/referral/admin/colleges/${encodeURIComponent(college)}/students`),
+    /** Generate a referral link for any event, attributed to a student */
+    generate: (eventId, refereeUserId) =>
+      post("/api/referral/admin/generate", { eventId, refereeUserId }),
+    /** Stats for any event */
+    getStats: (eventId) => get(`/api/referral/admin/stats/${eventId}`),
+  },
+
+  // ── Organizer (own events only) ──
+  organizer: {
+    listEvents: () => get("/api/referral/organizer/events"),
+    listColleges: () => get("/api/referral/organizer/colleges"),
+    listStudents: (college) =>
+      get(`/api/referral/organizer/colleges/${encodeURIComponent(college)}/students`),
+    generate: (eventId, refereeUserId) =>
+      post("/api/referral/organizer/generate", { eventId, refereeUserId }),
+    getStats: (eventId) => get(`/api/referral/organizer/stats/${eventId}`),
+  },
+};
+
 // ─── Default export (grouped) ─────────────────────────────────────────────────
 
 const api = {
@@ -619,6 +649,7 @@ const api = {
   organizer,
   admin,
   homepage,
+  referral,
 };
 
 export default api;

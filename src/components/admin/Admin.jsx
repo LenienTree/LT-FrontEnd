@@ -5,7 +5,7 @@ import {
   CheckCircle, XCircle, Shield, Search, Bell, LogOut,
   ChevronLeft, ChevronRight, RefreshCw, Loader2,
   UserCheck, AlertTriangle, Pencil, Trash2, SlidersHorizontal,
-  Upload, Plus, ArrowUp, ArrowDown, Image, Settings, Home
+  Upload, Plus, ArrowUp, ArrowDown, Image, Settings, Home, Link2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { admin, homepage as homepageApi } from '../../services/api';
@@ -17,6 +17,7 @@ import { Badge, RoleBadge } from './Badges';
 import StatCard from './StatCard';
 import SectionHeader from './SectionHeader';
 import Header from '../layout/Header';
+import ReferralManager from '../shared/ReferralManager';
 
 // ─── Admin Component ──────────────────────────────────────────────────────────
 
@@ -530,6 +531,7 @@ const Admin = () => {
     { key: 'organizer', label: 'Organizer Requests', icon: UserCheck },
     { key: 'recentUsers', label: 'Recent Users', icon: Users },
     { key: 'users', label: 'All Users', icon: SlidersHorizontal },
+    { key: 'referrals', label: 'Referrals', icon: Link2 },
     { key: 'homepage', label: 'Homepage Config', icon: Settings },
   ];
 
@@ -1345,6 +1347,13 @@ const Admin = () => {
                   )}
                 </>
               )}
+            </div>
+          )}
+
+          {activeTab === 'referrals' && (
+            <div>
+              <SectionHeader title="Referral & UTM Tracking" />
+              <ReferralManager mode="admin" accent="#00ff88" />
             </div>
           )}
 

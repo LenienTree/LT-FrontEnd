@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { LayoutDashboard, Calendar, Users, Award, ExternalLink, ShieldCheck, ShieldAlert, Award as AwardIcon, Check, X, ClipboardCheck, ArrowLeft, Loader2, Send } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, Award, ExternalLink, ShieldCheck, ShieldAlert, Award as AwardIcon, Check, X, ClipboardCheck, ArrowLeft, Loader2, Send, Link2 } from "lucide-react";
 import { organizer as organizerApi, events as eventsApi } from "../../services/api";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
+import ReferralManager from "../shared/ReferralManager";
 
 export default function OrganizerDashboard() {
   const [stats, setStats] = useState({
@@ -15,6 +16,7 @@ export default function OrganizerDashboard() {
   const [eventsList, setEventsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [view, setView] = useState("overview"); // 'overview' | 'referrals'
 
   // Management modal states
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -278,6 +280,20 @@ export default function OrganizerDashboard() {
               )}
             </div>
           </div>
+        ) : view === "referrals" ? (
+          /* Referral Tracking View */
+          <div>
+            <button
+              onClick={() => setView("overview")}
+              className="mb-6 flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:text-white hover:bg-white/10 transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </button>
+            <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
+              <ReferralManager mode="organizer" accent="#9AE600" />
+            </div>
+          </div>
         ) : (
           /* Organizer Overview View */
           <div>
@@ -340,14 +356,23 @@ export default function OrganizerDashboard() {
             </div>
 
             {/* Actions panel */}
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-6 gap-3 flex-wrap">
               <h3 className="text-lg font-bold">My Blueprinted Events</h3>
-              <Link
-                to="/organize"
-                className="px-5 py-2.5 bg-[#9AE600] text-black text-xs font-bold rounded-full hover:bg-[#85cc00] transition-colors"
-              >
-                + Organize New Event
-              </Link>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setView("referrals")}
+                  className="px-5 py-2.5 bg-white/5 border border-white/10 text-white text-xs font-bold rounded-full hover:bg-white/10 transition-colors flex items-center gap-1.5"
+                >
+                  <Link2 className="w-3.5 h-3.5" />
+                  Referrals
+                </button>
+                <Link
+                  to="/organize"
+                  className="px-5 py-2.5 bg-[#9AE600] text-black text-xs font-bold rounded-full hover:bg-[#85cc00] transition-colors"
+                >
+                  + Organize New Event
+                </Link>
+              </div>
             </div>
 
             {/* Events list table */}

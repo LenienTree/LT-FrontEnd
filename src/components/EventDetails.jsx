@@ -6,6 +6,7 @@ import Header from './layout/Header';
 import Footer from './layout/Footer';
 import CountdownTimer from './CountdownTimer';
 import { events as eventsApi, bookmarks as bookmarksApi } from '../services/api';
+import { captureReferral } from '../services/referralTracker';
 import { useAuth } from '../context/AuthContext';
 
 // ─── FAQ Accordion ────────────────────────────────────────────────────────────
@@ -39,8 +40,16 @@ const EventDetails = () => {
     const { id: paramId } = useParams();
     const [searchParams] = useSearchParams();
     const eventId = paramId || searchParams.get('id');
+    const refCode = searchParams.get('ref');
 
     const { isAuthenticated, openAuthModal, user } = useAuth();
+
+    // Capture referral attribution from ?ref=CODE and track the click once.
+    useEffect(() => {
+        if (eventId && refCode) {
+            captureReferral(eventId, refCode);
+        }
+    }, [eventId, refCode]);
 
     const [eventData, setEventData] = useState(null);
     const [announcements, setAnnouncements] = useState([]);

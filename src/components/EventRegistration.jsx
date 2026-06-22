@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Plus, Trash2, CheckCircle2, AlertCircle, Download, 
 import Header from './layout/Header';
 import Footer from './layout/Footer';
 import { events as eventsApi } from '../services/api';
+import { getReferral, clearReferral } from '../services/referralTracker';
 import { useAuth } from '../context/AuthContext';
 
 const EventRegistration = () => {
@@ -167,6 +168,9 @@ const EventRegistration = () => {
                 ...(isShareEvent ? { linkedinPostLink: linkedinPostLink.trim() } : {}),
             };
 
+            // Referral attribution captured from ?ref= on the event page (if any)
+            const referralCode = getReferral(eventId);
+
             const getName = (data) => data.name || data.Name || data['Full Name'] || Object.values(data)[0] || '';
             const getEmail = (data) => data.email || data.Email || '';
             const getPhone = (data) => data.phone || data.Phone || data['Phone Number'] || '';
@@ -193,8 +197,10 @@ const EventRegistration = () => {
                                 formData: formDataBase,
                                 razorpayPaymentId: response.razorpay_payment_id,
                                 razorpayOrderId: response.razorpay_order_id,
-                                razorpaySignature: response.razorpay_signature
+                                razorpaySignature: response.razorpay_signature,
+                                ...(referralCode ? { referralCode } : {})
                             });
+                            clearReferral(eventId);
                             setSuccess('Registration successful! Check your email for confirmation.');
                             setTimeout(() => {
                                 navigate(`/event/${eventId}`);
@@ -231,7 +237,9 @@ const EventRegistration = () => {
                 const fd = new FormData();
                 fd.append('paymentProof', paymentProofFile);
                 fd.append('formData', JSON.stringify(formDataBase));
+                if (referralCode) fd.append('referralCode', referralCode);
                 await eventsApi.registerForEvent(eventId, fd);
+                clearReferral(eventId);
                 setSuccess('Registration submitted! Your payment will be verified by the organizer.');
                 setTimeout(() => {
                     navigate(`/event/${eventId}`);
@@ -240,7 +248,11 @@ const EventRegistration = () => {
             }
 
             // Free Event Flow
-            await eventsApi.registerForEvent(eventId, { formData: formDataBase });
+            await eventsApi.registerForEvent(eventId, {
+                formData: formDataBase,
+                ...(referralCode ? { referralCode } : {})
+            });
+            clearReferral(eventId);
             setSuccess('Registration successful! Check your email for confirmation.');
             setTimeout(() => {
                 navigate(`/event/${eventId}`);
