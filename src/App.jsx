@@ -19,6 +19,8 @@ const EditEventPage    = lazy(() => import("./components/organizer/EditEventPage
 const EventDetails     = lazy(() => import("./components/EventDetails"));
 const Admin            = lazy(() => import("./components/admin/Admin"));
 const EventRegistration = lazy(() => import("./components/EventRegistration"));
+const ExplorePage      = lazy(() => import("./components/explore/ExplorePage"));
+const OrganizerDashboard = lazy(() => import("./components/organizer/OrganizerDashboard"));
 
 // Minimal spinner shown while a lazy chunk is loading
 function PageLoader() {
@@ -70,9 +72,11 @@ function App() {
           <Route path="/test" element={<AboutNew />} />
           <Route path="/test1" element={<TeamHalfCircle />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/explore" element={<ExplorePage />} />
           <Route path="/calender" element={<CalenderPage />} />
           <Route path="/organize" element={<OrganizerRoute><OrganizeEvent /></OrganizerRoute>} />
           <Route path="/organize/edit/:id" element={<OrganizerRoute><EditEventPage /></OrganizerRoute>} />
+          <Route path="/organizer/dashboard" element={<OrganizerRoute><OrganizerDashboard /></OrganizerRoute>} />
           <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
           {/* Event detail — supports both /event/:id and legacy /event?id=... */}
           <Route path="/event/:id" element={<EventDetails />} />

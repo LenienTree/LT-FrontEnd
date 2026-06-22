@@ -8,7 +8,7 @@ import Header from "../layout/Header";
 import Footer from "../layout/Footer";
 import { events as eventsApi, homepage as homepageApi } from "../../services/api";
 import { Link } from "react-router-dom";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, X } from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -26,6 +26,8 @@ const Home = () => {
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [sections, setSections] = useState([]);
   const [isLoadingSections, setIsLoadingSections] = useState(true);
+  const [activeCategoryTab, setActiveCategoryTab] = useState("ALL");
+  const [selectedDayPopover, setSelectedDayPopover] = useState(null);
 
   // Default/Fallback homepage configurator values
   const DEFAULT_HERO_SLIDES = [
@@ -375,6 +377,29 @@ const Home = () => {
     "/6.png",
   ];
 
+  const getGoogleCalendarLink = (event) => {
+    const formatGCalDate = (dateStr) => {
+      if (!dateStr) return "";
+      const d = new Date(dateStr);
+      return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+    };
+    const start = formatGCalDate(event.startDate);
+    const end = formatGCalDate(event.endDate || event.startDate);
+    const text = encodeURIComponent(event.title || "");
+    const details = encodeURIComponent(event.subtitle || event.description || "");
+    const loc = encodeURIComponent(event.venueName || (event.mode === "ONLINE" ? "Online" : "In-Person"));
+    return `https://www.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${start}/${end}&details=${details}&location=${loc}`;
+  };
+
+  const handleDayClick = (day, dayEvents) => {
+    setSelectedDayPopover({
+      day,
+      month: selectedMonth,
+      year: selectedYear,
+      events: dayEvents,
+    });
+  };
+
   const renderCalendar = () => {
     const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
     const firstDay = getFirstDayOfMonth(selectedMonth, selectedYear);
@@ -394,7 +419,7 @@ const Home = () => {
             if (current.getMonth() === selectedMonth && current.getFullYear() === selectedYear) {
                 const day = current.getDate();
                 if (!calendarEventMap[day]) calendarEventMap[day] = [];
-                calendarEventMap[day].push(e.category || "Other");
+                calendarEventMap[day].push(e);
             }
             current.setDate(current.getDate() + 1);
         }
@@ -402,7 +427,7 @@ const Home = () => {
 
     const getDayEvents = (day) => {
       const events = calendarEventMap[day] || [];
-      const uniqueEvents = [...new Set(events)].slice(0, 3);
+      const uniqueEvents = [...new Set(events.map(e => e.category || "Other"))].slice(0, 3);
       return uniqueEvents.map(type => {
         const t = type.toLowerCase();
         if (t.includes('hackathon')) return 'bg-blue-500';
@@ -424,9 +449,16 @@ const Home = () => {
         selectedYear === currentDate.getFullYear();
 
       const events = getDayEvents(day);
+      const dayEvents = calendarEventMap[day] || [];
 
       days.push(
-        <div key={day} className="relative flex flex-col items-center p-2">
+        <div
+          key={day}
+          onClick={() => handleDayClick(day, dayEvents)}
+          className={`relative flex flex-col items-center p-2 cursor-pointer transition-all duration-200 hover:bg-white/5 rounded-2xl ${
+            dayEvents.length > 0 ? "hover:scale-[1.03]" : ""
+          }`}
+        >
           {/* Event indicator bars ABOVE the date */}
           {events.length > 0 && (
             <div className="flex w-full mb-1">
@@ -666,45 +698,61 @@ const Home = () => {
           ref={eventsRef}
           className="container mt-10 sm:mt-16 md:mt-24 mx-auto px-3 sm:px-6 py-4 sm:py-12 md:py-12 bg-[#022F2E]"
         >
-          {isLoadingSections || isLoadingEvents ? (
-            // Render loading skeletons
-            [1, 2].map((dummyIdx) => (
-              <div key={dummyIdx} className="mb-10">
-                <div className="mb-4 px-2 sm:px-3">
-                  <div className="h-8 w-48 bg-slate-800/50 rounded animate-pulse"></div>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 min-h-[280px] sm:min-h-[400px]">
-                  {Array(4).fill(0).map((_, i) => (
-                    <div key={i} className="p-1 sm:p-4 animate-pulse">
-                      <div className="w-full h-[280px] sm:h-[400px] bg-slate-800/50 rounded-2xl border-2 border-white/5"></div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))
-          ) : (
-            sections.map((section) => {
-              const filteredEvents = allDbEvents.filter((event) => {
-                const cat = event.category;
-                if (section.key === 'hackathons') return cat === 'Hackathon';
-                if (section.key === 'ideathons') return cat === 'Ideathon';
-                if (section.key === 'webinars') return cat === 'Webinar';
-                if (section.key === 'events') {
-                  return cat !== 'Hackathon' && cat !== 'Ideathon' && cat !== 'Webinar';
-                }
-                return false;
-              });
+          {/* Section Header */}
+          <div className="mb-8 px-2 sm:px-3 text-center">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Explore Dynamic <span className="text-[#64F422]">Blueprints</span>
+            </h2>
+            <p className="text-gray-400 mt-2 text-sm max-w-lg mx-auto">
+              Quickly switch between categories to discover upcoming hackathons, ideathons, webinars and conclaves.
+            </p>
+          </div>
 
-              return (
-                <div key={section.id} className="mb-10">
-                  <div className="mb-4 px-2 sm:px-3 flex items-center justify-between">
-                    <h2 className="text-2xl sm:text-3xl md:text-3xl font-bold text-[#A1A1A1]">
-                      {section.title}
-                    </h2>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 min-h-[280px] sm:min-h-[400px]">
+          {/* Category Filter Tabs */}
+          <div className="flex flex-wrap justify-center gap-2.5 mb-10 px-2">
+            {[
+              { id: "ALL", label: "All Events" },
+              { id: "HACKATHON", label: "Hackathons" },
+              { id: "IDEATHON", label: "Ideathons" },
+              { id: "WEBINAR", label: "Webinars" },
+              { id: "QUIZ", label: "Quizzes" },
+              { id: "WORKSHOP", label: "Workshops" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveCategoryTab(tab.id)}
+                className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 border ${
+                  activeCategoryTab === tab.id
+                    ? "bg-[#64F422] border-[#64F422] text-slate-900 shadow-xl shadow-[#64F422]/20"
+                    : "bg-white/5 border-white/10 text-gray-300 hover:border-white/20 hover:bg-white/10"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {isLoadingEvents ? (
+            // Render loading skeletons
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 min-h-[300px]">
+              {Array(4).fill(0).map((_, i) => (
+                <div key={i} className="p-2 animate-pulse">
+                  <div className="w-full h-[280px] sm:h-[400px] bg-slate-800/50 rounded-3xl border border-white/5"></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div>
+              {(() => {
+                const filteredEvents = allDbEvents.filter((event) => {
+                  if (activeCategoryTab === "ALL") return true;
+                  return event.category?.toUpperCase() === activeCategoryTab;
+                });
+
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 min-h-[300px]">
                     {filteredEvents.length > 0 ? (
-                      filteredEvents.map((event) => {
+                      filteredEvents.slice(0, 8).map((event) => {
                         const mappedEvent = mapDbEventToCard(event);
                         return (
                           <Link key={event.id} to={`/event/${event.id}`}>
@@ -713,23 +761,32 @@ const Home = () => {
                         );
                       })
                     ) : (
-                      <div className="col-span-full py-20 text-center text-white/50 bg-[#041a1a]/40 border border-[#143d3d] rounded-2xl p-8 flex flex-col items-center justify-center gap-3">
+                      <div className="col-span-full py-16 text-center text-white/50 bg-[#041a1a]/40 border border-[#143d3d] rounded-3xl p-8 flex flex-col items-center justify-center gap-3">
                         <CalendarDays className="w-12 h-12 text-[#64F422]/60" />
-                        <p className="text-xl font-semibold text-white/80">No upcoming {section.title.toLowerCase()} found.</p>
-                        <p className="text-sm text-gray-400">Stay tuned! We are planning exciting events for you.</p>
+                        <p className="text-base font-bold text-white/80">No upcoming events in this category.</p>
+                        <p className="text-xs text-gray-400">Stay tuned! We are planning exciting events for you.</p>
                       </div>
                     )}
                   </div>
-                </div>
-              );
-            })
+                );
+              })()}
+            </div>
           )}
-          <a
-            href="/calender"
-            className="block w-80 text-center mx-auto mt-4 sm:mt-4 bg-[#64F422] text-slate-900 px-4 sm:px-8 py-2.5 sm:py-3 rounded-[12px] text-sm sm:text-base font-bold transition-all hover:scale-105 hover:shadow-lg hover:shadow-green-400/40"
-          >
-            View Calendar
-          </a>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
+            <Link
+              to="/explore"
+              className="w-full sm:w-60 text-center bg-[#64F422] text-slate-900 py-3.5 rounded-[12px] text-sm sm:text-base font-bold transition-all hover:scale-105 hover:shadow-lg hover:shadow-green-400/40"
+            >
+              Explore All Blueprints
+            </Link>
+            <Link
+              to="/calender"
+              className="w-full sm:w-60 text-center bg-white/5 border border-white/10 text-white py-3.5 rounded-[12px] text-sm sm:text-base font-bold transition-all hover:bg-white/10 hover:border-white/20"
+            >
+              View Calendar
+            </Link>
+          </div>
         </section>
 
 
@@ -1340,6 +1397,127 @@ const Home = () => {
 
         <ContactPage />
       </main>
+
+      {/* Calendar Day Detail Popover Modal */}
+      {selectedDayPopover && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md transition-opacity duration-300"
+          onClick={() => setSelectedDayPopover(null)}
+        >
+          <div 
+            className="relative w-full max-w-lg bg-[#042029]/95 border-2 border-[#9AE600] rounded-3xl p-6 shadow-2xl text-left transform scale-100 transition-all duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedDayPopover(null)}
+              className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Modal Header */}
+            <div className="mb-6">
+              <h3 className="text-xl sm:text-2xl font-bold text-[#64F422] flex items-center gap-2">
+                <CalendarDays className="w-6 h-6" />
+                <span>
+                  {new Date(
+                    selectedDayPopover.year,
+                    selectedDayPopover.month,
+                    selectedDayPopover.day
+                  ).toLocaleDateString("en-US", {
+                    weekday: "short",
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
+              </h3>
+              <p className="text-xs text-gray-400 mt-1">Events scheduled for this date</p>
+            </div>
+
+            {/* Modal Body */}
+            <div className="max-h-[350px] overflow-y-auto pr-1 space-y-4">
+              {selectedDayPopover.events.length === 0 ? (
+                <div className="text-center py-8 text-white/50 flex flex-col items-center justify-center gap-3">
+                  <CalendarDays className="w-12 h-12 text-white/20" />
+                  <p className="text-sm font-semibold">No events scheduled on this day.</p>
+                  <Link
+                    to="/explore"
+                    onClick={() => setSelectedDayPopover(null)}
+                    className="text-xs text-[#9AE600] hover:underline"
+                  >
+                    Browse other events
+                  </Link>
+                </div>
+              ) : (
+                selectedDayPopover.events.map((event) => {
+                  return (
+                    <div
+                      key={event.id}
+                      className="bg-slate-800/40 border border-white/5 hover:border-[#9AE600]/30 rounded-2xl p-4 transition-all duration-300 flex flex-col sm:flex-row gap-4"
+                    >
+                      {/* Thumbnail */}
+                      {(event.eventPoster || event.bannerImage) && (
+                        <div className="w-full sm:w-24 h-24 rounded-xl overflow-hidden bg-slate-900/50 flex-shrink-0">
+                          <img
+                            src={event.eventPoster || event.bannerImage}
+                            alt={event.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Text details */}
+                      <div className="flex-1 flex flex-col justify-between">
+                        <div>
+                          <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full border mb-1.5 ${
+                            event.category === "Hackathon" ? "bg-blue-500/20 text-blue-300 border-blue-500/30" :
+                            event.category === "Ideathon" ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" :
+                            event.category === "Webinar" ? "bg-purple-500/20 text-purple-300 border-purple-500/30" :
+                            event.category === "Conclave" ? "bg-red-500/20 text-red-300 border-red-500/30" :
+                            "bg-gray-500/20 text-gray-300 border-gray-500/30"
+                          }`}>
+                            {event.category || "Event"}
+                          </span>
+                          <h4 className="text-white font-bold text-sm sm:text-base leading-snug hover:text-[#9AE600] transition-colors line-clamp-1">
+                            {event.title}
+                          </h4>
+                          {event.subtitle && (
+                            <p className="text-gray-400 text-xs mt-0.5 line-clamp-1">{event.subtitle}</p>
+                          )}
+                          <div className="flex items-center gap-1.5 text-gray-400 text-[11px] mt-2">
+                            <span>{event.mode === "ONLINE" ? "🌐 Online" : `📍 ${event.venueName || "In-Person"}`}</span>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-white/5">
+                          <Link
+                            to={`/event/${event.id}`}
+                            onClick={() => setSelectedDayPopover(null)}
+                            className="text-xs bg-[#9AE600] text-slate-900 font-bold px-3 py-1.5 rounded-lg hover:scale-105 transition-all"
+                          >
+                            Details
+                          </Link>
+                          <a
+                            href={getGoogleCalendarLink(event)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs bg-white/5 hover:bg-white/10 text-white border border-white/10 px-3 py-1.5 rounded-lg transition-all"
+                          >
+                            Add to GCal
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* --- FOOTER SECTION --- */}
       <Footer />

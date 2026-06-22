@@ -10,6 +10,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { admin, homepage as homepageApi } from '../../services/api';
 import { events as eventsApi } from '../../services/api';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
 
 import { fmtNum, fmtDate, fmtDateTime } from './AdminHelpers';
 import { Badge, RoleBadge } from './Badges';
@@ -32,6 +33,10 @@ const Admin = () => {
   const [recentUsers, setRecentUsers] = useState([]);
   const [loadingDash, setLoadingDash] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+
+  // Analytics tab data
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
   // Pending events
   const [pendingEvents, setPendingEvents] = useState([]);
@@ -416,6 +421,19 @@ const Admin = () => {
     }
   }, []);
 
+  // ── Fetch Analytics Data ──
+  const fetchAnalyticsData = useCallback(async () => {
+    setLoadingAnalytics(true);
+    try {
+      const data = await admin.getAnalytics();
+      setAnalyticsData(data);
+    } catch {
+      showToast('Failed to load analytics data', 'error');
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  }, []);
+
   useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
   useEffect(() => {
     if (activeTab === 'events') fetchPending();
@@ -424,6 +442,7 @@ const Admin = () => {
     if (activeTab === 'organizer') fetchOrgRequests();
     if (activeTab === 'recentUsers') fetchRecentUsers(1);
     if (activeTab === 'homepage') fetchHomepageData();
+    if (activeTab === 'analytics') fetchAnalyticsData();
   }, [activeTab]);
 
   // ── Actions ──
@@ -505,6 +524,7 @@ const Admin = () => {
   // ── Nav Items ──
   const navItems = [
     { key: 'dashboard', label: 'Dashboard', icon: BarChart2 },
+    { key: 'analytics', label: 'Admin Analytics', icon: TrendingUp },
     { key: 'events', label: 'Pending Events', icon: CalendarDays },
     { key: 'allEvents', label: 'All Events', icon: CalendarDays },
     { key: 'organizer', label: 'Organizer Requests', icon: UserCheck },
@@ -1652,6 +1672,187 @@ const Admin = () => {
                         ))}
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── ANALYTICS TAB ── */}
+          {activeTab === 'analytics' && (
+            <div>
+              <div className='h-15'></div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-[#00ff88]" />
+                  <h1 className="text-white text-xl font-bold">Advanced Statistics & Charts</h1>
+                </div>
+                <button
+                  onClick={fetchAnalyticsData}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:text-white hover:bg-white/10 transition-all self-end"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Refresh
+                </button>
+              </div>
+
+              {loadingAnalytics || !analyticsData ? (
+                <div className="flex items-center justify-center py-24">
+                  <Loader2 className="w-10 h-10 text-[#00ff88] animate-spin" />
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {/* Grid 1: Key Numbers */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                      <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Est. Revenue</p>
+                      <p className="text-3xl font-extrabold text-[#00ff88] mt-2">₹{analyticsData.totalRevenue.toLocaleString()}</p>
+                      <p className="text-[10px] text-gray-500 mt-2">Aggregated from paid events ticket sales</p>
+                    </div>
+                  </div>
+
+                  {/* Grid 2: Charts (Signups and Registrations) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* User Growth Chart */}
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                      <h3 className="text-white text-sm font-bold mb-4">Daily User Sign-ups (Last 30 Days)</h3>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={analyticsData.dailySignups}>
+                            <defs>
+                              <linearGradient id="colorSignups" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#00ff88" stopOpacity={0.4}/>
+                                <stop offset="95%" stopColor="#00ff88" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1a4d4d" opacity={0.3} />
+                            <XAxis dataKey="date" stroke="#888888" fontSize={10} tickFormatter={(str) => {
+                              try {
+                                return new Date(str).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                              } catch { return str; }
+                            }} />
+                            <YAxis stroke="#888888" fontSize={10} />
+                            <Tooltip contentStyle={{ backgroundColor: '#061818', border: '1px solid #1a4d4d' }} labelFormatter={(str) => new Date(str).toLocaleDateString(undefined, { dateStyle: 'medium' })} />
+                            <Area type="monotone" dataKey="count" stroke="#00ff88" strokeWidth={2} fillOpacity={1} fill="url(#colorSignups)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Registrations Chart */}
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                      <h3 className="text-white text-sm font-bold mb-4">Daily Event Registrations (Last 30 Days)</h3>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={analyticsData.recentRegistrations}>
+                            <defs>
+                              <linearGradient id="colorRegistrations" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1a4d4d" opacity={0.3} />
+                            <XAxis dataKey="date" stroke="#888888" fontSize={10} tickFormatter={(str) => {
+                              try {
+                                return new Date(str).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                              } catch { return str; }
+                            }} />
+                            <YAxis stroke="#888888" fontSize={10} />
+                            <Tooltip contentStyle={{ backgroundColor: '#061818', border: '1px solid #1a4d4d' }} labelFormatter={(str) => new Date(str).toLocaleDateString(undefined, { dateStyle: 'medium' })} />
+                            <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorRegistrations)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Grid 3: Breakdown Charts */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Category Distribution */}
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6 lg:col-span-2">
+                      <h3 className="text-white text-sm font-bold mb-4">Event Categories Breakdown</h3>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={analyticsData.eventsByCategory}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1a4d4d" opacity={0.3} />
+                            <XAxis dataKey="category" stroke="#888888" fontSize={10} />
+                            <YAxis stroke="#888888" fontSize={10} />
+                            <Tooltip contentStyle={{ backgroundColor: '#061818', border: '1px solid #1a4d4d' }} />
+                            <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                              {analyticsData.eventsByCategory.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#00ff88' : '#3b82f6'} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Status Breakdown (Pie Chart) */}
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                      <h3 className="text-white text-sm font-bold mb-4">Event Blueprints by Status</h3>
+                      <div className="h-64 flex flex-col justify-between">
+                        <div className="h-44">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={analyticsData.eventsByStatus}
+                                dataKey="count"
+                                nameKey="status"
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={40}
+                                outerRadius={60}
+                                paddingAngle={5}
+                              >
+                                {analyticsData.eventsByStatus.map((entry, index) => {
+                                  const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#6b7280'];
+                                  return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
+                                })}
+                              </Pie>
+                              <Tooltip contentStyle={{ backgroundColor: '#061818', border: '1px solid #1a4d4d' }} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-[10px] text-gray-300">
+                          {analyticsData.eventsByStatus.map((item, idx) => {
+                            const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#6b7280'];
+                            return (
+                              <div key={idx} className="flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                                <span className="capitalize">{item.status.toLowerCase().replace('_', ' ')}</span>
+                                <span className="text-gray-500 font-bold">({item.count})</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Top Performing Events */}
+                  <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                    <h3 className="text-white text-sm font-bold mb-4">Top 5 Performing Events by Registrant Count</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-white/5 text-[10px] uppercase font-bold text-gray-400 border-b border-[#1a4d4d]">
+                            <th className="px-4 py-3">Event Blueprint</th>
+                            <th className="px-4 py-3">Category</th>
+                            <th className="px-4 py-3 text-right">Registrations</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {analyticsData.topEvents.map((ev, idx) => (
+                            <tr key={ev.id || idx} className="hover:bg-white/[0.02]">
+                              <td className="px-4 py-3 font-semibold text-white">{ev.title}</td>
+                              <td className="px-4 py-3 text-gray-400 capitalize">{ev.category.toLowerCase()}</td>
+                              <td className="px-4 py-3 text-right font-bold text-[#00ff88]">{ev.registrations}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               )}

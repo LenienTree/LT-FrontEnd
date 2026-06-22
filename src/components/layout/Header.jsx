@@ -1,9 +1,10 @@
-
 import { useState, useRef, useEffect } from "react"
 import { Menu, X, LogOut, User } from "lucide-react"
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from "../../context/AuthContext";
 import { users } from "../../services/api";
+import GlobalSearch from "./GlobalSearch";
+import NotificationBell from "./NotificationBell";
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -84,6 +85,7 @@ export default function Header() {
 
     const navItems = [
         { name: "Home", href: "/" },
+        { name: "Explore", href: "/explore" },
         { name: "Calendar", href: "/calender" },
     ]
 
@@ -118,72 +120,92 @@ export default function Header() {
                         </nav>
                     </div>
 
-                    {/* Profile / Sign In — Desktop */}
-                    <div className="hidden md:block relative" ref={profileRef}>
-                        {loading ? null : isAuthenticated ? (
-                            <>
-                                <button
-                                    onClick={() => setIsProfileOpen(!isProfileOpen)}
-                                    className="flex items-center space-x-2 focus:outline-none"
-                                >
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold overflow-hidden">
-                                        {profileImage
-                                            ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" />
-                                            : <User size={20} />}
-                                    </div>
-                                    <span className="text-white text-sm font-medium hidden lg:block">{user?.name ?? "Profile"}</span>
-                                </button>
+                    {/* Search & Actions & Profile — Desktop */}
+                    <div className="hidden md:flex items-center gap-4">
+                        <GlobalSearch />
+                        <NotificationBell />
+                        
+                        <div className="relative" ref={profileRef}>
+                            {loading ? null : isAuthenticated ? (
+                                <>
+                                    <button
+                                        onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                        className="flex items-center space-x-2 focus:outline-none"
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold overflow-hidden">
+                                            {profileImage
+                                                ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" />
+                                                : <User size={20} />}
+                                        </div>
+                                        <span className="text-white text-sm font-medium hidden lg:block">{user?.name ?? "Profile"}</span>
+                                    </button>
 
-                                {/* Dropdown Menu */}
-                                {isProfileOpen && (
-                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                                        {isAdmin && (
+                                    {/* Dropdown Menu */}
+                                    {isProfileOpen && (
+                                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                                            {isAdmin && (
+                                                <Link
+                                                    to="/admin"
+                                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                                    onClick={() => setIsProfileOpen(false)}
+                                                >
+                                                    Admin Dashboard
+                                                </Link>
+                                            )}
+                                            {(user?.isOrganizer || isAdmin) && (
+                                                <Link
+                                                    to="/organizer/dashboard"
+                                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                                    onClick={() => setIsProfileOpen(false)}
+                                                >
+                                                    Organizer Dashboard
+                                                </Link>
+                                            )}
                                             <Link
-                                                to="/admin"
+                                                to="/profile"
                                                 className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                                                 onClick={() => setIsProfileOpen(false)}
                                             >
-                                                Admin Dashboard
+                                                View Profile
                                             </Link>
-                                        )}
-                                        <Link
-                                            to="/profile"
-                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                            onClick={() => setIsProfileOpen(false)}
-                                        >
-                                            View Profile
-                                        </Link>
 
-                                        <button
-                                            onClick={handleLogout}
-                                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
-                                        >
-                                            <LogOut className="mr-2 h-4 w-4" />
-                                            Logout
-                                        </button>
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <button
-                                onClick={() => openAuthModal('login')}
-                                className="flex items-center space-x-2 px-4 py-2 rounded-full bg-[#9AE600] text-black text-sm font-semibold hover:bg-[#85cc00] transition-colors"
-                            >
-                                <User size={16} />
-                                <span>Sign In</span>
-                            </button>
-                        )}
+                                            <button
+                                                onClick={handleLogout}
+                                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
+                                            >
+                                                <LogOut className="mr-2 h-4 w-4" />
+                                                Logout
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <button
+                                    onClick={() => openAuthModal('login')}
+                                    className="flex items-center space-x-2 px-4 py-2 rounded-full bg-[#9AE600] text-black text-sm font-semibold hover:bg-[#85cc00] transition-colors"
+                                >
+                                    <User size={16} />
+                                    <span>Sign In</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Mobile Menu Button */}
-                    <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden text-white p-2">
-                        {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                    </button>
+                    {/* Mobile Navigation Header Button */}
+                    <div className="flex md:hidden items-center gap-2">
+                        <NotificationBell />
+                        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-white p-2">
+                            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                        </button>
+                    </div>
                 </div>
 
-                {/* Mobile Navigation */}
+                {/* Mobile Navigation Dropdown */}
                 {isMenuOpen && (
                     <div className="md:hidden bg-[#022F2E] m-2 p-4 rounded-lg">
+                        <div className="mb-4">
+                            <GlobalSearch />
+                        </div>
                         <nav className="flex flex-col space-y-4">
                             {navItems.map((item) => (
                                 <Link

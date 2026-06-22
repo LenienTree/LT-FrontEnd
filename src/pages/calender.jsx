@@ -111,6 +111,7 @@ export default function CalenderPage() {
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [searchQuery, setSearchQuery] = useState("");
     const [activeCategory, setActiveCategory] = useState("All");
+    const [selectedDayPopover, setSelectedDayPopover] = useState(null);
 
     // API state
     const [allEvents, setAllEvents] = useState([]);
@@ -148,7 +149,30 @@ export default function CalenderPage() {
         });
     }, [allEvents, searchQuery, activeCategory]);
 
-    /* Build a map of day → event categories for the calendar dots */
+    const getGoogleCalendarLink = (event) => {
+        const formatGCalDate = (dateStr) => {
+            if (!dateStr) return "";
+            const d = new Date(dateStr);
+            return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+        };
+        const start = formatGCalDate(event.startDate);
+        const end = formatGCalDate(event.endDate || event.startDate);
+        const text = encodeURIComponent(event.title || "");
+        const details = encodeURIComponent(event.subtitle || event.description || "");
+        const loc = encodeURIComponent(event.venueName || (event.mode === "ONLINE" ? "Online" : "In-Person"));
+        return `https://www.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${start}/${end}&details=${details}&location=${loc}`;
+    };
+
+    const handleDayClick = (day, dayEvents) => {
+        setSelectedDayPopover({
+            day,
+            month: selectedMonth,
+            year: selectedYear,
+            events: dayEvents,
+        });
+    };
+
+    /* Build a map of day → event objects for the calendar dots and popovers */
     const calendarEventMap = useMemo(() => {
         const map = {};
         filteredEvents.forEach(e => {
@@ -163,7 +187,7 @@ export default function CalenderPage() {
                 if (current.getMonth() === selectedMonth && current.getFullYear() === selectedYear) {
                     const day = current.getDate();
                     if (!map[day]) map[day] = [];
-                    map[day].push(e.category || "Other");
+                    map[day].push(e);
                 }
                 current.setDate(current.getDate() + 1);
             }
@@ -192,11 +216,14 @@ export default function CalenderPage() {
 
             const dayEvents = calendarEventMap[day] || [];
             // Show at most 3 unique category dots
-            const dots = [...new Set(dayEvents)].slice(0, 3);
+            const dots = [...new Set(dayEvents.map(e => e.category || "Other"))].slice(0, 3);
 
             days.push(
                 <div key={day} className="flex justify-center">
-                    <div className={`relative flex flex-col items-center p-1.5 sm:p-2 w-full max-w-[3.5rem] sm:max-w-[4.5rem] ${isToday ? 'border border-[#9AE600] rounded-xl' : 'border border-transparent'}`}>
+                    <div 
+                        onClick={() => handleDayClick(day, dayEvents)}
+                        className={`relative flex flex-col items-center p-1.5 sm:p-2 w-full max-w-[3.5rem] sm:max-w-[4.5rem] cursor-pointer hover:bg-white/5 rounded-xl transition-all duration-200 ${isToday ? 'border border-[#9AE600] rounded-xl' : 'border border-transparent'}`}
+                    >
                         <div className="flex gap-0.5 mb-1.5 w-6 sm:w-10 h-1.5">
                             {dots.length > 0 && dots.map((cat, idx) => (
                                 <div
@@ -411,6 +438,123 @@ export default function CalenderPage() {
             </div>
 
             <OrganizeEventCTA />
+
+            {/* Calendar Day Detail Popover Modal */}
+            {selectedDayPopover && (
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md transition-opacity duration-300"
+                    onClick={() => setSelectedDayPopover(null)}
+                >
+                    <div 
+                        className="relative w-full max-w-lg bg-[#042029]/95 border-2 border-[#9AE600] rounded-3xl p-6 shadow-2xl text-left transform scale-100 transition-all duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Close Button */}
+                        <button
+                            onClick={() => setSelectedDayPopover(null)}
+                            className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        {/* Modal Header */}
+                        <div className="mb-6">
+                            <h3 className="text-xl sm:text-2xl font-bold text-[#64F422] flex items-center gap-2">
+                                <Calendar className="w-6 h-6" />
+                                <span>
+                                    {new Date(
+                                        selectedDayPopover.year,
+                                        selectedDayPopover.month,
+                                        selectedDayPopover.day
+                                    ).toLocaleDateString("en-US", {
+                                        weekday: "short",
+                                        month: "long",
+                                        day: "numeric",
+                                        year: "numeric",
+                                    })}
+                                </span>
+                            </h3>
+                            <p className="text-xs text-gray-400 mt-1">Events scheduled for this date</p>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="max-h-[350px] overflow-y-auto pr-1 space-y-4">
+                            {selectedDayPopover.events.length === 0 ? (
+                                <div className="text-center py-8 text-white/50 flex flex-col items-center justify-center gap-3">
+                                    <Calendar className="w-12 h-12 text-white/20" />
+                                    <p className="text-sm font-semibold">No events scheduled on this day.</p>
+                                </div>
+                            ) : (
+                                selectedDayPopover.events.map((event) => {
+                                    return (
+                                        <div
+                                            key={event.id || event._id}
+                                            className="bg-slate-800/40 border border-white/5 hover:border-[#9AE600]/30 rounded-2xl p-4 transition-all duration-300 flex flex-col sm:flex-row gap-4"
+                                        >
+                                            {/* Thumbnail */}
+                                            {(event.eventPoster || event.bannerImage) && (
+                                                <div className="w-full sm:w-24 h-24 rounded-xl overflow-hidden bg-slate-900/50 flex-shrink-0">
+                                                    <img
+                                                        src={event.eventPoster || event.bannerImage}
+                                                        alt={event.title}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            )}
+                                            
+                                            {/* Text details */}
+                                            <div className="flex-1 flex flex-col justify-between">
+                                                <div>
+                                                    <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full border mb-1.5 ${
+                                                        event.category === "Hackathon" ? "bg-blue-500/20 text-blue-300 border-blue-500/30" :
+                                                        event.category === "Ideathon" ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" :
+                                                        event.category === "Webinar" ? "bg-purple-500/20 text-purple-300 border-purple-500/30" :
+                                                        event.category === "Conclave" ? "bg-red-500/20 text-red-300 border-red-500/30" :
+                                                        "bg-gray-500/20 text-gray-300 border-gray-500/30"
+                                                    }`}>
+                                                        {event.category || "Event"}
+                                                    </span>
+                                                    <h4 className="text-white font-bold text-sm sm:text-base leading-snug hover:text-[#9AE600] transition-colors line-clamp-1">
+                                                        {event.title}
+                                                    </h4>
+                                                    {event.subtitle && (
+                                                        <p className="text-gray-400 text-xs mt-0.5 line-clamp-1">{event.subtitle}</p>
+                                                    )}
+                                                    <div className="flex items-center gap-1.5 text-gray-400 text-[11px] mt-2">
+                                                        <span>{event.mode === "ONLINE" ? "🌐 Online" : `📍 ${event.venueName || "In-Person"}`}</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Actions */}
+                                                <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-white/5">
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedDayPopover(null);
+                                                            handleEventClick(event.id || event._id);
+                                                        }}
+                                                        className="text-xs bg-[#9AE600] text-slate-900 font-bold px-3 py-1.5 rounded-lg hover:scale-105 transition-all"
+                                                    >
+                                                        Details
+                                                    </button>
+                                                    <a
+                                                        href={getGoogleCalendarLink(event)}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-xs bg-white/5 hover:bg-white/10 text-white border border-white/10 px-3 py-1.5 rounded-lg transition-all"
+                                                    >
+                                                        Add to GCal
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <Footer />
         </div>
     );

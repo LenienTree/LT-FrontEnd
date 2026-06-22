@@ -223,6 +223,7 @@ export const users = {
    * @returns {User}
    */
   getUserById: (userId) => get(`/api/users/${userId}`),
+  getPublicProfile: (userId) => get(`/api/users/${userId}/public`),
 };
 
 // ─── Events – Public / Discovery ─────────────────────────────────────────────
@@ -256,6 +257,18 @@ export const events = {
    * @param {string} eventId
    */
   getFAQs: (eventId) => get(`/api/events/${eventId}/faqs`),
+
+  /**
+   * Get dynamic stats for an event (funnel/capacity).
+   * @param {string} eventId
+   */
+  getStats: (eventId) => get(`/api/events/${eventId}/stats`),
+
+  /**
+   * Get metadata for event social sharing.
+   * @param {string} eventId
+   */
+  getShare: (eventId) => get(`/api/events/${eventId}/share`),
 
   // ── Participant Operations ──
 
@@ -348,7 +361,7 @@ export const events = {
    */
   uploadUpiQrCode: (eventId, file) => {
     const formData = new FormData();
-    formData.append("file", file); // Or "qrCode", checking backend... Wait, backend uses request.file() and handles it generically, so any field name works but it's good to just send it. Actually wait, Fastify handles multipart form data if we just send any field name for `request.file()`. Wait, let's look at `uploadBanner` in backend, it just uses `request.file()`. So the field name doesn't matter too much but let's use "qrCode".
+    formData.append("file", file);
     return post(`/api/events/${eventId}/upi-qr`, formData);
   },
 
@@ -460,6 +473,17 @@ export const bookmarks = {
   getAll: () => get("/api/bookmarks"),
 };
 
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export const notifications = {
+  getNotifications: (page = 1, limit = 20) =>
+    get(`/api/notifications?page=${page}&limit=${limit}`),
+  getUnreadCount: () => get("/api/notifications/unread-count"),
+  markRead: (ids) => put("/api/notifications/mark-read", { notificationIds: ids }),
+  markAllRead: () => put("/api/notifications/mark-all-read", {}),
+  deleteNotification: (id) => del(`/api/notifications/${id}`),
+};
+
 // ─── Organizer ────────────────────────────────────────────────────────────────
 
 export const organizer = {
@@ -474,6 +498,12 @@ export const organizer = {
    * @param {{ userId, eventId, certificateUrl }} data
    */
   issueCertificate: (data) => post("/api/organizer/certificates/issue", data),
+
+  /**
+   * Issue certificates to multiple participants at once.
+   * @param {{ eventId, recipients: { userId, certificateUrl }[] }} data
+   */
+  bulkIssueCertificates: (data) => post("/api/organizer/certificates/bulk-issue", data),
 
   /**
    * Get all certificates issued by the organizer.
@@ -524,6 +554,9 @@ export const admin = {
   getAuditLogs: (page = 1, limit = 20) =>
     get(`/api/admin/audit-logs?page=${page}&limit=${limit}`),
 
+  /** GET /api/admin/analytics */
+  getAnalytics: () => get("/api/admin/analytics"),
+
   /** GET /api/admin/organizer-requests — only pending (isOrganizer=false) */
   getOrganizerRequests: () => get("/api/admin/organizer-requests"),
 
@@ -571,6 +604,7 @@ const api = {
   users,
   events,
   bookmarks,
+  notifications,
   organizer,
   admin,
   homepage,
