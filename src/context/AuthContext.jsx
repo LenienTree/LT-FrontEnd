@@ -130,3 +130,4 @@ export function useAuth() {
     }
     return ctx;
 }
+console.log(".");
