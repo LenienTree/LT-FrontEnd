@@ -36,6 +36,12 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
 
+  // Assign student to college by email
+  const [assignEmail, setAssignEmail] = useState('');
+  const [assigning, setAssigning] = useState(false);
+  const [assignSuccess, setAssignSuccess] = useState('');
+  const [assignError, setAssignError] = useState('');
+
   // Stats
   const [stats, setStats] = useState(null);
   const [loadingStats, setLoadingStats] = useState(false);
@@ -102,6 +108,27 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
       setError(e.message || 'Failed to generate referral link');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleAssignCollege = async (e) => {
+    e.preventDefault();
+    if (!assignEmail.trim() || !selectedCollege) return;
+    setAssigning(true);
+    setAssignSuccess('');
+    setAssignError('');
+    try {
+      await r.assignCollege(assignEmail.trim(), selectedCollege);
+      setAssignSuccess(`Student assigned to ${selectedCollege} successfully!`);
+      setAssignEmail('');
+      // Reload students for this college immediately
+      await loadStudents(selectedCollege);
+      setTimeout(() => setAssignSuccess(''), 4500);
+    } catch (e) {
+      setAssignError(e.message || 'Failed to assign student to college');
+      setTimeout(() => setAssignError(''), 5500);
+    } finally {
+      setAssigning(false);
     }
   };
 
@@ -276,6 +303,38 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
                     </option>
                   ))}
                 </select>
+              </div>
+            )}
+
+            {/* Assign student to selected college by email */}
+            {targetType === 'student' && selectedCollege && (
+              <div className="sm:col-span-2 bg-[#0c2424]/40 border border-white/5 rounded-2xl p-4 mt-2 space-y-2.5">
+                <label className="block text-gray-400 text-xs font-bold uppercase tracking-wider">
+                  Student not in list? Assign a registered student by email:
+                </label>
+                <form onSubmit={handleAssignCollege} className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="email"
+                    placeholder="Enter student's registered email..."
+                    value={assignEmail}
+                    onChange={(e) => setAssignEmail(e.target.value)}
+                    required
+                    className="flex-grow bg-[#061818] border border-white/10 text-gray-200 text-xs px-3.5 py-2 rounded-xl focus:outline-none focus:border-[#9AE600]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={assigning || !assignEmail.trim()}
+                    className="bg-[#9AE600]/10 border border-[#9AE600]/30 hover:bg-[#9AE600]/20 text-[#9AE600] font-bold text-xs px-4 py-2 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center min-w-[90px]"
+                  >
+                    {assigning ? 'Assigning...' : 'Assign'}
+                  </button>
+                </form>
+                {assignSuccess && (
+                  <p className="text-emerald-400 text-xs font-semibold mt-1">{assignSuccess}</p>
+                )}
+                {assignError && (
+                  <p className="text-rose-400 text-xs font-semibold mt-1">{assignError}</p>
+                )}
               </div>
             )}
           </div>
