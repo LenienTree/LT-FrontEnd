@@ -3,9 +3,12 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
-    // Emit relative asset URLs so the built app still loads when served from a
-    // subdirectory or inspected directly from the filesystem.
-    base: './',
+    // Use absolute asset URLs (/assets/...) so deep links like /e/<slug> load
+    // their JS/CSS correctly. With a relative base ('./') the browser resolves
+    // assets against the current route (e.g. /e/assets/...), which 404s and the
+    // SPA fallback returns index.html — breaking module/MIME loading on shared
+    // referral links. The app is served from the domain root, so '/' is correct.
+    base: '/',
     plugins: [react()],
     resolve: {
         alias: {
