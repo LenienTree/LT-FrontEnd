@@ -624,9 +624,9 @@ export const referral = {
       post("/api/referral/admin/generate", { eventId, refereeUserId, college }),
     /** Stats for any event */
     getStats: (eventId) => get(`/api/referral/admin/stats/${eventId}`),
-    /** Assign a student user to a specific college by email */
-    assignCollege: (email, college) =>
-      post("/api/referral/admin/assign-college", { email, college }),
+    /** Assign a student user to a specific college by email, optionally creating/registering them */
+    assignCollege: (email, college, name) =>
+      post("/api/referral/admin/assign-college", { email, college, name }),
   },
 
   // ── Organizer (own events only) ──
@@ -638,8 +638,8 @@ export const referral = {
     generate: (eventId, refereeUserId, college) =>
       post("/api/referral/organizer/generate", { eventId, refereeUserId, college }),
     getStats: (eventId) => get(`/api/referral/organizer/stats/${eventId}`),
-    assignCollege: (email, college) =>
-      post("/api/referral/organizer/assign-college", { email, college }),
+    assignCollege: (email, college, name) =>
+      post("/api/referral/organizer/assign-college", { email, college, name }),
   },
 };
 

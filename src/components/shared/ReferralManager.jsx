@@ -38,9 +38,15 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
 
   // Assign student to college by email
   const [assignEmail, setAssignEmail] = useState('');
+  const [assignName, setAssignName] = useState('');
+  const [assignMode, setAssignMode] = useState('existing'); // 'existing' | 'new'
   const [assigning, setAssigning] = useState(false);
   const [assignSuccess, setAssignSuccess] = useState('');
   const [assignError, setAssignError] = useState('');
+
+  // Add new college
+  const [isAddingCollege, setIsAddingCollege] = useState(false);
+  const [newCollegeName, setNewCollegeName] = useState('');
 
   // Stats
   const [stats, setStats] = useState(null);
@@ -90,9 +96,10 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
 
   const handleGenerate = async () => {
     const isTargetStudent = targetType === 'student';
+    const activeCollege = isAddingCollege ? newCollegeName.trim() : selectedCollege;
     if (!selectedEventId) return;
     if (isTargetStudent && !selectedStudentId) return;
-    if (!isTargetStudent && !selectedCollege) return;
+    if (!isTargetStudent && !activeCollege) return;
 
     setGenerating(true);
     setError('');
@@ -101,8 +108,18 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
       const res = await r.generate(
         selectedEventId,
         isTargetStudent ? selectedStudentId : null,
-        isTargetStudent ? null : selectedCollege
+        isTargetStudent ? null : activeCollege
       );
+
+      // Refresh global colleges list in case a new college-level referral was generated
+      if (isAddingCollege) {
+        const colRes = await r.listColleges();
+        setColleges(Array.isArray(colRes) ? colRes : []);
+        setIsAddingCollege(false);
+        setSelectedCollege(activeCollege);
+        setNewCollegeName('');
+      }
+
       setResult(res);
     } catch (e) {
       setError(e.message || 'Failed to generate referral link');
@@ -113,16 +130,33 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
 
   const handleAssignCollege = async (e) => {
     e.preventDefault();
-    if (!assignEmail.trim() || !selectedCollege) return;
+    const activeCollege = isAddingCollege ? newCollegeName.trim() : selectedCollege;
+    if (!assignEmail.trim() || !activeCollege) return;
+    const isNew = assignMode === 'new';
+    if (isNew && !assignName.trim()) return;
+
     setAssigning(true);
     setAssignSuccess('');
     setAssignError('');
     try {
-      await r.assignCollege(assignEmail.trim(), selectedCollege);
-      setAssignSuccess(`Student assigned to ${selectedCollege} successfully!`);
+      await r.assignCollege(assignEmail.trim(), activeCollege, isNew ? assignName.trim() : undefined);
+      setAssignSuccess(isNew ? `Student ${assignName.trim()} registered and assigned successfully!` : `Student assigned to ${activeCollege} successfully!`);
       setAssignEmail('');
+      setAssignName('');
+
+      // Refresh global colleges list so the new college appears in the dropdown
+      const colRes = await r.listColleges();
+      setColleges(Array.isArray(colRes) ? colRes : []);
+
+      // If we were adding a new college, switch back to normal select mode with the new college selected
+      if (isAddingCollege) {
+        setIsAddingCollege(false);
+        setSelectedCollege(activeCollege);
+        setNewCollegeName('');
+      }
+
       // Reload students for this college immediately
-      await loadStudents(selectedCollege);
+      await loadStudents(activeCollege);
       setTimeout(() => setAssignSuccess(''), 4500);
     } catch (e) {
       setAssignError(e.message || 'Failed to assign student to college');
@@ -268,22 +302,66 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">
-                College
-              </label>
-              <select
-                value={selectedCollege}
-                onChange={(e) => { setSelectedCollege(e.target.value); loadStudents(e.target.value); }}
-                className={inputCls}
-              >
-                <option value="">— Select a college —</option>
-                {colleges.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-            {targetType === 'student' && (
+            {!isAddingCollege ? (
+              <div>
+                <label className="block text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+                  College
+                </label>
+                <select
+                  value={selectedCollege}
+                  onChange={(e) => {
+                    if (e.target.value === 'ADD_NEW') {
+                      setIsAddingCollege(true);
+                      setSelectedCollege('');
+                      setStudents([]);
+                      setSelectedStudentId('');
+                    } else {
+                      setSelectedCollege(e.target.value);
+                      loadStudents(e.target.value);
+                    }
+                  }}
+                  className={inputCls}
+                >
+                  <option value="">— Select a college —</option>
+                  {colleges.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                  <option value="ADD_NEW">+ Add New College...</option>
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+                  New College Name
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter new college name..."
+                    value={newCollegeName}
+                    onChange={(e) => {
+                      setNewCollegeName(e.target.value);
+                      setStudents([]);
+                      setSelectedStudentId('');
+                    }}
+                    className={inputCls}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingCollege(false);
+                      setNewCollegeName('');
+                      setSelectedCollege('');
+                    }}
+                    className="px-3.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 text-xs font-semibold text-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {targetType === 'student' && !isAddingCollege && (
               <div>
                 <label className="block text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">
                   Student (referrer)
@@ -306,28 +384,67 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
               </div>
             )}
 
-            {/* Assign student to selected college by email */}
-            {targetType === 'student' && selectedCollege && (
-              <div className="sm:col-span-2 bg-[#0c2424]/40 border border-white/5 rounded-2xl p-4 mt-2 space-y-2.5">
-                <label className="block text-gray-400 text-xs font-bold uppercase tracking-wider">
-                  Student not in list? Assign a registered student by email:
-                </label>
-                <form onSubmit={handleAssignCollege} className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="email"
-                    placeholder="Enter student's registered email..."
-                    value={assignEmail}
-                    onChange={(e) => setAssignEmail(e.target.value)}
-                    required
-                    className="flex-grow bg-[#061818] border border-white/10 text-gray-200 text-xs px-3.5 py-2 rounded-xl focus:outline-none focus:border-[#9AE600]"
-                  />
-                  <button
-                    type="submit"
-                    disabled={assigning || !assignEmail.trim()}
-                    className="bg-[#9AE600]/10 border border-[#9AE600]/30 hover:bg-[#9AE600]/20 text-[#9AE600] font-bold text-xs px-4 py-2 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center min-w-[90px]"
-                  >
-                    {assigning ? 'Assigning...' : 'Assign'}
-                  </button>
+            {/* Assign/Add student to selected college */}
+            {targetType === 'student' && (isAddingCollege ? newCollegeName.trim() : selectedCollege) && (
+              <div className="sm:col-span-2 bg-[#0c2424]/40 border border-white/5 rounded-2xl p-4 mt-2 space-y-3">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <label className="block text-gray-400 text-xs font-bold uppercase tracking-wider">
+                    Student not in list?
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setAssignMode('existing'); setAssignError(''); setAssignSuccess(''); }}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                        assignMode === 'existing'
+                          ? 'bg-[#9AE600]/20 text-[#9AE600] border border-[#9AE600]/30'
+                          : 'text-gray-400 hover:text-white border border-transparent'
+                      }`}
+                    >
+                      Assign Existing
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setAssignMode('new'); setAssignError(''); setAssignSuccess(''); }}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                        assignMode === 'new'
+                          ? 'bg-[#9AE600]/20 text-[#9AE600] border border-[#9AE600]/30'
+                          : 'text-gray-400 hover:text-white border border-transparent'
+                      }`}
+                    >
+                      + Add New Student
+                    </button>
+                  </div>
+                </div>
+
+                <form onSubmit={handleAssignCollege} className="flex flex-col gap-2.5">
+                  {assignMode === 'new' && (
+                    <input
+                      type="text"
+                      placeholder="Enter student's full name..."
+                      value={assignName}
+                      onChange={(e) => setAssignName(e.target.value)}
+                      required
+                      className="w-full bg-[#061818] border border-white/10 text-gray-200 text-xs px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#9AE600]"
+                    />
+                  )}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="email"
+                      placeholder={assignMode === 'new' ? "Enter student's email..." : "Enter student's registered email..."}
+                      value={assignEmail}
+                      onChange={(e) => setAssignEmail(e.target.value)}
+                      required
+                      className="flex-grow bg-[#061818] border border-white/10 text-gray-200 text-xs px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#9AE600]"
+                    />
+                    <button
+                      type="submit"
+                      disabled={assigning || !assignEmail.trim() || (assignMode === 'new' && !assignName.trim())}
+                      className="bg-[#9AE600]/10 border border-[#9AE600]/30 hover:bg-[#9AE600]/20 text-[#9AE600] font-bold text-xs px-4 py-2.5 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center min-w-[90px]"
+                    >
+                      {assigning ? 'Adding...' : assignMode === 'new' ? 'Add & Assign' : 'Assign'}
+                    </button>
+                  </div>
                 </form>
                 {assignSuccess && (
                   <p className="text-emerald-400 text-xs font-semibold mt-1">{assignSuccess}</p>
@@ -343,7 +460,10 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
             onClick={handleGenerate}
             disabled={
               !selectedEventId ||
-              (targetType === 'student' ? !selectedStudentId : !selectedCollege) ||
+              (targetType === 'student'
+                ? !selectedStudentId
+                : !(isAddingCollege ? newCollegeName.trim() : selectedCollege)
+              ) ||
               generating
             }
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-black text-sm font-bold disabled:opacity-40 transition-all"
