@@ -252,9 +252,12 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
 
           {result && (
             <div className="bg-[#0c2424] border border-[#9AE600]/30 rounded-xl p-4 space-y-3">
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                <span className="font-semibold text-white">Referrer:</span>
-                {result.referee?.name} {result.referee?.email ? `· ${result.referee.email}` : ''}
+              {/* Publisher (referrer) + college + code */}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-400">
+                <span className="font-semibold text-white">Publisher:</span>
+                <span className="text-gray-200">{result.referee?.name || '—'}</span>
+                {result.referee?.college && <span>· {result.referee.college}</span>}
+                {result.referee?.email && <span className="text-gray-500">· {result.referee.email}</span>}
                 <span className="ml-auto px-2 py-0.5 rounded bg-white/5 border border-white/10 font-mono">
                   {result.code}
                 </span>
@@ -274,6 +277,17 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
                   {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                   {copied ? 'Copied' : 'Copy'}
                 </button>
+              </div>
+              {/* Live counters for this link */}
+              <div className="flex items-center gap-5 pt-1 text-xs text-gray-300">
+                <span className="flex items-center gap-1.5">
+                  <MousePointerClick className="w-3.5 h-3.5" style={{ color: accent }} />
+                  <span className="font-bold text-white">{result.clicks ?? 0}</span> Impressions
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Trophy className="w-3.5 h-3.5" style={{ color: accent }} />
+                  <span className="font-bold text-white">{result.conversions ?? 0}</span> Registrations
+                </span>
               </div>
             </div>
           )}
@@ -302,9 +316,9 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
             <>
               {/* Summary cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <StatBox icon={MousePointerClick} label="Total Clicks" value={stats.totalClicks} accent={accent} />
-                <StatBox icon={Trophy} label="Conversions" value={stats.totalConversions} accent={accent} />
-                <StatBox icon={BarChart3} label="Conversion Rate" value={`${conversionRate}%`} accent={accent} />
+                <StatBox icon={MousePointerClick} label="Impressions" value={stats.totalClicks} accent={accent} />
+                <StatBox icon={Trophy} label="Registrations" value={stats.totalConversions} accent={accent} />
+                <StatBox icon={BarChart3} label="Registration Rate" value={`${conversionRate}%`} accent={accent} />
               </div>
 
               {/* Per-referral table */}
@@ -324,8 +338,8 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
                         <tr className="bg-white/5 text-[10px] text-gray-400 uppercase font-bold tracking-wider">
                           <th className="px-5 py-2.5">Referrer</th>
                           <th className="px-5 py-2.5">College</th>
-                          <th className="px-5 py-2.5 text-center">Clicks</th>
-                          <th className="px-5 py-2.5 text-center">Conversions</th>
+                          <th className="px-5 py-2.5 text-center">Impressions</th>
+                          <th className="px-5 py-2.5 text-center">Registrations</th>
                           <th className="px-5 py-2.5 text-center">Rate</th>
                           <th className="px-5 py-2.5 text-right">Link</th>
                         </tr>

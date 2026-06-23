@@ -288,7 +288,7 @@ const EditEventModal = ({ isOpen, eventToEdit, onClose, onSuccess }) => {
                   <option value="Hackathon">Hackathon</option>
                   <option value="Ideathon">Ideathon</option>
                   <option value="Webinar">Webinar</option>
-                  <option value="Conclave">Conclave</option>
+                  <option value="Techfest">Techfest</option>
                   <option value="Other">Other</option>
                 </select>
               </div>

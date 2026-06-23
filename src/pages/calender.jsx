@@ -12,7 +12,7 @@ const CAT_STYLES = {
     Hackathon: { pill: "bg-blue-500/20 text-blue-300 border-blue-500/30", dot: "bg-blue-500", cal: "bg-blue-500" },
     Ideathon: { pill: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30", dot: "bg-yellow-400", cal: "bg-yellow-400" },
     Webinar: { pill: "bg-purple-500/20 text-purple-300 border-purple-500/30", dot: "bg-purple-500", cal: "bg-purple-500" },
-    Conclave: { pill: "bg-red-500/20 text-red-300 border-red-500/30", dot: "bg-red-500", cal: "bg-red-500" },
+    Techfest: { pill: "bg-red-500/20 text-red-300 border-red-500/30", dot: "bg-red-500", cal: "bg-red-500" },
     Other: { pill: "bg-gray-500/20 text-gray-300 border-gray-500/30", dot: "bg-gray-400", cal: "bg-gray-400" },
 };
 const getStyle = (cat) => CAT_STYLES[cat] ?? CAT_STYLES.Other;
@@ -119,7 +119,7 @@ export default function CalenderPage() {
     const [error, setError] = useState("");
 
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const CATEGORIES = ["All", "Hackathon", "Ideathon", "Webinar", "Conclave", "Other"];
+    const CATEGORIES = ["All", "Hackathon", "Ideathon", "Webinar", "Techfest", "Other"];
 
     /* Fetch all events once — same pattern as Home.jsx */
     useEffect(() => {
@@ -509,7 +509,7 @@ export default function CalenderPage() {
                                                         event.category === "Hackathon" ? "bg-blue-500/20 text-blue-300 border-blue-500/30" :
                                                         event.category === "Ideathon" ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" :
                                                         event.category === "Webinar" ? "bg-purple-500/20 text-purple-300 border-purple-500/30" :
-                                                        event.category === "Conclave" ? "bg-red-500/20 text-red-300 border-red-500/30" :
+                                                        event.category === "Techfest" ? "bg-red-500/20 text-red-300 border-red-500/30" :
                                                         "bg-gray-500/20 text-gray-300 border-gray-500/30"
                                                     }`}>
                                                         {event.category || "Event"}

@@ -26,7 +26,7 @@ const Home = () => {
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [sections, setSections] = useState([]);
   const [isLoadingSections, setIsLoadingSections] = useState(true);
-  const [activeCategoryTab, setActiveCategoryTab] = useState("ALL");
+  const [activeCategoryTab, setActiveCategoryTab] = useState("HACKATHON");
   const [selectedDayPopover, setSelectedDayPopover] = useState(null);
 
   // Default/Fallback homepage configurator values
@@ -198,7 +198,7 @@ const Home = () => {
       Hackathon: "blue",
       Ideathon: "red",
       Webinar: "purple",
-      Conclave: "green",
+      Techfest: "green",
       Other: "blue",
     };
 
@@ -432,7 +432,7 @@ const Home = () => {
         const t = type.toLowerCase();
         if (t.includes('hackathon')) return 'bg-blue-500';
         if (t.includes('ideathon')) return 'bg-yellow-500';
-        if (t.includes('conclave')) return 'bg-red-500';
+        if (t.includes('techfest')) return 'bg-red-500';
         if (t.includes('webinar')) return 'bg-purple-500';
         return 'bg-gray-500';
       });
@@ -516,7 +516,7 @@ const Home = () => {
     return () => tl.kill();
   }, [heroSlides]);
 
-  const words = ["Techfests", "Ideathon", "Hackathon", "Webinar", "Conclaves"];
+  const words = ["Techfests", "Ideathon", "Hackathon", "Webinar", "Workshops"];
 
   // Rotating words effect
   useEffect(() => {
@@ -704,19 +704,16 @@ const Home = () => {
               Explore Dynamic <span className="text-[#64F422]">Blueprints</span>
             </h2>
             <p className="text-gray-400 mt-2 text-sm max-w-lg mx-auto">
-              Quickly switch between categories to discover upcoming hackathons, ideathons, webinars and conclaves.
+              Discover upcoming hackathons, ideathons, webinars, techfests and more.
             </p>
           </div>
 
-          {/* Category Filter Tabs */}
+          {/* Category Filter Tabs — Hackathon & Ideathon are showcased inline;
+               other categories route directly to the Explore page filtered by that category. */}
           <div className="flex flex-wrap justify-center gap-2.5 mb-10 px-2">
             {[
-              { id: "ALL", label: "All Events" },
-              { id: "HACKATHON", label: "Hackathons" },
-              { id: "IDEATHON", label: "Ideathons" },
-              { id: "WEBINAR", label: "Webinars" },
-              { id: "QUIZ", label: "Quizzes" },
-              { id: "WORKSHOP", label: "Workshops" },
+              { id: "HACKATHON", label: "Hackathons", inline: true },
+              { id: "IDEATHON",  label: "Ideathons",  inline: true },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -729,6 +726,20 @@ const Home = () => {
               >
                 {tab.label}
               </button>
+            ))}
+            {/* Other categories → go straight to Explore with a filter */}
+            {[
+              { id: "Webinar",  label: "Webinars"  },
+              { id: "Techfest", label: "Techfests"  },
+              { id: "Other",    label: "Others"     },
+            ].map((tab) => (
+              <Link
+                key={tab.id}
+                to={`/explore?category=${tab.id}`}
+                className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 border bg-white/5 border-white/10 text-gray-300 hover:border-white/20 hover:bg-white/10"
+              >
+                {tab.label}
+              </Link>
             ))}
           </div>
 
@@ -745,7 +756,7 @@ const Home = () => {
             <div>
               {(() => {
                 const filteredEvents = allDbEvents.filter((event) => {
-                  if (activeCategoryTab === "ALL") return true;
+                  // Inline tabs are HACKATHON and IDEATHON only.
                   return event.category?.toUpperCase() === activeCategoryTab;
                 });
 
@@ -755,7 +766,7 @@ const Home = () => {
                       filteredEvents.slice(0, 8).map((event) => {
                         const mappedEvent = mapDbEventToCard(event);
                         return (
-                          <Link key={event.id} to={`/event/${event.id}`}>
+                          <Link key={event.id} to={`/event/${event.slug || event.id}`}>
                             <CollaborationEventCard event={mappedEvent} />
                           </Link>
                         );
@@ -1167,9 +1178,14 @@ const Home = () => {
                     Join us, and grow with us.
                   </p>
 
-                  <button className="w-full sm:w-auto bg-[#9AE600] hover:bg-[#8BD500] text-black font-bold text-lg sm:text-xl px-12 py-4 sm:py-5 rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#9AE600]/30 mt-4">
+                  <a
+                    href="https://whatsapp.com/channel/0029Vb5XhFRICVfhgaoKYN2A"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block w-full sm:w-auto text-center bg-[#9AE600] hover:bg-[#8BD500] text-black font-bold text-lg sm:text-xl px-12 py-4 sm:py-5 rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#9AE600]/30 mt-4"
+                  >
                     Join Community
-                  </button>
+                  </a>
                 </div>
 
                 {/* Right Image */}
@@ -1475,7 +1491,7 @@ const Home = () => {
                             event.category === "Hackathon" ? "bg-blue-500/20 text-blue-300 border-blue-500/30" :
                             event.category === "Ideathon" ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" :
                             event.category === "Webinar" ? "bg-purple-500/20 text-purple-300 border-purple-500/30" :
-                            event.category === "Conclave" ? "bg-red-500/20 text-red-300 border-red-500/30" :
+                            event.category === "Techfest" ? "bg-red-500/20 text-red-300 border-red-500/30" :
                             "bg-gray-500/20 text-gray-300 border-gray-500/30"
                           }`}>
                             {event.category || "Event"}

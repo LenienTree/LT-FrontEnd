@@ -118,7 +118,7 @@ export default function ExplorePage() {
     setSearchParams({});
   };
 
-  const categories = ["ALL", "HACKATHON", "IDEATHON", "WEBINAR", "QUIZ", "WORKSHOP", "OTHER"];
+  const categories = ["ALL", "Hackathon", "Ideathon", "Webinar", "Techfest", "Other"];
 
   return (
     <div className="min-h-screen bg-bgColor flex flex-col">
@@ -169,7 +169,7 @@ export default function ExplorePage() {
                         : "bg-white/5 border-white/10 text-gray-300 hover:border-white/20 hover:bg-white/10"
                     }`}
                   >
-                    {cat === "ALL" ? "All" : cat.charAt(0) + cat.slice(1).toLowerCase()}
+                     {cat === "ALL" ? "All" : cat}
                   </button>
                 ))}
               </div>
@@ -363,7 +363,7 @@ export default function ExplorePage() {
                         </div>
 
                         <Link
-                          to={`/event/${event.id}`}
+                          to={`/event/${event.slug || event.id}`}
                           className="w-full mt-4 py-2.5 text-center text-xs font-bold text-black bg-[#9AE600] group-hover:bg-[#a9f50f] rounded-xl transition-all shadow-md block"
                         >
                           View Details

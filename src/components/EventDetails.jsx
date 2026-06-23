@@ -40,16 +40,10 @@ const EventDetails = () => {
     const { id: paramId } = useParams();
     const [searchParams] = useSearchParams();
     const eventId = paramId || searchParams.get('id');
-    const refCode = searchParams.get('ref');
+    // Support both the new short `?r=` param and the legacy `?ref=`.
+    const refCode = searchParams.get('r') || searchParams.get('ref');
 
     const { isAuthenticated, openAuthModal, user } = useAuth();
-
-    // Capture referral attribution from ?ref=CODE and track the click once.
-    useEffect(() => {
-        if (eventId && refCode) {
-            captureReferral(eventId, refCode);
-        }
-    }, [eventId, refCode]);
 
     const [eventData, setEventData] = useState(null);
     const [announcements, setAnnouncements] = useState([]);
@@ -75,21 +69,27 @@ const EventDetails = () => {
 
         const fetchEvent = async () => {
             try {
-                const [eventRes, announcementsRes, faqsRes] = await Promise.allSettled([
-                    eventsApi.getById(eventId),
-                    eventsApi.getAnnouncements(eventId),
-                    eventsApi.getFAQs(eventId),
-                ]);
-
-                let loadedCategory = '';
-                if (eventRes.status === 'fulfilled') {
-                    const data = eventRes.value?.event || eventRes.value;
-                    setEventData(data);
-                    loadedCategory = data?.category;
-                } else {
+                // Resolve the event first — `eventId` may be a UUID or a short slug.
+                // Everything else is keyed off the resolved real id (data.id).
+                const eventRes = await eventsApi.getById(eventId).catch(() => null);
+                const data = eventRes?.event || eventRes;
+                if (!data?.id) {
                     setError('Event not found.');
+                    setLoading(false);
+                    return;
                 }
+                setEventData(data);
+                const realId = data.id;
+                const loadedCategory = data.category;
 
+                // Attribute the referral (from ?r= / ?ref=) against the real event id
+                // so it matches what the registration page reads.
+                if (refCode) captureReferral(realId, refCode);
+
+                const [announcementsRes, faqsRes] = await Promise.allSettled([
+                    eventsApi.getAnnouncements(realId),
+                    eventsApi.getFAQs(realId),
+                ]);
                 if (announcementsRes.status === 'fulfilled') {
                     setAnnouncements(announcementsRes.value?.announcements || announcementsRes.value || []);
                 }
@@ -100,7 +100,7 @@ const EventDetails = () => {
                 // Check registration status only if logged in
                 if (isAuthenticated) {
                     try {
-                        const statusRes = await eventsApi.checkRegistrationStatus(eventId);
+                        const statusRes = await eventsApi.checkRegistrationStatus(realId);
                         setRegistrationStatus(statusRes);
                         setIsBookmarked(statusRes?.isBookmarked || false);
                     } catch (_) { /* silent */ }
@@ -111,7 +111,7 @@ const EventDetails = () => {
                     try {
                         const relatedRes = await eventsApi.getAll({ category: loadedCategory, limit: 5 });
                         const relatedList = relatedRes?.events || (Array.isArray(relatedRes) ? relatedRes : []);
-                        setRelatedEvents(relatedList.filter(e => e.id !== eventId).slice(0, 3));
+                        setRelatedEvents(relatedList.filter(e => e.id !== realId).slice(0, 3));
                     } catch (_) { /* silent */ }
                 }
             } catch (err) {
@@ -129,7 +129,7 @@ const EventDetails = () => {
             openAuthModal('login');
             return;
         }
-        navigate(`/event/${eventId}/register`);
+        navigate(`/event/${eventData?.id ?? eventId}/register`);
     };
 
     const handleBookmark = async () => {
@@ -139,7 +139,7 @@ const EventDetails = () => {
         }
         setBookmarking(true);
         try {
-            const res = await bookmarksApi.toggle(eventId);
+            const res = await bookmarksApi.toggle(eventData?.id ?? eventId);
             setIsBookmarked(res?.bookmarked ?? !isBookmarked);
         } catch (err) {
             setError(err.message || 'Bookmark failed.');

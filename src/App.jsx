@@ -4,8 +4,6 @@ import Home from "./components/home/Home";
 import AboutNew from "./components/AboutNew";
 import TeamHalfCircle from "./components/TeamHalfCircle";
 import InternshipPopup from "./components/user/InternshipPopup";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsConditions from "./pages/TermsConditions";
 import { useAuth } from "./context/AuthContext";
 
 // Heavy pages are lazy-loaded so they are excluded from the initial JS bundle.
@@ -21,6 +19,8 @@ const Admin            = lazy(() => import("./components/admin/Admin"));
 const EventRegistration = lazy(() => import("./components/EventRegistration"));
 const ExplorePage      = lazy(() => import("./components/explore/ExplorePage"));
 const OrganizerDashboard = lazy(() => import("./components/organizer/OrganizerDashboard"));
+const PrivacyPolicy    = lazy(() => import("./pages/LntPrivacy"));
+const TermsConditions  = lazy(() => import("./pages/TermsConditions"));
 
 // Minimal spinner shown while a lazy chunk is loading
 function PageLoader() {
@@ -78,12 +78,15 @@ function App() {
           <Route path="/organize/edit/:id" element={<OrganizerRoute><EditEventPage /></OrganizerRoute>} />
           <Route path="/organizer/dashboard" element={<OrganizerRoute><OrganizerDashboard /></OrganizerRoute>} />
           <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-          {/* Event detail — supports both /event/:id and legacy /event?id=... */}
+          {/* Event detail — supports /event/:id, short /e/:slug, and legacy /event?id=... */}
           <Route path="/event/:id" element={<EventDetails />} />
+          <Route path="/e/:id" element={<EventDetails />} />
           <Route path="/event" element={<EventDetails />} />
           <Route path="/event/:id/register" element={<EventRegistration />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsConditions />} />
+          {/* Safe fallback for file:// previews, subdirectory deploys, and unknown paths */}
+          <Route path="*" element={<Home />} />
         </Routes>
       </Suspense>
     </div>

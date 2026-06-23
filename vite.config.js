@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
+    // Emit relative asset URLs so the built app still loads when served from a
+    // subdirectory or inspected directly from the filesystem.
+    base: './',
     plugins: [react()],
     resolve: {
         alias: {

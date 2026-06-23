@@ -41,22 +41,38 @@ export default function Header() {
             .catch(() => { })
     }, [isAuthenticated])
 
-    // Hide navbar on scroll down, show on scroll up
+    // Hide navbar on scroll down, show on scroll up.
+    // Uses a movement threshold + rAF batching so trackpad/momentum jitter
+    // doesn't rapidly toggle visibility (which looked like flickering).
     useEffect(() => {
-        function handleScroll() {
-            const currentScrollY = window.scrollY
-            if (currentScrollY < 10) {
-                // Always show at the very top
+        const DELTA = 8        // ignore scroll jitters smaller than this (px)
+        const HIDE_AFTER = 90  // stay visible until scrolled past this point (px)
+        let ticking = false
+
+        function update() {
+            ticking = false
+            const currentScrollY = Math.max(window.scrollY, 0)
+            const diff = currentScrollY - lastScrollY.current
+
+            // Too small a move — treat as jitter and keep the reference so it accumulates.
+            if (Math.abs(diff) < DELTA) return
+
+            if (currentScrollY < HIDE_AFTER) {
                 setIsNavVisible(true)
-            } else if (currentScrollY > lastScrollY.current) {
-                // Scrolling down — hide
+            } else if (diff > 0) {
                 setIsNavVisible(false)
                 setIsMenuOpen(false)
             } else {
-                // Scrolling up — show
                 setIsNavVisible(true)
             }
             lastScrollY.current = currentScrollY
+        }
+
+        function handleScroll() {
+            if (!ticking) {
+                ticking = true
+                window.requestAnimationFrame(update)
+            }
         }
 
         window.addEventListener('scroll', handleScroll, { passive: true })
