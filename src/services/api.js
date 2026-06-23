@@ -619,9 +619,9 @@ export const referral = {
     listColleges: () => get("/api/referral/admin/colleges"),
     listStudents: (college) =>
       get(`/api/referral/admin/colleges/${encodeURIComponent(college)}/students`),
-    /** Generate a referral link for any event, attributed to a student */
-    generate: (eventId, refereeUserId) =>
-      post("/api/referral/admin/generate", { eventId, refereeUserId }),
+    /** Generate a referral link for any event, attributed to a student or college */
+    generate: (eventId, refereeUserId, college) =>
+      post("/api/referral/admin/generate", { eventId, refereeUserId, college }),
     /** Stats for any event */
     getStats: (eventId) => get(`/api/referral/admin/stats/${eventId}`),
   },
@@ -632,8 +632,8 @@ export const referral = {
     listColleges: () => get("/api/referral/organizer/colleges"),
     listStudents: (college) =>
       get(`/api/referral/organizer/colleges/${encodeURIComponent(college)}/students`),
-    generate: (eventId, refereeUserId) =>
-      post("/api/referral/organizer/generate", { eventId, refereeUserId }),
+    generate: (eventId, refereeUserId, college) =>
+      post("/api/referral/organizer/generate", { eventId, refereeUserId, college }),
     getStats: (eventId) => get(`/api/referral/organizer/stats/${eventId}`),
   },
 };

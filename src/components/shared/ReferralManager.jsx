@@ -26,6 +26,7 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
   const [error, setError] = useState('');
 
   // Generate
+  const [targetType, setTargetType] = useState('student'); // 'student' | 'college'
   const [colleges, setColleges] = useState([]);
   const [selectedCollege, setSelectedCollege] = useState('');
   const [students, setStudents] = useState([]);
@@ -82,12 +83,20 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
   }, [mode]);
 
   const handleGenerate = async () => {
-    if (!selectedEventId || !selectedStudentId) return;
+    const isTargetStudent = targetType === 'student';
+    if (!selectedEventId) return;
+    if (isTargetStudent && !selectedStudentId) return;
+    if (!isTargetStudent && !selectedCollege) return;
+
     setGenerating(true);
     setError('');
     setResult(null);
     try {
-      const res = await r.generate(selectedEventId, selectedStudentId);
+      const res = await r.generate(
+        selectedEventId,
+        isTargetStudent ? selectedStudentId : null,
+        isTargetStudent ? null : selectedCollege
+      );
       setResult(res);
     } catch (e) {
       setError(e.message || 'Failed to generate referral link');
@@ -202,6 +211,35 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
       {/* ── GENERATE TAB ── */}
       {subTab === 'generate' && (
         <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+          {/* Target Type Selector */}
+          <div className="flex gap-4 items-center border-b border-white/5 pb-3">
+            <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+              Referral Target:
+            </span>
+            <label className="inline-flex items-center gap-1.5 text-xs text-white cursor-pointer select-none">
+              <input
+                type="radio"
+                name="targetType"
+                value="student"
+                checked={targetType === 'student'}
+                onChange={() => { setTargetType('student'); setResult(null); }}
+                className="text-[#9AE600] focus:ring-0 focus:ring-offset-0 bg-[#0c2424] border-white/10"
+              />
+              Student Referrer
+            </label>
+            <label className="inline-flex items-center gap-1.5 text-xs text-white cursor-pointer select-none">
+              <input
+                type="radio"
+                name="targetType"
+                value="college"
+                checked={targetType === 'college'}
+                onChange={() => { setTargetType('college'); setResult(null); }}
+                className="text-[#9AE600] focus:ring-0 focus:ring-offset-0 bg-[#0c2424] border-white/10"
+              />
+              Entire College
+            </label>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">
@@ -218,31 +256,37 @@ export default function ReferralManager({ mode = 'organizer', accent = '#9AE600'
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">
-                Student (referrer)
-              </label>
-              <select
-                value={selectedStudentId}
-                onChange={(e) => setSelectedStudentId(e.target.value)}
-                disabled={!selectedCollege || loadingStudents}
-                className={inputCls}
-              >
-                <option value="">
-                  {loadingStudents ? 'Loading students…' : '— Select a student —'}
-                </option>
-                {students.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}{s.email ? ` · ${s.email}` : ''}
+            {targetType === 'student' && (
+              <div>
+                <label className="block text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+                  Student (referrer)
+                </label>
+                <select
+                  value={selectedStudentId}
+                  onChange={(e) => setSelectedStudentId(e.target.value)}
+                  disabled={!selectedCollege || loadingStudents}
+                  className={inputCls}
+                >
+                  <option value="">
+                    {loadingStudents ? 'Loading students…' : '— Select a student —'}
                   </option>
-                ))}
-              </select>
-            </div>
+                  {students.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}{s.email ? ` · ${s.email}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <button
             onClick={handleGenerate}
-            disabled={!selectedEventId || !selectedStudentId || generating}
+            disabled={
+              !selectedEventId ||
+              (targetType === 'student' ? !selectedStudentId : !selectedCollege) ||
+              generating
+            }
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-black text-sm font-bold disabled:opacity-40 transition-all"
             style={{ backgroundColor: accent }}
           >

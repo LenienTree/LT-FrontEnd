@@ -9,7 +9,7 @@ import NotificationBell from "./NotificationBell";
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isProfileOpen, setIsProfileOpen] = useState(false)
-    const [isNavVisible, setIsNavVisible] = useState(true)
+    const isNavVisible = true
     const profileRef = useRef(null)
     const lastScrollY = useRef(0)
     const navigate = useNavigate()
@@ -41,43 +41,7 @@ export default function Header() {
             .catch(() => { })
     }, [isAuthenticated])
 
-    // Hide navbar on scroll down, show on scroll up.
-    // Uses a movement threshold + rAF batching so trackpad/momentum jitter
-    // doesn't rapidly toggle visibility (which looked like flickering).
-    useEffect(() => {
-        const DELTA = 8        // ignore scroll jitters smaller than this (px)
-        const HIDE_AFTER = 90  // stay visible until scrolled past this point (px)
-        let ticking = false
-
-        function update() {
-            ticking = false
-            const currentScrollY = Math.max(window.scrollY, 0)
-            const diff = currentScrollY - lastScrollY.current
-
-            // Too small a move — treat as jitter and keep the reference so it accumulates.
-            if (Math.abs(diff) < DELTA) return
-
-            if (currentScrollY < HIDE_AFTER) {
-                setIsNavVisible(true)
-            } else if (diff > 0) {
-                setIsNavVisible(false)
-                setIsMenuOpen(false)
-            } else {
-                setIsNavVisible(true)
-            }
-            lastScrollY.current = currentScrollY
-        }
-
-        function handleScroll() {
-            if (!ticking) {
-                ticking = true
-                window.requestAnimationFrame(update)
-            }
-        }
-
-        window.addEventListener('scroll', handleScroll, { passive: true })
-        return () => window.removeEventListener('scroll', handleScroll)
-    }, [])
+    // Fixed navbar: no scroll hiding behavior
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -105,13 +69,7 @@ export default function Header() {
     ]
 
     return (
-        <header
-            className="fixed top-4 left-0 right-0 z-50 px-4 sm:px-6 lg:px-10"
-            style={{
-                transform: isNavVisible ? 'translateY(0)' : 'translateY(-140%)',
-                transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-            }}
-        >
+        <header className="fixed top-4 left-0 right-0 z-50 px-4 sm:px-6 lg:px-10">
             {/* Unified floating pill navbar */}
             <div className="mx-auto max-w-7xl rounded-2xl bg-[#022F2E]/90 backdrop-blur-md border border-white/10 shadow-xl px-4 py-2.5">
                 <div className="flex items-center gap-3">
