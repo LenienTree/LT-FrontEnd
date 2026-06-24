@@ -79,6 +79,8 @@ function App() {
           <Route path="/organize/edit/:id" element={<OrganizerRoute><EditEventPage /></OrganizerRoute>} />
           <Route path="/organizer/dashboard" element={<OrganizerRoute><OrganizerDashboard /></OrganizerRoute>} />
           <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+          {/* Short referral link — resolves code via API and redirects to the event page */}
+          <Route path="/r/:code" element={<ReferralRedirect />} />
           {/* Event detail — supports /event/:id, short /e/:slug, and legacy /event?id=... */}
           <Route path="/event/:id" element={<EventDetails />} />
           <Route path="/e/:id" element={<EventDetails />} />
