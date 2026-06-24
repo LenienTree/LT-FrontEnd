@@ -709,7 +709,7 @@ function AboutNew() {
               {/* Image 1 - full width but cropped */}
               <div className="w-full h-64 md:h-full lg:w-[630px] lg:h-[366px] overflow-hidden">
                 <img
-                  src="./hero-img.png"
+                  src="/hero-img.png"
                   alt="hero-img"
                   className="w-full h-full object-cover rounded-xl"
                 />
@@ -719,7 +719,7 @@ function AboutNew() {
               <div className="flex gap-4 mt-4">
                 <div className="w-[49%] h-48 lg:h-[324px] lg:w-[307px] overflow-hidden">
                   <img
-                    src="./hero-img.png"
+                    src="/hero-img.png"
                     alt="hero-img"
                     className="w-full h-full object-cover rounded-xl"
                   />
@@ -727,7 +727,7 @@ function AboutNew() {
 
                 <div className="w-[49%] h-48 lg:h-[324px] lg:w-[307px] overflow-hidden">
                   <img
-                    src="./hero-img.png"
+                    src="/hero-img.png"
                     alt="hero-img"
                     className="w-full h-full object-cover rounded-xl"
                   />
@@ -1174,7 +1174,7 @@ function AboutNew() {
         >
           {/* Background Image */}
           <img
-            src="./earth-about.png"
+            src="/earth-about.png"
             alt="footer image"
             className="absolute hidden lg:block -bottom-[250px] right-[-150px] w-[700px] opacity-80 pointer-events-none"
           />

@@ -31,11 +31,11 @@ const Home = () => {
 
   // Default/Fallback homepage configurator values
   const DEFAULT_HERO_SLIDES = [
-    "./Hero/1.png",
-    "./Hero/2.png",
-    "./Hero/3.png",
-    "./Hero/4.png",
-    "./Hero/5.png"
+    "/Hero/1.png",
+    "/Hero/2.png",
+    "/Hero/3.png",
+    "/Hero/4.png",
+    "/Hero/5.png"
   ];
 
   const DEFAULT_COMMUNITY_IMAGES = [

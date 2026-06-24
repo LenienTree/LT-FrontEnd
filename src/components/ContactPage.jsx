@@ -64,7 +64,7 @@ const ContactPage = () => {
                 {/* Right Section: World Map Image */}
                 <div className="lg:w-2/3 p-4 lg:pl-12 mt-8 lg:mt-0 flex items-center justify-center">
                     <img
-                        src="./Earth.png" // Placeholder for Earth image
+                        src="/Earth.png" // Placeholder for Earth image
                         alt="World Map"
                         className="w-full h-full object-cover rounded-lg shadow-lg"
                         onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/800x600/4b5563/d1d5db?text=Image+Error"; }}
