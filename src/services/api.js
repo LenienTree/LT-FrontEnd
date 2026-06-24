@@ -72,13 +72,21 @@ async function request(endpoint, options = {}) {
     const message =
       (data && (data.message || data.error)) ||
       `API Error ${response.status}`;
-    throw new Error(message);
+    const error = new Error(message);
+    if (data && data.errors) {
+      error.errors = data.errors;
+    }
+    throw error;
   }
 
   // Handle standard backend wrapper { success, message, data }
   if (data && typeof data === 'object' && 'success' in data) {
     if (!data.success) {
-      throw new Error(data.message || 'API Error');
+      const error = new Error(data.message || 'API Error');
+      if (data.errors) {
+        error.errors = data.errors;
+      }
+      throw error;
     }
     // Return the payload
     return data.data !== undefined ? data.data : data;
