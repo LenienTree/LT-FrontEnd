@@ -21,6 +21,7 @@ const ExplorePage      = lazy(() => import("./components/explore/ExplorePage"));
 const OrganizerDashboard = lazy(() => import("./components/organizer/OrganizerDashboard"));
 const PrivacyPolicy    = lazy(() => import("./pages/LntPrivacy"));
 const TermsConditions  = lazy(() => import("./pages/TermsConditions"));
+const ReferralRedirect = lazy(() => import("./components/ReferralRedirect"));
 
 // Minimal spinner shown while a lazy chunk is loading
 function PageLoader() {
