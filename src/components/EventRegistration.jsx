@@ -559,17 +559,27 @@ const EventRegistration = () => {
                             </div>
                         </div>
 
-                        {/* Team Registration */}
+                        {/* Team Registration — only shown for Group events */}
+                        {(eventData?.registrationType === 'Group' || (eventData?.maxTeamSize && parseInt(eventData.maxTeamSize) > 1)) && (
                         <div className="space-y-6 pt-4">
                             <div className="flex items-center justify-between border-b border-[#1a4d4d] pb-2">
                                 <div>
                                     <h2 className="text-xl text-white font-semibold">Team Registration</h2>
-                                    <p className="text-gray-400 text-sm mt-1">Registering a group? Add their details here.</p>
+                                    <p className="text-gray-400 text-sm mt-1">
+                                        {eventData?.maxTeamSize
+                                            ? `${1 + teamMembers.length} / ${parseInt(eventData.maxTeamSize)} members`
+                                            : 'Registering a group? Add their details here.'}
+                                    </p>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={addTeamMember}
-                                    className="flex items-center gap-2 bg-[#0a1f1f] border border-[#00ff88] text-[#00ff88] px-4 py-2 rounded-lg hover:bg-[#00ff88]/10 transition-colors text-sm font-medium"
+                                    disabled={eventData?.maxTeamSize && teamMembers.length >= parseInt(eventData.maxTeamSize) - 1}
+                                    className={`flex items-center gap-2 bg-[#0a1f1f] border px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                                        (eventData?.maxTeamSize && teamMembers.length >= parseInt(eventData.maxTeamSize) - 1)
+                                            ? 'border-gray-600 text-gray-500 cursor-not-allowed'
+                                            : 'border-[#00ff88] text-[#00ff88] hover:bg-[#00ff88]/10'
+                                    }`}
                                 >
                                     <Plus className="w-4 h-4" /> Add Member
                                 </button>
@@ -633,6 +643,7 @@ const EventRegistration = () => {
                                 </div>
                             )}
                         </div>
+                        )}
 
                         {/* Payment Details (If Paid) */}
                         {isPaid && (
