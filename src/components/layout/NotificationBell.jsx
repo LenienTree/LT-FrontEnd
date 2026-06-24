@@ -5,34 +5,12 @@ import { useAuth } from "../../context/AuthContext";
 import { Link } from "react-router-dom";
 
 export default function NotificationBell() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, unreadCount, setUnreadCount } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    // Fetch initial count
-    fetchUnreadCount();
-
-    // Set up polling (every 30 seconds)
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, [isAuthenticated]);
-
-  // Fetch unread count
-  const fetchUnreadCount = async () => {
-    try {
-      const data = await notifications.getUnreadCount();
-      setUnreadCount(data.unreadCount);
-    } catch (err) {
-      console.error("Failed to fetch unread count:", err);
-    }
-  };
 
   // Close dropdown on click outside
   useEffect(() => {

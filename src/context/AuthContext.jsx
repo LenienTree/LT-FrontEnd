@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { auth as authApi, users, setToken, removeToken, getToken } from "../services/api";
+import { auth as authApi, users, notifications, setToken, removeToken, getToken } from "../services/api";
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
@@ -11,6 +11,7 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true); // true on first mount (checking auth)
     const [error, setError] = useState(null);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     // ── Auth Modal State ──
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -99,11 +100,34 @@ export function AuthProvider({ children }) {
         }
     }, [logout]);
 
+    const fetchUnreadCount = useCallback(async () => {
+        if (!getToken()) return;
+        try {
+            const data = await notifications.getUnreadCount();
+            setUnreadCount(data.unreadCount);
+        } catch (err) {
+            console.error("Failed to fetch unread count:", err);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!user) {
+            setUnreadCount(0);
+            return;
+        }
+        fetchUnreadCount();
+        const interval = setInterval(fetchUnreadCount, 30000);
+        return () => clearInterval(interval);
+    }, [user, fetchUnreadCount]);
+
     const value = {
         user,
         loading,
         error,
         isAuthenticated: !!user,
+        unreadCount,
+        setUnreadCount,
+        fetchUnreadCount,
         login,
         register,
         googleAuth,

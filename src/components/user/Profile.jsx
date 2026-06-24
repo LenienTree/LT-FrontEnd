@@ -26,7 +26,7 @@ const Field = ({ label, name, value, onChange, type = 'text', readOnly = false }
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user: authUser, logout } = useAuth();
+  const { user: authUser, logout, refetchUser } = useAuth();
   const avatarInputRef = useRef(null);
   const bannerInputRef = useRef(null);
   const posterInputRef = useRef(null);
@@ -152,6 +152,7 @@ const Profile = () => {
         dateOfBirth: profileData.dateOfBirth,
       });
       setProfileData(updated?.user || updated || profileData);
+      await refetchUser();
       setProfileSuccess('Profile saved successfully!');
       setTimeout(() => setProfileSuccess(''), 3000);
     } catch (err) {
@@ -171,6 +172,7 @@ const Profile = () => {
         ...prev,
         profileImage: res?.profileImage || res?.user?.profileImage || prev.profileImage
       }));
+      await refetchUser();
       setProfileSuccess('Avatar updated!');
       setTimeout(() => setProfileSuccess(''), 3000);
     } catch (err) {
@@ -216,6 +218,7 @@ const Profile = () => {
       });
       setShowOrgModal(false);
       setOrgSubmitted(true);
+      await refetchUser();
       setProfileSuccess('Your request has been submitted! We will review and get back to you.');
       setTimeout(() => setProfileSuccess(''), 5000);
     } catch (err) {

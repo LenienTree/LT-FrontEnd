@@ -41,9 +41,13 @@ async function request(endpoint, options = {}) {
   // Auto-refresh on 401
   if (response.status === 401 && !options._retry) {
     try {
-      // Backend sets the new access token as an HTTP-only cookie (body is null).
-      // We just need to trigger the refresh call — the cookie is updated automatically.
-      await auth.refresh();
+      // Backend sets the new access token as an HTTP-only cookie, and now also
+      // returns it in the response body. We store the new access token in localStorage
+      // so it stays synchronized with the Authorization header.
+      const refreshResult = await auth.refresh();
+      if (refreshResult && refreshResult.accessToken) {
+        setToken(refreshResult.accessToken);
+      }
       return request(endpoint, { ...options, _retry: true });
     } catch (_) {
       removeToken();

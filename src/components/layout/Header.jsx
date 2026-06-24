@@ -16,8 +16,6 @@ export default function Header() {
     const location = useLocation()
     const pathname = location.pathname
     const { isAuthenticated, logout, user, loading, openAuthModal } = useAuth()
-    const [profileImage, setProfileImage] = useState(null)
-    const [isAdmin, setIsAdmin] = useState(false)
 
     // Function to check if a link is active
     const isActive = (href) => {
@@ -26,20 +24,6 @@ export default function Header() {
         }
         return pathname === href;
     }
-
-    // Fetch profile image when user logs in
-    useEffect(() => {
-        if (!isAuthenticated) {
-            setProfileImage(null)
-            return
-        }
-        users.getMyProfile()
-            .then(data => {
-                setProfileImage(data?.profileImage ?? null)
-                setIsAdmin(data?.role === 'ADMIN')
-            })
-            .catch(() => { })
-    }, [isAuthenticated])
 
     // Fixed navbar: no scroll hiding behavior
 
@@ -116,8 +100,8 @@ export default function Header() {
                                     className="flex items-center gap-2 focus:outline-none"
                                 >
                                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white overflow-hidden flex-shrink-0">
-                                        {profileImage
-                                            ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" />
+                                        {user?.profileImage
+                                            ? <img src={user.profileImage} alt="avatar" className="w-full h-full object-cover" />
                                             : <User size={16} />}
                                     </div>
                                     <span className="text-white text-sm font-medium hidden lg:block max-w-[120px] truncate">
@@ -127,7 +111,7 @@ export default function Header() {
 
                                 {isProfileOpen && (
                                     <div className="absolute right-0 mt-2 w-48 bg-[#0d2b2a] border border-white/10 rounded-xl shadow-2xl py-1 z-50">
-                                        {isAdmin && (
+                                        {user?.role === 'ADMIN' && (
                                             <Link
                                                 to="/admin"
                                                 className="block px-4 py-2 text-sm text-gray-200 hover:bg-white/5 hover:text-white transition-colors"
@@ -136,7 +120,7 @@ export default function Header() {
                                                 Admin Dashboard
                                             </Link>
                                         )}
-                                        {(user?.isOrganizer || isAdmin) && (
+                                        {(user?.isOrganizer || user?.role === 'ADMIN') && (
                                             <Link
                                                 to="/organizer/dashboard"
                                                 className="block px-4 py-2 text-sm text-gray-200 hover:bg-white/5 hover:text-white transition-colors"
