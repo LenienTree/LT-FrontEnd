@@ -755,9 +755,14 @@ const Home = () => {
           ) : (
             <div>
               {(() => {
+                const now = Date.now();
                 const filteredEvents = allDbEvents.filter((event) => {
+                  // Landing page only lists events that haven't fully ended yet —
+                  // they stay visible through the event itself (even once
+                  // registration closes) and drop off only after endDate passes.
+                  const notEnded = !event.endDate || new Date(event.endDate).getTime() >= now;
                   // Inline tabs are HACKATHON and IDEATHON only.
-                  return event.category?.toUpperCase() === activeCategoryTab;
+                  return notEnded && event.category?.toUpperCase() === activeCategoryTab;
                 });
 
                 return (
