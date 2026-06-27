@@ -40,7 +40,9 @@ export default function Footer() {
                         <div className="flex gap-2 sm:gap-3">
                             {/* Instagram */}
                             <a
-                                href="#"
+                                href="https://www.instagram.com/lenient_tree/"
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 aria-label="Instagram"
                                 className="flex items-center justify-center w-9 h-9 bg-white/10 rounded-lg text-white hover:bg-[#00e676] hover:text-[#102025] transition-all duration-300"
                             >
@@ -53,25 +55,12 @@ export default function Footer() {
                                 </svg>
                             </a>
 
-                            {/* Facebook */}
-                            <a
-                                href="#"
-                                aria-label="Facebook"
-                                className="flex items-center justify-center w-9 h-9 bg-white/10 rounded-lg text-white hover:bg-[#00e676] hover:text-[#102025] transition-all duration-300"
-                            >
-                                <svg
-                                    className="w-5 h-5"
-                                    viewBox="0 0 512 512"
-                                    fill="currentColor"
-                                >
-                                    <path d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z" />
-                                </svg>
-                            </a>
-
                             {/* Twitter/X */}
                             <a
-                                href="#"
-                                aria-label="Twitter"
+                                href="https://x.com/lenienttree"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Twitter/X"
                                 className="flex items-center justify-center w-9 h-9 bg-white/10 rounded-lg text-white hover:bg-[#00e676] hover:text-[#102025] transition-all duration-300"
                             >
                                 <svg
@@ -85,7 +74,9 @@ export default function Footer() {
 
                             {/* LinkedIn */}
                             <a
-                                href="#"
+                                href="https://www.linkedin.com/company/lenient-tree/"
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 aria-label="LinkedIn"
                                 className="flex items-center justify-center w-9 h-9 bg-white/10 rounded-lg text-white hover:bg-[#00e676] hover:text-[#102025] transition-all duration-300"
                             >
