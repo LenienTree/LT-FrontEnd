@@ -655,6 +655,10 @@ export const referral = {
   },
 };
 
+export const contact = {
+  send: (data) => post("/api/contact", data),
+};
+
 // ─── Default export (grouped) ─────────────────────────────────────────────────
 
 const api = {
@@ -667,6 +671,7 @@ const api = {
   admin,
   homepage,
   referral,
+  contact,
 };
 
 export default api;

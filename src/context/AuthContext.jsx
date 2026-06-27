@@ -37,6 +37,9 @@ export function AuthProvider({ children }) {
                 const data = await users.getMyProfile();
                 // If getMyProfile() succeeded with our updated API wrapper, it returns the user object directly
                 setUser(data);
+                if (data && (!data.phone || !data.college || !data.graduationYear || !data.dateOfBirth)) {
+                    openAuthModal('google-completion');
+                }
             } catch {
                 removeToken();
                 setUser(null);
@@ -45,7 +48,7 @@ export function AuthProvider({ children }) {
             }
         };
         init();
-    }, []);
+    }, [openAuthModal]);
 
     // ── Actions ──
 
@@ -74,8 +77,13 @@ export function AuthProvider({ children }) {
         const data = await authApi.googleAuth({ idToken });
         if (data?.accessToken) setToken(data.accessToken);
         if (data?.user) setUser(data.user);
+
+        const u = data?.user;
+        if (u && (!u.phone || !u.college || !u.graduationYear || !u.dateOfBirth)) {
+            openAuthModal('google-completion');
+        }
         return data;
-    }, []);
+    }, [openAuthModal]);
 
     const logout = useCallback(() => {
         removeToken();

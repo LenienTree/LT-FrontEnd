@@ -477,6 +477,19 @@ const Admin = () => {
     }
   };
 
+  const handleDeleteEvent = async (id, title) => {
+    if (!window.confirm(`Are you sure you want to delete the event "${title}"? This will cancel registrations.`)) return;
+    try {
+      await eventsApi.deleteEvent(id);
+      showToast('Event deleted successfully!');
+      setAllEvents(prev => prev.filter(ev => ev.id !== id));
+      setRecentEvents(prev => prev.filter(ev => ev.id !== id));
+      setPendingEvents(prev => prev.filter(ev => ev.id !== id));
+    } catch (e) {
+      showToast(e.message || 'Failed to delete event', 'error');
+    }
+  };
+
   const handleRejectEvent = async () => {
     if (!rejectModal) return;
     try {
@@ -922,6 +935,13 @@ const Admin = () => {
                           >
                             <Pencil className="w-4 h-4" />
                             Edit
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteEvent(ev.id, ev.title); }}
+                            className="flex items-center gap-1.5 bg-red-900/50 hover:bg-red-600 border border-red-500/50 text-red-400 hover:text-white text-sm font-medium px-4 py-2 rounded-xl transition-all hover:scale-[1.02]"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
                           </button>
                         </div>
                       </div>
