@@ -30,22 +30,9 @@ const Home = () => {
   const [selectedDayPopover, setSelectedDayPopover] = useState(null);
 
   // Default/Fallback homepage configurator values
-  const DEFAULT_HERO_SLIDES = [
-    "/Hero/1.png",
-    "/Hero/2.png",
-    "/Hero/3.png",
-    "/Hero/4.png",
-    "/Hero/5.png"
-  ];
+  const DEFAULT_HERO_SLIDES = [];
 
-  const DEFAULT_COMMUNITY_IMAGES = [
-    "/community/comm1.png",
-    "/community/comm2.png",
-    "/community/comm3.png",
-    "/community/comm4.jpeg",
-    "/community/comm5.jpeg",
-    "/community/comm6.jpeg",
-  ];
+  const DEFAULT_COMMUNITY_IMAGES = [];
 
   const DEFAULT_TESTIMONIALS = [
     {
@@ -492,6 +479,7 @@ const Home = () => {
     if (!slidesContainerRef.current) return;
     const slides = slidesContainerRef.current.children;
     const slideCount = slides.length;
+    if (slideCount === 0) return;
 
     gsap.set(slides, { autoAlpha: 0, scale: 1.05 });
     gsap.set(slides[0], { autoAlpha: 1, scale: 1 });
@@ -653,46 +641,48 @@ const Home = () => {
 
       <main className="relative bg-[#022F2E]">
         <Header />
-        <section className="container mt-20 mx-auto px-3 sm:px-6 pt-4 sm:pt-8 max-w-[1360px] bg-[#022F2E]">
-          <div className="relative w-full aspect-[2/1] sm:aspect-[3.4/1] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
-            <div
-              ref={slidesContainerRef}
-              className="relative w-full h-full inset-0 rounded-2xl sm:rounded-3xl overflow-hidden"
-            >
-              {heroSlides.map((src, index) => (
-                <div
-                  key={index}
-                  className="absolute w-full h-full inset-0 rounded-2xl sm:rounded-3xl overflow-hidden"
-                >
-                  <img
-                    src={src}
-                    alt={`Slide ${index + 1}`}
-                    className="absolute inset-0 w-full h-full object-cover sm:object-contain rounded-2xl sm:rounded-3xl"
-                    draggable={false}
-                  />
+        {heroSlides.length > 0 && (
+          <section className="container mt-20 mx-auto px-3 sm:px-6 pt-4 sm:pt-8 max-w-[1360px] bg-[#022F2E]">
+            <div className="relative w-full aspect-[2/1] sm:aspect-[3.4/1] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
+              <div
+                ref={slidesContainerRef}
+                className="relative w-full h-full inset-0 rounded-2xl sm:rounded-3xl overflow-hidden"
+              >
+                {heroSlides.map((src, index) => (
+                  <div
+                    key={index}
+                    className="absolute w-full h-full inset-0 rounded-2xl sm:rounded-3xl overflow-hidden"
+                  >
+                    <img
+                      src={src}
+                      alt={`Slide ${index + 1}`}
+                      className="absolute inset-0 w-full h-full object-cover sm:object-contain rounded-2xl sm:rounded-3xl"
+                      draggable={false}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="relative h-full flex flex-col items-center justify-center text-center px-4 sm:px-8 pointer-events-none">
+                <div className="mb-4 sm:mb-6">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 mx-auto mb-2 sm:mb-4 relative"></div>
                 </div>
-              ))}
-            </div>
-            <div className="relative h-full flex flex-col items-center justify-center text-center px-4 sm:px-8 pointer-events-none">
-              <div className="mb-4 sm:mb-6">
-                <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 mx-auto mb-2 sm:mb-4 relative"></div>
+              </div>
+              <div className="absolute bottom-3 sm:bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-2 sm:space-x-3 z-20 pointer-events-auto">
+                {heroSlides.map((_, index) => (
+                  <button
+                    key={index}
+                    className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 hover:scale-125 ${index === currentSlide
+                      ? "bg-emerald-400 shadow-lg shadow-emerald-400/50"
+                      : "bg-white/50 hover:bg-white/70"
+                      }`}
+                    onClick={() => goToSlide(index)}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
               </div>
             </div>
-            <div className="absolute bottom-3 sm:bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-2 sm:space-x-3 z-20 pointer-events-auto">
-              {heroSlides.map((_, index) => (
-                <button
-                  key={index}
-                  className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 hover:scale-125 ${index === currentSlide
-                    ? "bg-emerald-400 shadow-lg shadow-emerald-400/50"
-                    : "bg-white/50 hover:bg-white/70"
-                    }`}
-                  onClick={() => goToSlide(index)}
-                  aria-label={`Go to slide ${index + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         <section
           ref={eventsRef}
@@ -991,133 +981,136 @@ const Home = () => {
 
 
         {/* Community Showcase Section */}
-        <section
-          ref={communityRef}
-          className="py-12 sm:py-32 relative bg-[#042029]"
-          style={{
-            backgroundImage: `url("/vectorhome2.png")`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        >
-          {/* Background Wavy Pattern */}
-          <div className="absolute inset-0 opacity-30">
-            <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <pattern id="wave-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
-                  <path d="M0 50 Q 25 25, 50 50 T 100 50" stroke="#9AE600" strokeWidth="0.5" fill="none" opacity="0.3" />
-                  <path d="M0 60 Q 25 35, 50 60 T 100 60" stroke="#9AE600" strokeWidth="0.5" fill="none" opacity="0.2" />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#wave-pattern)" />
-            </svg>
-          </div>
-
-          <div className="relative z-10 w-full">
-            {/* Section Header */}
-            <div className="flex justify-center mb-12 sm:mb-16">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white px-8 sm:px-12 py-3 sm:py-4 border-4 border-[#9AE600] rounded-full bg-[#0D3838]/80 backdrop-blur-sm shadow-xl shadow-[#9AE600]/20">
-                Our Community
-              </h2>
+        {communityImages.length > 0 && (
+          <section
+            ref={communityRef}
+            className="py-12 sm:py-32 relative bg-[#042029]"
+            style={{
+              backgroundImage: `url("/vectorhome2.png")`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          >
+            {/* Background Wavy Pattern */}
+            <div className="absolute inset-0 opacity-30">
+              <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <pattern id="wave-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+                    <path d="M0 50 Q 25 25, 50 50 T 100 50" stroke="#9AE600" strokeWidth="0.5" fill="none" opacity="0.3" />
+                    <path d="M0 60 Q 25 35, 50 60 T 100 60" stroke="#9AE600" strokeWidth="0.5" fill="none" opacity="0.2" />
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#wave-pattern)" />
+              </svg>
             </div>
 
-            {/* Image Gallery - Carousel */}
-            <div 
-              className="w-full relative group/carousel overflow-hidden py-4"
-              onMouseEnter={() => setIsCommunityHovered(true)}
-              onMouseLeave={() => setIsCommunityHovered(false)}
-            >
-              {/* Carousel Track */}
-              <div 
-                className="flex transition-transform duration-700 ease-out gap-0 items-center"
-                style={{
-                  transform: `translateX(calc(50% - ${(currentCommunityIndex + 2) * slideWidth}% - ${slideWidth / 2}%))`,
-                }}
-              >
-                {extendedCommunityImages.map((src, index) => {
-                  // Map extended array index to original 0-5 index
-                  const originalIndex = (index - 2 + 6) % 6;
-                  const isActive = originalIndex === currentCommunityIndex;
+            <div className="relative z-10 w-full">
+              {/* Section Header */}
+              <div className="flex justify-center mb-12 sm:mb-16">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white px-8 sm:px-12 py-3 sm:py-4 border-4 border-[#9AE600] rounded-full bg-[#0D3838]/80 backdrop-blur-sm shadow-xl shadow-[#9AE600]/20">
+                  Our Community
+                </h2>
+              </div>
 
-                  return (
-                    <div 
-                      key={index} 
-                      onClick={() => setCurrentCommunityIndex(originalIndex)}
-                      className={`flex-shrink-0 relative transition-all duration-700 ease-out rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer ${
-                        isActive 
-                          ? "z-10 scale-100 border-4 border-[#9AE600] shadow-2xl shadow-[#9AE600]/30" 
-                          : "z-0 scale-90 sm:scale-85 opacity-70 hover:opacity-90"
-                      }`}
-                      style={{
-                        width: `${slideWidth}%`,
-                      }}
-                    >
-                      <div className="w-full h-[200px] sm:h-[300px] md:h-[380px] lg:h-[440px] relative">
-                        <img
-                          src={src}
-                          alt={`Community Event ${originalIndex + 1}`}
-                          className="w-full h-full object-cover"
-                          draggable={false}
-                        />
-                        {/* Dark Dimming Overlay for inactive slides */}
-                        <div 
-                          className={`absolute inset-0 bg-[#042029]/75 backdrop-blur-[0.5px] transition-opacity duration-700 ${
-                            isActive ? "opacity-0 pointer-events-none" : "opacity-100"
-                          }`}
-                        />
-                        {/* Subtle Gradient Text Overlay for active slide */}
-                        <div className={`absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex items-end p-4 sm:p-6 transition-opacity duration-700 ${
-                          isActive ? "opacity-100" : "opacity-0 pointer-events-none"
-                        }`}>
-                          <span className="text-white font-semibold text-sm sm:text-lg tracking-wider">
-                            Community Showcase {originalIndex + 1}
-                          </span>
+              {/* Image Gallery - Carousel */}
+              <div 
+                className="w-full relative group/carousel overflow-hidden py-4"
+                onMouseEnter={() => setIsCommunityHovered(true)}
+                onMouseLeave={() => setIsCommunityHovered(false)}
+              >
+                {/* Carousel Track */}
+                <div 
+                  className="flex transition-transform duration-700 ease-out gap-0 items-center"
+                  style={{
+                    transform: `translateX(calc(50% - ${(currentCommunityIndex + 2) * slideWidth}% - ${slideWidth / 2}%))`,
+                  }}
+                >
+                  {extendedCommunityImages.map((src, index) => {
+                    // Map extended array index to original index dynamically
+                    const len = communityImages.length;
+                    const originalIndex = (index - 2 + len) % len;
+                    const isActive = originalIndex === currentCommunityIndex;
+
+                    return (
+                      <div 
+                        key={index} 
+                        onClick={() => setCurrentCommunityIndex(originalIndex)}
+                        className={`flex-shrink-0 relative transition-all duration-700 ease-out rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer ${
+                          isActive 
+                            ? "z-10 scale-100 border-4 border-[#9AE600] shadow-2xl shadow-[#9AE600]/30" 
+                            : "z-0 scale-90 sm:scale-85 opacity-70 hover:opacity-90"
+                        }`}
+                        style={{
+                          width: `${slideWidth}%`,
+                        }}
+                      >
+                        <div className="w-full h-[200px] sm:h-[300px] md:h-[380px] lg:h-[440px] relative">
+                          <img
+                            src={src}
+                            alt={`Community Event ${originalIndex + 1}`}
+                            className="w-full h-full object-cover"
+                            draggable={false}
+                          />
+                          {/* Dark Dimming Overlay for inactive slides */}
+                          <div 
+                            className={`absolute inset-0 bg-[#042029]/75 backdrop-blur-[0.5px] transition-opacity duration-700 ${
+                              isActive ? "opacity-0 pointer-events-none" : "opacity-100"
+                            }`}
+                          />
+                          {/* Subtle Gradient Text Overlay for active slide */}
+                          <div className={`absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex items-end p-4 sm:p-6 transition-opacity duration-700 ${
+                            isActive ? "opacity-100" : "opacity-0 pointer-events-none"
+                          }`}>
+                            <span className="text-white font-semibold text-sm sm:text-lg tracking-wider">
+                              Community Showcase {originalIndex + 1}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
 
-              {/* Prev/Next buttons (visible on desktop hover or touch screen always) */}
-              <button
-                onClick={prevCommunitySlide}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[#0D3838]/85 backdrop-blur-md border-2 border-[#9AE600] flex items-center justify-center text-[#9AE600] hover:bg-[#9AE600] hover:text-[#042029] hover:scale-110 shadow-lg shadow-[#9AE600]/20 active:scale-95 transition-all duration-300 z-20 md:opacity-0 md:group-hover/carousel:opacity-100"
-                aria-label="Previous community image"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                </svg>
-              </button>
+                {/* Prev/Next buttons (visible on desktop hover or touch screen always) */}
+                <button
+                  onClick={prevCommunitySlide}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[#0D3838]/85 backdrop-blur-md border-2 border-[#9AE600] flex items-center justify-center text-[#9AE600] hover:bg-[#9AE600] hover:text-[#042029] hover:scale-110 shadow-lg shadow-[#9AE600]/20 active:scale-95 transition-all duration-300 z-20 md:opacity-0 md:group-hover/carousel:opacity-100"
+                  aria-label="Previous community image"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                  </svg>
+                </button>
 
-              <button
-                onClick={nextCommunitySlide}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[#0D3838]/85 backdrop-blur-md border-2 border-[#9AE600] flex items-center justify-center text-[#9AE600] hover:bg-[#9AE600] hover:text-[#042029] hover:scale-110 shadow-lg shadow-[#9AE600]/20 active:scale-95 transition-all duration-300 z-20 md:opacity-0 md:group-hover/carousel:opacity-100"
-                aria-label="Next community image"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                </svg>
-              </button>
+                <button
+                  onClick={nextCommunitySlide}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[#0D3838]/85 backdrop-blur-md border-2 border-[#9AE600] flex items-center justify-center text-[#9AE600] hover:bg-[#9AE600] hover:text-[#042029] hover:scale-110 shadow-lg shadow-[#9AE600]/20 active:scale-95 transition-all duration-300 z-20 md:opacity-0 md:group-hover/carousel:opacity-100"
+                  aria-label="Next community image"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                </button>
 
-              {/* Slide Indicators */}
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 bg-[#0D3838]/80 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 z-20">
-                {communityImages.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentCommunityIndex(idx)}
-                    className={`h-2.5 rounded-full transition-all duration-300 ${
-                      idx === currentCommunityIndex
-                        ? "w-8 bg-[#9AE600] shadow-md shadow-[#9AE600]/40"
-                        : "w-2.5 bg-white/40 hover:bg-white/60"
-                    }`}
-                    aria-label={`Go to slide ${idx + 1}`}
-                  />
-                ))}
+                {/* Slide Indicators */}
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 bg-[#0D3838]/80 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 z-20">
+                  {communityImages.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentCommunityIndex(idx)}
+                      className={`h-2.5 rounded-full transition-all duration-300 ${
+                        idx === currentCommunityIndex
+                          ? "w-8 bg-[#9AE600] shadow-md shadow-[#9AE600]/40"
+                          : "w-2.5 bg-white/40 hover:bg-white/60"
+                      }`}
+                      aria-label={`Go to slide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Join Community CTA Section */}
         <section className="relative bg-[#042029] py-16 sm:py-20 md:py-24 overflow-hidden" style={{
