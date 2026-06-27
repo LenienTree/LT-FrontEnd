@@ -981,33 +981,6 @@ const Home = () => {
               <div className="grid grid-cols-7 gap-2 sm:gap-3">{renderCalendar()}</div>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-center gap-6 md:gap-8 lg:gap-12 relative z-10 w-full px-4 sm:px-0 mt-12 lg:mt-20">
-              {[
-                { number: "4000+", label: "Members" },
-                { number: "2000+", label: "Students" },
-                { number: "20+", label: "Sponsors" },
-              ].map((stat, index) => (
-                <div
-                  key={index}
-                  className="relative overflow-hidden bg-[#133F3D] rounded-[1.5rem] sm:rounded-[2rem] px-8 sm:px-10 lg:px-14 py-6 sm:py-8 flex items-center justify-center border-2 border-[#64F422]/80 shadow-[0_0_25px_rgba(100,244,34,0.4)] w-full sm:w-auto"
-                >
-                  {/* Subtle inner shape for depth */}
-                  <div className="absolute -left-10 sm:-left-16 top-1/2 transform -translate-y-1/2 w-28 sm:w-36 h-32 sm:h-48 bg-white/5 rounded-[50%] blur-[2px]"></div>
-
-                  <div className="relative z-10 flex items-center justify-center gap-2 sm:gap-3">
-                    <span className="text-3xl sm:text-4xl lg:text-5xl font-light text-white">
-                      {stat.number.replace('+', '')}
-                    </span>
-                    <span className="text-3xl sm:text-4xl lg:text-5xl font-light text-white">
-                      +
-                    </span>
-                    <span className="text-lg sm:text-xl lg:text-2xl text-white font-medium tracking-wide pt-1">
-                      {stat.label}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </section>
 
