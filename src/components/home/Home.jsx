@@ -1226,7 +1226,7 @@ const Home = () => {
                   {/* Author */}
                   <div className="mx-auto">
                     <p className="font-bold text-sm sm:text-base tracking-widest text-[#1a1a1a] uppercase mb-2">
-                      Augustine Vadakumcherry
+                      Augustine Vadakumchery
                     </p>
                     {/* LT Badge */}
                     <div className="flex items-center gap-2">
@@ -1251,7 +1251,7 @@ const Home = () => {
                 >
                   <img
                     src="/augustine1.png"
-                    alt="Augustine Vadakumcherry"
+                    alt="Augustine Vadakumchery"
                     className="relative z-10 w-auto h-full max-h-[380px] object-cover object-bottom grayscale"
                     style={{ display: "block" }}
                   />
