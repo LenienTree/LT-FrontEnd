@@ -68,7 +68,10 @@ const Home = () => {
   const [communityImages, setCommunityImages] = useState(DEFAULT_COMMUNITY_IMAGES);
   const [testimonials, setTestimonials] = useState(DEFAULT_TESTIMONIALS);
 
-  // Clone 2 items on the left and 2 items on the right for infinite circular appearance
+  // Clone 2 items on the left and 2 items on the right for infinite circular appearance.
+  // Only prepend/append clones when there are at least 2 images; with fewer there is
+  // nothing useful to clone and the offset arithmetic would push the image off-screen.
+  const communityCloneCount = communityImages.length >= 2 ? 2 : 0;
   const extendedCommunityImages = communityImages.length >= 2 ? [
     communityImages[communityImages.length - 2],
     communityImages[communityImages.length - 1],
@@ -1022,13 +1025,13 @@ const Home = () => {
                 <div 
                   className="flex transition-transform duration-700 ease-out gap-0 items-center"
                   style={{
-                    transform: `translateX(calc(50% - ${(currentCommunityIndex + 2) * slideWidth}% - ${slideWidth / 2}%))`,
+                    transform: `translateX(calc(50% - ${(currentCommunityIndex + communityCloneCount) * slideWidth}% - ${slideWidth / 2}%))`,
                   }}
                 >
                   {extendedCommunityImages.map((src, index) => {
                     // Map extended array index to original index dynamically
                     const len = communityImages.length;
-                    const originalIndex = (index - 2 + len) % len;
+                    const originalIndex = (index - communityCloneCount + len) % len;
                     const isActive = originalIndex === currentCommunityIndex;
 
                     return (
