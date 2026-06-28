@@ -127,23 +127,96 @@ const del = (url, opts) => request(url, { method: "DELETE", ...opts });
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 
 /**
+ * Compresses an image file client-side to ensure it is under the Nginx/backend limits
+ * and optimizes upload speed/storage.
+ * @param {File} file
+ * @param {object} options
+ * @returns {Promise<File>}
+ */
+export async function compressImage(file, { maxWidth = 1920, maxHeight = 1080, quality = 0.7, maxSizeBytes = 800 * 1024 } = {}) {
+  if (!file.type.startsWith("image/") || file.size <= maxSizeBytes) {
+    return file;
+  }
+  if (file.type === "image/gif" || file.type === "image/svg+xml") {
+    return file;
+  }
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxHeight) {
+          if (width / height > maxWidth / maxHeight) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const name = file.name.substring(0, file.name.lastIndexOf(".")) + ".jpg";
+            const compressedFile = new File([blob], name, {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            });
+            if (compressedFile.size >= file.size) {
+              resolve(file);
+            } else {
+              resolve(compressedFile);
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = event.target.result;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
  * Build a multipart FormData for a single-file upload, validating the file up-front so
  * an empty/oversized file fails with a clear message instead of a confusing network or
  * (misleading) CORS error.
+ * Automatically compresses images that exceed the threshold (800 KB).
  * @param {string} fieldName multipart field name the backend expects
  * @param {File} file
- * @returns {FormData}
+ * @returns {Promise<FormData>}
  */
-function fileForm(fieldName, file) {
+async function fileForm(fieldName, file) {
   if (!file) throw new Error("No file selected.");
   if (file.size === 0) throw new Error("The selected file is empty.");
-  if (file.size > MAX_UPLOAD_BYTES) {
-    const mb = (file.size / (1024 * 1024)).toFixed(1);
+  
+  let processedFile = file;
+  try {
+    processedFile = await compressImage(file);
+  } catch (e) {
+    console.error("Image compression failed, uploading original file", e);
+  }
+
+  if (processedFile.size > MAX_UPLOAD_BYTES) {
+    const mb = (processedFile.size / (1024 * 1024)).toFixed(1);
     const maxMb = MAX_UPLOAD_BYTES / (1024 * 1024);
     throw new Error(`File is too large (${mb} MB). Maximum allowed size is ${maxMb} MB.`);
   }
   const formData = new FormData();
-  formData.append(fieldName, file);
+  formData.append(fieldName, processedFile);
   return formData;
 }
 
@@ -232,13 +305,13 @@ export const users = {
    * Upload avatar image.
    * @param {File} file
    */
-  uploadAvatar: async (file) => post("/api/users/me/avatar", fileForm("avatar", file)),
+  uploadAvatar: async (file) => post("/api/users/me/avatar", await fileForm("avatar", file)),
 
   /**
    * Add an image to the user's gallery.
    * @param {File} file
    */
-  addGalleryImage: async (file) => post("/api/users/me/gallery", fileForm("image", file)),
+  addGalleryImage: async (file) => post("/api/users/me/gallery", await fileForm("image", file)),
 
   /**
    * Delete an image from the user's gallery.
@@ -372,7 +445,7 @@ export const events = {
    * @param {File} file
    */
   uploadBanner: async (eventId, file) =>
-    post(`/api/events/${eventId}/banner`, fileForm("banner", file)),
+    post(`/api/events/${eventId}/banner`, await fileForm("banner", file)),
 
   /**
    * Upload the event poster image.
@@ -380,10 +453,10 @@ export const events = {
    * @param {File} file
    */
   uploadPoster: async (eventId, file) =>
-    post(`/api/events/${eventId}/poster`, fileForm("poster", file)),
+    post(`/api/events/${eventId}/poster`, await fileForm("poster", file)),
 
   uploadLinkedinPoster: async (eventId, file) =>
-    post(`/api/events/${eventId}/linkedin-poster`, fileForm("poster", file)),
+    post(`/api/events/${eventId}/linkedin-poster`, await fileForm("poster", file)),
 
   /**
    * Upload the event UPI QR Code image.
@@ -391,7 +464,7 @@ export const events = {
    * @param {File} file
    */
   uploadUpiQrCode: async (eventId, file) =>
-    post(`/api/events/${eventId}/upi-qr`, fileForm("file", file)),
+    post(`/api/events/${eventId}/upi-qr`, await fileForm("file", file)),
 
   /**
    * Delete an event (organizer).
@@ -604,14 +677,14 @@ export const admin = {
 
   // Homepage Config admin actions
   homepage: {
-    uploadBanner: async (file) => post("/api/homepage/banners", fileForm("file", file)),
+    uploadBanner: async (file) => post("/api/homepage/banners", await fileForm("file", file)),
     updateBannerOrder: (id, order) => put(`/api/homepage/banners/${id}`, { order }),
     deleteBanner: (id) => del(`/api/homepage/banners/${id}`),
-    uploadCommunityImage: async (file) => post("/api/homepage/community", fileForm("file", file)),
+    uploadCommunityImage: async (file) => post("/api/homepage/community", await fileForm("file", file)),
     updateCommunityImageOrder: (id, order) => put(`/api/homepage/community/${id}`, { order }),
     deleteCommunityImage: (id) => del(`/api/homepage/community/${id}`),
     uploadTestimonialAvatar: async (file) =>
-      post("/api/homepage/testimonials/avatar", fileForm("file", file)),
+      post("/api/homepage/testimonials/avatar", await fileForm("file", file)),
     addTestimonial: (data) => post("/api/homepage/testimonials", data),
     updateTestimonial: (id, data) => put(`/api/homepage/testimonials/${id}`, data),
     deleteTestimonial: (id) => del(`/api/homepage/testimonials/${id}`),
