@@ -33,11 +33,7 @@ export default function GlobalSearch() {
       setIsLoading(true);
       try {
         const response = await events.getAll({ search: query, limit: 5 });
-        // Since getAll wraps paginated events in { events, pagination } as per backend response,
-        // let's check structure.
-        // Wait, standard backend events.getAll response is { events, pagination } or array.
-        // Let's assume response.events or response.
-        const list = response?.events || (Array.isArray(response) ? response : []);
+        const list = response?.data || (Array.isArray(response) ? response : []);
         setSuggestions(list);
       } catch (err) {
         console.error("Search fetch failed:", err);

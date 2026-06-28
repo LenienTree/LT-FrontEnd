@@ -43,10 +43,10 @@ export default function ExplorePage() {
       }
 
       const response = await events.getAll(apiParams);
-      const list = response?.events || (Array.isArray(response) ? response : []);
+      const list = response?.data || (Array.isArray(response) ? response : []);
       setEventsList(list);
-      setTotal(response?.pagination?.total || list.length);
-      setTotalPages(response?.pagination?.totalPages || 1);
+      setTotal(response?.meta?.total || list.length);
+      setTotalPages(response?.meta?.totalPages || 1);
     } catch (err) {
       console.error("Failed to load explore events:", err);
     } finally {
