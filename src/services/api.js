@@ -111,6 +111,42 @@ const put = (url, body, opts) =>
   });
 const del = (url, opts) => request(url, { method: "DELETE", ...opts });
 
+// ─── File Upload Helpers ──────────────────────────────────────────────────────
+
+/**
+ * Maximum upload size accepted by the API. Matches the backend's Fastify multipart
+ * limit (10 MB).
+ *
+ * IMPORTANT: the reverse proxy (nginx) in front of the API must allow request bodies
+ * at least this large via `client_max_body_size`. Nginx defaults to 1 MB and, when a
+ * body exceeds it, returns a 413 error page *before* the request reaches the app. That
+ * proxy-generated 413 has no CORS headers, so the browser misreports it as
+ * "No 'Access-Control-Allow-Origin' header is present" instead of a size error. Keep
+ * nginx's limit >= this value (e.g. `client_max_body_size 12M;`).
+ */
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+
+/**
+ * Build a multipart FormData for a single-file upload, validating the file up-front so
+ * an empty/oversized file fails with a clear message instead of a confusing network or
+ * (misleading) CORS error.
+ * @param {string} fieldName multipart field name the backend expects
+ * @param {File} file
+ * @returns {FormData}
+ */
+function fileForm(fieldName, file) {
+  if (!file) throw new Error("No file selected.");
+  if (file.size === 0) throw new Error("The selected file is empty.");
+  if (file.size > MAX_UPLOAD_BYTES) {
+    const mb = (file.size / (1024 * 1024)).toFixed(1);
+    const maxMb = MAX_UPLOAD_BYTES / (1024 * 1024);
+    throw new Error(`File is too large (${mb} MB). Maximum allowed size is ${maxMb} MB.`);
+  }
+  const formData = new FormData();
+  formData.append(fieldName, file);
+  return formData;
+}
+
 // ─── Auth Endpoints ───────────────────────────────────────────────────────────
 
 export const auth = {
@@ -196,21 +232,13 @@ export const users = {
    * Upload avatar image.
    * @param {File} file
    */
-  uploadAvatar: (file) => {
-    const formData = new FormData();
-    formData.append("avatar", file);
-    return post("/api/users/me/avatar", formData);
-  },
+  uploadAvatar: async (file) => post("/api/users/me/avatar", fileForm("avatar", file)),
 
   /**
    * Add an image to the user's gallery.
    * @param {File} file
    */
-  addGalleryImage: (file) => {
-    const formData = new FormData();
-    formData.append("image", file);
-    return post("/api/users/me/gallery", formData);
-  },
+  addGalleryImage: async (file) => post("/api/users/me/gallery", fileForm("image", file)),
 
   /**
    * Delete an image from the user's gallery.
@@ -343,39 +371,27 @@ export const events = {
    * @param {string} eventId
    * @param {File} file
    */
-  uploadBanner: (eventId, file) => {
-    const formData = new FormData();
-    formData.append("banner", file);
-    return post(`/api/events/${eventId}/banner`, formData);
-  },
+  uploadBanner: async (eventId, file) =>
+    post(`/api/events/${eventId}/banner`, fileForm("banner", file)),
 
   /**
    * Upload the event poster image.
    * @param {string} eventId
    * @param {File} file
    */
-  uploadPoster: (eventId, file) => {
-    const formData = new FormData();
-    formData.append("poster", file);
-    return post(`/api/events/${eventId}/poster`, formData);
-  },
+  uploadPoster: async (eventId, file) =>
+    post(`/api/events/${eventId}/poster`, fileForm("poster", file)),
 
-  uploadLinkedinPoster: (eventId, file) => {
-    const formData = new FormData();
-    formData.append("poster", file);
-    return post(`/api/events/${eventId}/linkedin-poster`, formData);
-  },
+  uploadLinkedinPoster: async (eventId, file) =>
+    post(`/api/events/${eventId}/linkedin-poster`, fileForm("poster", file)),
 
   /**
    * Upload the event UPI QR Code image.
    * @param {string} eventId
    * @param {File} file
    */
-  uploadUpiQrCode: (eventId, file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    return post(`/api/events/${eventId}/upi-qr`, formData);
-  },
+  uploadUpiQrCode: async (eventId, file) =>
+    post(`/api/events/${eventId}/upi-qr`, fileForm("file", file)),
 
   /**
    * Delete an event (organizer).
@@ -588,25 +604,14 @@ export const admin = {
 
   // Homepage Config admin actions
   homepage: {
-    uploadBanner: (file) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      return post("/api/homepage/banners", formData);
-    },
+    uploadBanner: async (file) => post("/api/homepage/banners", fileForm("file", file)),
     updateBannerOrder: (id, order) => put(`/api/homepage/banners/${id}`, { order }),
     deleteBanner: (id) => del(`/api/homepage/banners/${id}`),
-    uploadCommunityImage: (file) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      return post("/api/homepage/community", formData);
-    },
+    uploadCommunityImage: async (file) => post("/api/homepage/community", fileForm("file", file)),
     updateCommunityImageOrder: (id, order) => put(`/api/homepage/community/${id}`, { order }),
     deleteCommunityImage: (id) => del(`/api/homepage/community/${id}`),
-    uploadTestimonialAvatar: (file) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      return post("/api/homepage/testimonials/avatar", formData);
-    },
+    uploadTestimonialAvatar: async (file) =>
+      post("/api/homepage/testimonials/avatar", fileForm("file", file)),
     addTestimonial: (data) => post("/api/homepage/testimonials", data),
     updateTestimonial: (id, data) => put(`/api/homepage/testimonials/${id}`, data),
     deleteTestimonial: (id) => del(`/api/homepage/testimonials/${id}`),
