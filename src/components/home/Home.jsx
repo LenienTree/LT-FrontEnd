@@ -81,6 +81,7 @@ const Home = () => {
   ] : [...communityImages];
 
   const [currentCommunityIndex, setCurrentCommunityIndex] = useState(0); // Index from 0 to 5
+  const [transitionEnabled, setTransitionEnabled] = useState(true);
   const [slideWidth, setSlideWidth] = useState(46); // Responsive percent width of center slide
   const [isCommunityHovered, setIsCommunityHovered] = useState(false);
 
@@ -102,24 +103,44 @@ const Home = () => {
 
   // Autoplay logic for community showcase (slides through index 0 to 5)
   useEffect(() => {
-    if (isCommunityHovered) return;
-    const maxIndex = communityImages.length - 1;
+    if (isCommunityHovered || !transitionEnabled) return;
 
     const interval = setInterval(() => {
-      setCurrentCommunityIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
+      setCurrentCommunityIndex((prev) => prev + 1);
     }, 3000);
     return () => clearInterval(interval);
-  }, [isCommunityHovered, communityImages]);
+  }, [isCommunityHovered, transitionEnabled, communityImages]);
 
   const nextCommunitySlide = () => {
-    const maxIndex = communityImages.length - 1;
-    setCurrentCommunityIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
+    if (!transitionEnabled) return;
+    setCurrentCommunityIndex((prev) => prev + 1);
   };
 
   const prevCommunitySlide = () => {
-    const maxIndex = communityImages.length - 1;
-    setCurrentCommunityIndex((prev) => (prev <= 0 ? maxIndex : prev - 1));
+    if (!transitionEnabled) return;
+    setCurrentCommunityIndex((prev) => prev - 1);
   };
+
+  const handleTransitionEnd = () => {
+    const len = communityImages.length;
+    if (len === 0) return;
+    if (currentCommunityIndex >= len) {
+      setTransitionEnabled(false);
+      setCurrentCommunityIndex(0);
+    } else if (currentCommunityIndex < 0) {
+      setTransitionEnabled(false);
+      setCurrentCommunityIndex(len - 1);
+    }
+  };
+
+  useEffect(() => {
+    if (!transitionEnabled) {
+      const timer = setTimeout(() => {
+        setTransitionEnabled(true);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [transitionEnabled]);
 
   const extendedTestimonials = testimonials.length >= 2 ? [
     testimonials[testimonials.length - 2],
@@ -1023,16 +1044,20 @@ const Home = () => {
               >
                 {/* Carousel Track */}
                 <div 
-                  className="flex transition-transform duration-700 ease-out gap-0 items-center"
+                  className={`flex gap-0 items-center ${
+                    transitionEnabled ? "transition-transform duration-700 ease-out" : ""
+                  }`}
                   style={{
                     transform: `translateX(calc(50% - ${(currentCommunityIndex + communityCloneCount) * slideWidth}% - ${slideWidth / 2}%))`,
                   }}
+                  onTransitionEnd={handleTransitionEnd}
                 >
                   {extendedCommunityImages.map((src, index) => {
                     // Map extended array index to original index dynamically
                     const len = communityImages.length;
                     const originalIndex = (index - communityCloneCount + len) % len;
-                    const isActive = originalIndex === currentCommunityIndex;
+                    const normalizedCurrentIndex = (currentCommunityIndex + len) % len;
+                    const isActive = originalIndex === normalizedCurrentIndex;
 
                     return (
                       <div 
@@ -1097,18 +1122,22 @@ const Home = () => {
 
                 {/* Slide Indicators */}
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 bg-[#0D3838]/80 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 z-20">
-                  {communityImages.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentCommunityIndex(idx)}
-                      className={`h-2.5 rounded-full transition-all duration-300 ${
-                        idx === currentCommunityIndex
-                          ? "w-8 bg-[#9AE600] shadow-md shadow-[#9AE600]/40"
-                          : "w-2.5 bg-white/40 hover:bg-white/60"
-                      }`}
-                      aria-label={`Go to slide ${idx + 1}`}
-                    />
-                  ))}
+                  {communityImages.map((_, idx) => {
+                    const len = communityImages.length;
+                    const normalizedCurrentIndex = (currentCommunityIndex + len) % len;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentCommunityIndex(idx)}
+                        className={`h-2.5 rounded-full transition-all duration-300 ${
+                          idx === normalizedCurrentIndex
+                            ? "w-8 bg-[#9AE600] shadow-md shadow-[#9AE600]/40"
+                            : "w-2.5 bg-white/40 hover:bg-white/60"
+                        }`}
+                        aria-label={`Go to slide ${idx + 1}`}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             </div>
