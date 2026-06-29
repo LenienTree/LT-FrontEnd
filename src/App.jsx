@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Home from "./components/home/Home";
 import AboutNew from "./components/AboutNew";
 import TeamHalfCircle from "./components/TeamHalfCircle";
@@ -60,6 +60,16 @@ function AdminRoute({ children }) {
 }
 
 function App() {
+  const location = useLocation();
+  const { user, logout } = useAuth();
+  const isProfileIncomplete = user && (!user.phone || !user.college || !user.graduationYear || !user.dateOfBirth);
+
+  React.useEffect(() => {
+    if (isProfileIncomplete && location.pathname !== '/') {
+      logout();
+    }
+  }, [isProfileIncomplete, location.pathname, logout]);
+
   return (
     <div className="text-white font-urbanist overflow-x-hidden">
       <Suspense fallback={<PageLoader />}>
