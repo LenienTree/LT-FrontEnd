@@ -10,6 +10,7 @@ import { events as eventsApi, homepage as homepageApi } from "../../services/api
 import { Link } from "react-router-dom";
 import { CalendarDays, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { Helmet } from "react-helmet-async";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -657,6 +658,25 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-[#022F2E] text-white overflow-x-hidden">
+      <Helmet>
+        <title>LenientTree — Tech Events, Hackathons & Internships in Kerala, India</title>
+        <meta name="description" content="Discover premier student hackathons, ideathons, tech internships, webinars, and educational events in Kerala and across India. Join LenientTree to accelerate your tech career!" />
+        <meta name="keywords" content="LenientTree, Lenient Tree, education in Kerala, internships in Kerala, student hackathons Kerala, tech events India, engineering student internships, code contest Kerala, tech community India" />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="LenientTree — Tech Events, Hackathons & Internships in Kerala, India" />
+        <meta property="og:description" content="Discover premier student hackathons, ideathons, tech internships, webinars, and educational events in Kerala and across India. Join LenientTree to accelerate your tech career!" />
+        <meta property="og:image" content="/logo1.png" />
+        <meta property="og:url" content="https://lenienttree.com" />
+
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="LenientTree — Tech Events, Hackathons & Internships in Kerala, India" />
+        <meta name="twitter:description" content="Discover premier student hackathons, ideathons, tech internships, webinars, and educational events in Kerala and across India. Join LenientTree to accelerate your tech career!" />
+        <meta name="twitter:image" content="/logo1.png" />
+      </Helmet>
+
       {/* Add CSS for flashing animation */}
       <style>{`
         @keyframes flash {
