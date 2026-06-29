@@ -38,10 +38,12 @@ export function AuthProvider({ children }) {
             }
             try {
                 const data = await users.getMyProfile();
-                // If getMyProfile() succeeded with our updated API wrapper, it returns the user object directly
-                setUser(data);
                 if (data && (!data.phone || !data.college || !data.graduationYear || !data.dateOfBirth)) {
-                    openAuthModal('google-completion');
+                    // Force logout returning users with incomplete profile fields
+                    removeToken();
+                    setUser(null);
+                } else {
+                    setUser(data);
                 }
             } catch {
                 removeToken();
@@ -51,7 +53,7 @@ export function AuthProvider({ children }) {
             }
         };
         init();
-    }, [openAuthModal]);
+    }, []);
 
     // ── Actions ──
 
