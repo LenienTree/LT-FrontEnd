@@ -9,6 +9,7 @@ import Footer from "../layout/Footer";
 import { events as eventsApi, homepage as homepageApi } from "../../services/api";
 import { Link } from "react-router-dom";
 import { CalendarDays, X } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -17,6 +18,17 @@ import { dummyEventsData, TARGET_LOCATION } from "./HomeConstants";
 import CollaborationEventCard from "./CollaborationEventCard";
 import Wave from "./Wave";
 const Home = () => {
+  const { isAuthenticated, openAuthModal } = useAuth();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      const timer = setTimeout(() => {
+        openAuthModal('signup', true);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, openAuthModal]);
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

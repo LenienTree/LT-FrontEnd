@@ -16,14 +16,17 @@ export function AuthProvider({ children }) {
     // ── Auth Modal State ──
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [authModalView, setAuthModalView] = useState('login'); // 'login' or 'signup'
+    const [isAuthModalPersistent, setIsAuthModalPersistent] = useState(false);
 
-    const openAuthModal = useCallback((view = 'login') => {
+    const openAuthModal = useCallback((view = 'login', persistent = false) => {
         setAuthModalView(view);
         setIsAuthModalOpen(true);
+        setIsAuthModalPersistent(persistent);
     }, []);
 
     const closeAuthModal = useCallback(() => {
         setIsAuthModalOpen(false);
+        setIsAuthModalPersistent(false);
     }, []);
 
     // ── Bootstrap: re-hydrate user from stored token ──
@@ -146,6 +149,7 @@ export function AuthProvider({ children }) {
         setError,
         isAuthModalOpen,
         authModalView,
+        isAuthModalPersistent,
         openAuthModal,
         closeAuthModal,
     };

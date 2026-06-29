@@ -5,15 +5,16 @@ import Signup from './Signup';
 import GoogleCompletion from './GoogleCompletion';
 
 const AuthModal = () => {
-    const { isAuthModalOpen, authModalView, closeAuthModal, openAuthModal, user } = useAuth();
+    const { isAuthModalOpen, authModalView, closeAuthModal, openAuthModal, user, isAuthModalPersistent } = useAuth();
 
     const isProfileIncomplete = user && (!user.phone || !user.college || !user.graduationYear || !user.dateOfBirth);
+    const cannotClose = isProfileIncomplete || isAuthModalPersistent;
 
     if (!isAuthModalOpen) return null;
 
-    // Close on backdrop click (only if profile is complete)
+    // Close on backdrop click (only if profile is complete/modal is not persistent)
     const handleBackdropClick = (e) => {
-        if (e.target === e.currentTarget && !isProfileIncomplete) {
+        if (e.target === e.currentTarget && !cannotClose) {
             closeAuthModal();
         }
     };
@@ -24,8 +25,8 @@ const AuthModal = () => {
             onClick={handleBackdropClick}
         >
             <div className="relative w-full max-w-4xl bg-gradient-to-br from-[#0a1f1f] via-[#0d2626] to-[#0a1f1f] rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row my-8 border border-[#1a4d4d]">
-                {/* Close Button (only if profile is complete) */}
-                {!isProfileIncomplete && (
+                {/* Close Button */}
+                {!cannotClose && (
                     <button 
                         onClick={closeAuthModal} 
                         className="absolute top-4 right-4 text-gray-400 hover:text-white z-50 bg-black/20 hover:bg-black/40 rounded-full p-2 transition-all"
