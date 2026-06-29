@@ -2038,7 +2038,7 @@ const Admin = () => {
               {/* ── Redesigned View User Modal (Global) ── */}
               {viewUserModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md px-4 py-8 overflow-y-auto">
-                  <div className="w-full max-w-2xl bg-[#0a2323] border border-[#1a4d4d] rounded-3xl shadow-2xl flex flex-col my-8 max-h-[90vh]">
+                  <div className="w-full max-w-md bg-[#0a2323] border border-[#1a4d4d] rounded-3xl shadow-2xl flex flex-col my-8 max-h-[90vh]">
                     
                     {/* Modal Header */}
                     <div className="flex items-center justify-between p-6 border-b border-[#1a4d4d]">
@@ -2054,7 +2054,7 @@ const Admin = () => {
                     </div>
 
                     {/* Modal Body - Scrollable */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
                       
                       {/* Profile Top Summary */}
                       <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-[#0d2f2f]/60 border border-[#1a4d4d]/60 rounded-2xl">
@@ -2084,10 +2084,10 @@ const Admin = () => {
                         </div>
                       </div>
 
-                      {/* Grid: Personal vs Academic Details */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Stacked Details Sections */}
+                      <div className="space-y-6">
                         {/* Contact & Personal */}
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                           <h5 className="text-[#00ff88] text-xs font-semibold uppercase tracking-wider">Contact & Personal</h5>
                           <div className="space-y-3 bg-[#0d2f2f]/30 p-4 border border-[#1a4d4d]/40 rounded-2xl">
                             <div className="flex items-start gap-3">
@@ -2115,7 +2115,7 @@ const Admin = () => {
                         </div>
 
                         {/* Academic & Platform Info */}
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                           <h5 className="text-[#00ff88] text-xs font-semibold uppercase tracking-wider">Academic & Platform</h5>
                           <div className="space-y-3 bg-[#0d2f2f]/30 p-4 border border-[#1a4d4d]/40 rounded-2xl">
                             <div className="flex items-start gap-3">
