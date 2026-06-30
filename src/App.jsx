@@ -62,7 +62,7 @@ function AdminRoute({ children }) {
 function App() {
   const location = useLocation();
   const { user, logout } = useAuth();
-  const isProfileIncomplete = user && (!user.phone || !user.college || !user.graduationYear || !user.dateOfBirth);
+  const isProfileIncomplete = user && user.role !== 'ADMIN' && (!user.phone || !user.college || !user.graduationYear || !user.dateOfBirth);
 
   React.useEffect(() => {
     if (isProfileIncomplete && location.pathname !== '/') {
