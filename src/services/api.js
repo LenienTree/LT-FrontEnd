@@ -530,6 +530,13 @@ export const admin = {
   /** Approve organizer request: sets isOrganizer = true on the user */
   approveOrganizer: (userId) => put(`/api/admin/users/${userId}/approve-organizer`, {}),
 
+  /** GET /api/admin/internship-survey */
+  getInternshipSurvey: (page = 1, limit = 15, search = "") =>
+    get(`/api/admin/internship-survey?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`),
+
+  /** PUT /api/admin/internship-survey/toggle */
+  toggleInternshipSurvey: () => put("/api/admin/internship-survey/toggle", {}),
+
   // Homepage Config admin actions
   homepage: {
     uploadBanner: (file) => {

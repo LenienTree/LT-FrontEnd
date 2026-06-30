@@ -5,7 +5,7 @@ import {
   CheckCircle, XCircle, Shield, Search, Bell, LogOut,
   ChevronLeft, ChevronRight, RefreshCw, Loader2,
   UserCheck, AlertTriangle, Pencil, Trash2, SlidersHorizontal,
-  Upload, Plus, ArrowUp, ArrowDown, Image, Settings, Home
+  Upload, Plus, ArrowUp, ArrowDown, Image, Settings, Home, Briefcase
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { admin, homepage as homepageApi } from '../../services/api';
@@ -88,6 +88,16 @@ const Admin = () => {
   const [eventsList, setEventsList] = useState([]);
   const [selectedSectionKey, setSelectedSectionKey] = useState('');
   const [updatingEventsOrder, setUpdatingEventsOrder] = useState(false);
+
+  // Internship Survey State
+  const [surveyResponses, setSurveyResponses] = useState([]);
+  const [loadingSurvey, setLoadingSurvey] = useState(false);
+  const [surveySearch, setSurveySearch] = useState('');
+  const [surveyPage, setSurveyPage] = useState(1);
+  const [surveyMeta, setSurveyMeta] = useState(null);
+  const [surveyStats, setSurveyStats] = useState(null);
+  const [surveyEnabled, setSurveyEnabled] = useState(true);
+  const [togglingSurvey, setTogglingSurvey] = useState(false);
 
   const fetchHomepageData = useCallback(async () => {
     setLoadingHomepage(true);
@@ -416,6 +426,41 @@ const Admin = () => {
     }
   }, []);
 
+  const fetchSurveyResponses = useCallback(async (page = 1, search = '') => {
+    setLoadingSurvey(true);
+    try {
+      const res = await admin.getInternshipSurvey(page, 15, search);
+      setSurveyResponses(res?.data ?? []);
+      setSurveyMeta(res?.meta ?? null);
+      setSurveyStats(res?.stats ?? null);
+      setSurveyEnabled(res?.enabled ?? true);
+    } catch (err) {
+      showToast(err.message || 'Failed to load survey responses', 'error');
+    } finally {
+      setLoadingSurvey(false);
+    }
+  }, []);
+
+  const handleToggleSurvey = async () => {
+    setTogglingSurvey(true);
+    try {
+      const res = await admin.toggleInternshipSurvey();
+      // Since it toggles visual flag in HomepageSection
+      setSurveyEnabled(res?.visible ?? !surveyEnabled);
+      showToast(res?.visible ? 'Internship survey feature enabled!' : 'Internship survey feature disabled.');
+    } catch (err) {
+      showToast(err.message || 'Failed to toggle survey feature', 'error');
+    } finally {
+      setTogglingSurvey(false);
+    }
+  };
+
+  const handleSurveySearch = (e) => {
+    e.preventDefault();
+    setSurveyPage(1);
+    fetchSurveyResponses(1, surveySearch);
+  };
+
   useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
   useEffect(() => {
     if (activeTab === 'events') fetchPending();
@@ -424,6 +469,7 @@ const Admin = () => {
     if (activeTab === 'organizer') fetchOrgRequests();
     if (activeTab === 'recentUsers') fetchRecentUsers(1);
     if (activeTab === 'homepage') fetchHomepageData();
+    if (activeTab === 'internships') fetchSurveyResponses(1);
   }, [activeTab]);
 
   // ── Actions ──
@@ -511,6 +557,7 @@ const Admin = () => {
     { key: 'recentUsers', label: 'Recent Users', icon: Users },
     { key: 'users', label: 'All Users', icon: SlidersHorizontal },
     { key: 'homepage', label: 'Homepage Config', icon: Settings },
+    { key: 'internships', label: 'Internship Survey', icon: Briefcase },
   ];
 
   const statCards = stats ? [
@@ -1654,6 +1701,193 @@ const Admin = () => {
                     )}
                   </div>
                 </div>
+              )}
+            </div>
+          )}
+
+
+          {/* ── INTERNSHIP SURVEY TAB ── */}
+          {activeTab === 'internships' && (
+            <div className="space-y-6 pt-20">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h1 className="text-white text-xl font-bold flex items-center gap-2">
+                    <Briefcase className="w-5 h-5 text-[#00ff88]" />
+                    Internship Survey Manager
+                  </h1>
+                  <p className="text-gray-400 text-xs mt-1">Manage survey popups and view student interest responses.</p>
+                </div>
+                
+                {/* Enable/Disable Feature Switch Card */}
+                <div className="flex items-center gap-4 bg-[#0d2f2f] border border-[#1a4d4d] px-5 py-3 rounded-2xl">
+                  <div className="flex flex-col">
+                    <span className="text-white text-sm font-semibold">Survey Popup Feature</span>
+                    <span className="text-gray-400 text-xs mt-0.5">
+                      {surveyEnabled ? 'Active (Displaying to users)' : 'Inactive (Hidden)'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleToggleSurvey}
+                    disabled={togglingSurvey}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ff88] focus:ring-offset-2 focus:ring-offset-[#0d2f2f]
+                      ${surveyEnabled ? 'bg-[#00ff88]' : 'bg-[#1a4d4d]'} ${togglingSurvey ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200
+                        ${surveyEnabled ? 'translate-x-6' : 'translate-x-1'}`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {loadingSurvey && !surveyStats ? (
+                <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-[#00ff88] animate-spin" /></div>
+              ) : (
+                <>
+                  {/* Stats Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] p-5 rounded-2xl">
+                      <p className="text-gray-400 text-xs font-medium uppercase tracking-wider">Total Responses</p>
+                      <h3 className="text-white text-2xl font-bold mt-2">{surveyStats?.total || 0}</h3>
+                      <p className="text-gray-500 text-[10px] mt-1">Total submitted user feedback</p>
+                    </div>
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] p-5 rounded-2xl border-l-4 border-l-green-500">
+                      <p className="text-gray-400 text-xs font-medium uppercase tracking-wider">Interested</p>
+                      <h3 className="text-green-400 text-2xl font-bold mt-2">{surveyStats?.interested || 0}</h3>
+                      <p className="text-gray-500 text-[10px] mt-1">Students seeking internships</p>
+                    </div>
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] p-5 rounded-2xl border-l-4 border-l-red-500">
+                      <p className="text-gray-400 text-xs font-medium uppercase tracking-wider">Not Interested</p>
+                      <h3 className="text-red-400 text-2xl font-bold mt-2">{surveyStats?.notInterested || 0}</h3>
+                      <p className="text-gray-500 text-[10px] mt-1">Declined internship popups</p>
+                    </div>
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] p-5 rounded-2xl border-l-4 border-l-[#00ff88]">
+                      <p className="text-gray-400 text-xs font-medium uppercase tracking-wider">Conversion Rate</p>
+                      <h3 className="text-[#00ff88] text-2xl font-bold mt-2">
+                        {surveyStats?.total ? ((surveyStats.interested / surveyStats.total) * 100).toFixed(1) : '0.0'}%
+                      </h3>
+                      <p className="text-gray-500 text-[10px] mt-1">Percentage of positive responses</p>
+                    </div>
+                  </div>
+
+                  {/* Domain Breakdown */}
+                  {surveyStats?.domainCounts && Object.keys(surveyStats.domainCounts).length > 0 && (
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                      <h2 className="text-white text-lg font-semibold mb-4">Preferred Domains Breakdown</h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {Object.entries(surveyStats.domainCounts).map(([domain, count]) => (
+                          <div key={domain} className="bg-[#061818]/60 border border-[#1a4d4d] p-4 rounded-xl flex justify-between items-center hover:border-[#00ff88]/30 transition-all">
+                            <span className="text-gray-300 text-sm font-medium">{domain}</span>
+                            <span className="bg-[#00ff88]/10 text-[#00ff88] text-xs font-bold px-2.5 py-1 rounded-lg border border-[#00ff88]/20">
+                              {count} students
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Table with search and pagination */}
+                  <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+                      <h2 className="text-white text-lg font-semibold">User Responses</h2>
+                      
+                      <form onSubmit={handleSurveySearch} className="sm:ml-auto flex gap-2 w-full sm:w-auto">
+                        <div className="relative flex-1 sm:w-64">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            value={surveySearch}
+                            onChange={e => setSurveySearch(e.target.value)}
+                            placeholder="Search by name or email…"
+                            className="w-full bg-[#061818]/60 border border-[#1a4d4d] text-white placeholder-gray-500 py-2 pl-9 pr-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all text-xs"
+                          />
+                        </div>
+                        <button type="submit" className="bg-[#00ff88] text-[#0a1f1f] font-bold px-4 py-2 rounded-xl hover:bg-[#00cc70] transition-all text-xs">
+                          Search
+                        </button>
+                      </form>
+                    </div>
+
+                    {loadingSurvey ? (
+                      <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-[#00ff88] animate-spin" /></div>
+                    ) : surveyResponses.length === 0 ? (
+                      <p className="text-gray-500 text-center py-8">No responses found.</p>
+                    ) : (
+                      <>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-[#1a4d4d] bg-[#061818]/60">
+                                <th className="text-left text-gray-400 font-medium px-4 py-3">Student Name</th>
+                                <th className="text-left text-gray-400 font-medium px-4 py-3">Email</th>
+                                <th className="text-left text-gray-400 font-medium px-4 py-3">Interested?</th>
+                                <th className="text-left text-gray-400 font-medium px-4 py-3">Preferred Domains</th>
+                                <th className="text-left text-gray-400 font-medium px-4 py-3">Date Submitted</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {surveyResponses.map((res) => (
+                                <tr key={res.id} className="border-b border-[#1a4d4d]/60 last:border-0 hover:bg-[#1a4d4d]/10 transition-colors">
+                                  <td className="px-4 py-3 text-white font-medium">{res.name || '—'}</td>
+                                  <td className="px-4 py-3 text-gray-400">{res.email}</td>
+                                  <td className="px-4 py-3">
+                                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border 
+                                      ${res.internshipInterest 
+                                        ? 'bg-green-950/20 text-green-400 border-green-500/40' 
+                                        : 'bg-red-950/20 text-red-400 border-red-500/40'}`}
+                                    >
+                                      {res.internshipInterest ? 'Yes' : 'No'}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 max-w-[250px]">
+                                    {res.internshipInterest && res.internshipDomains?.length > 0 ? (
+                                      <div className="flex flex-wrap gap-1">
+                                        {res.internshipDomains.map((dom, i) => (
+                                          <span key={i} className="bg-[#1a4d4d]/30 text-lime-400 text-[10px] px-1.5 py-0.5 rounded border border-[#1a4d4d]">
+                                            {dom}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <span className="text-gray-500 text-xs">—</span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-400 text-xs">{fmtDate(res.createdAt)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Pagination */}
+                        {surveyMeta && surveyMeta.totalPages > 1 && (
+                          <div className="flex items-center justify-between mt-6">
+                            <p className="text-gray-500 text-xs">
+                              Page {surveyMeta.page} of {surveyMeta.totalPages}
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                disabled={surveyPage <= 1}
+                                onClick={() => { const p = surveyPage - 1; setSurveyPage(p); fetchSurveyResponses(p, surveySearch); }}
+                                className="p-2 bg-[#0d2f2f] border border-[#1a4d4d] rounded-xl text-gray-400 hover:text-white disabled:opacity-40 transition-all"
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
+                              <button
+                                disabled={surveyPage >= surveyMeta.totalPages}
+                                onClick={() => { const p = surveyPage + 1; setSurveyPage(p); fetchSurveyResponses(p, surveySearch); }}
+                                className="p-2 bg-[#0d2f2f] border border-[#1a4d4d] rounded-xl text-gray-400 hover:text-white disabled:opacity-40 transition-all"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           )}

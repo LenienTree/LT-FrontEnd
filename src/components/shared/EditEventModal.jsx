@@ -377,7 +377,6 @@ const EditEventModal = ({ isOpen, eventToEdit, onClose, onSuccess }) => {
                   <option value="NONE">No Prize</option>
                   <option value="CASH">Cash Prize</option>
                   <option value="MERCH">Merchandise</option>
-                  <option value="POINTS">Points</option>
                 </select>
               </div>
               {editForm.prizeType && editForm.prizeType !== 'NONE' && (

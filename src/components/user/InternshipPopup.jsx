@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { users } from "../../services/api";
+import { users, homepage } from "../../services/api";
 import { X, CheckCircle2, ChevronRight, Briefcase, Sparkles } from "lucide-react";
 
 export default function InternshipPopup() {
@@ -16,6 +16,7 @@ export default function InternshipPopup() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [dismissed, setDismissed] = useState(false);
+  const [enabled, setEnabled] = useState(true);
 
   // Available pre-defined domains
   const availableDomains = [
@@ -25,6 +26,24 @@ export default function InternshipPopup() {
     "Artificial Intelligence (AI)",
     "Data Science"
   ];
+
+  // Check if internship survey popup feature is enabled
+  useEffect(() => {
+    const checkEnabled = async () => {
+      try {
+        const data = await homepage.get();
+        const surveySection = data.sections?.find(s => s.key === 'internship_survey');
+        if (surveySection) {
+          setEnabled(surveySection.visible);
+        }
+      } catch (err) {
+        console.error("Failed to check if internship popup is enabled:", err);
+      }
+    };
+    if (isAuthenticated && !loading) {
+      checkEnabled();
+    }
+  }, [isAuthenticated, loading]);
 
   // Initialize dismissed state from sessionStorage so it doesn't annoy user during active session
   useEffect(() => {
@@ -57,7 +76,8 @@ export default function InternshipPopup() {
     user.internshipInterest === null && 
     age !== null &&
     age < 23 &&
-    !dismissed;
+    !dismissed &&
+    enabled;
 
   if (!shouldShow) return null;
 
@@ -162,7 +182,6 @@ export default function InternshipPopup() {
                 <h3 className="text-white font-bold text-lg leading-snug">
                   Interested in Internship Opportunities?
                 </h3>
-                <p className="text-xs text-gray-400 mt-0.5">Let us know to match you with top partners.</p>
               </div>
             </div>
 

@@ -684,7 +684,7 @@ const OrganizeEvent = () => {
                                         Prize of the event <span className="text-red-400">*</span>
                                     </label>
                                     <div className="flex flex-wrap gap-4">
-                                        {['No prize', 'Cash prize', 'Merchandise', 'Activity points'].map((prize) => (
+                                        {['No prize', 'Cash prize', 'Merchandise'].map((prize) => (
                                             <label
                                                 key={prize}
                                                 className={`flex items-center gap-3 px-6 py-3 border-2 rounded-xl cursor-pointer transition-all duration-300 ${eventData.prizeType === prize
@@ -710,9 +710,8 @@ const OrganizeEvent = () => {
                                 {eventData.prizeType !== 'No prize' && (
                                     <div className="mb-8">
                                         <label className="text-white text-sm mb-3 block">
-                                            {eventData.prizeType === 'Cash prize' && 'Cash prize amount/ Activity point count/ Merchandise count'}
-                                            {eventData.prizeType === 'Activity points' && 'Cash prize amount/ Activity point count/ Merchandise count'}
-                                            {eventData.prizeType === 'Merchandise' && 'Cash prize amount/ Activity point count/ Merchandise count'}
+                                            {eventData.prizeType === 'Cash prize' && 'Cash prize amount/ Merchandise count'}
+                                            {eventData.prizeType === 'Merchandise' && 'Cash prize amount/ Merchandise count'}
                                         </label>
                                         <p className="text-gray-500 text-xs mb-3">(If more than 1 type of prize, separate prizes using slash /)</p>
                                         <input
@@ -720,7 +719,7 @@ const OrganizeEvent = () => {
                                             name="prizeDetails"
                                             value={eventData.prizeDetails}
                                             onChange={handleInputChange}
-                                            placeholder="5 000/ 20 XP / 50 merch to selected participants"
+                                            placeholder="5 000 / 50 merch to selected participants"
                                             className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
                                         />
                                     </div>

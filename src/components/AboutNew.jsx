@@ -590,7 +590,7 @@ function AboutNew() {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            backgroundColor: "white",
+            backgroundColor: "#022f2e",
             zIndex: 9999,
             transition: "transform 1s ease, opacity 0.5s ease",
             transform: exiting ? "translateY(-100%)" : "translateY(0)",

@@ -99,3 +99,8 @@
 .animate-scroll-right {
   animation: scroll-right 30s linear infinite;
 }
+
+html, body {
+  background-color: #022f2e;
+  color: white;
+}

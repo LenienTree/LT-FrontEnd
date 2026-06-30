@@ -845,7 +845,6 @@ const EditEventPage = () => {
                         <option value="NONE">No Prize</option>
                         <option value="CASH">Cash Prize Pool</option>
                         <option value="MERCH">Swag / Merch</option>
-                        <option value="POINTS">Credits / Rank Points</option>
                       </select>
                     </div>
                     {infoForm.prizeType !== 'NONE' && (
