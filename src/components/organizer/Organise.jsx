@@ -169,7 +169,7 @@ export default function Organize() {
           <div className="mb-4 sm:mb-6">
             <label className="block text-sm mb-3">Type of event *</label>
             <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
-              {['Regular talk', 'Hackathon', 'Conclave', 'Webinar', 'Other'].map((type) => (
+              {['Regular talk', 'Hackathon', 'Techfest', 'Webinar', 'Other'].map((type) => (
                 <label key={type} className="flex items-center cursor-pointer">
                   <input
                     type="radio"

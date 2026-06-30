@@ -10,7 +10,7 @@ export const dummyEventsData = [
   },
   {
     id: 2,
-    title: "Web3 Conclave",
+    title: "Web3 Techfest",
     prizePool: "$ 50K Prize Pool",
     location: "Bangalore",
     participants: "5000+",

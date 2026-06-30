@@ -18,6 +18,7 @@ const OrganizeEvent = () => {
         eventTheme: '',
         modeOfConduct: 'Offline',
         eventLocation: '',
+        mapLink: '',
         eventAccess: 'Free',
         eventStartDate: '',
         eventEndDate: '',
@@ -61,6 +62,47 @@ const OrganizeEvent = () => {
     const [registrationId, setRegistrationId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
+    const [fieldErrors, setFieldErrors] = useState({});
+
+    const getFieldError = (fieldName) => {
+        const mappings = {
+            eventName: ['eventName', 'title'],
+            eventSubtitle: ['eventSubtitle', 'subtitle'],
+            eventType: ['eventType', 'category'],
+            eventTheme: ['eventTheme', 'theme'],
+            modeOfConduct: ['modeOfConduct', 'mode'],
+            eventLocation: ['eventLocation', 'venueName', 'location.venueName'],
+            mapLink: ['mapLink', 'location.mapLink'],
+            eventStartDate: ['eventStartDate', 'startDate'],
+            eventEndDate: ['eventEndDate', 'endDate'],
+            registrationDeadline: ['registrationDeadline', 'registrationDeadline'],
+            eventDescription: ['eventDescription', 'description'],
+            prizeType: ['prizeType', 'prizeType'],
+            prizeDetails: ['prizeDetails', 'prizeAmount'],
+            ticketPrice: ['ticketPrice'],
+            minTeamSize: ['minTeamSize'],
+            maxTeamSize: ['maxTeamSize'],
+            eventPoster: ['eventPoster', 'poster'],
+            participantLimit: ['participantLimit', 'maxParticipants'],
+            upiId: ['upiId'],
+            upiQrCode: ['upiQrCode'],
+            externalWebsiteLink: ['externalWebsiteLink'],
+            termsAccepted: ['termsAccepted', 'agreedToTerms']
+        };
+
+        const keys = mappings[fieldName] || [fieldName];
+        for (const key of keys) {
+            if (fieldErrors[key]) return fieldErrors[key];
+        }
+        return null;
+    };
+
+    const getInputClass = (fieldName) => {
+        const hasErr = !!getFieldError(fieldName);
+        return `w-full bg-transparent border-2 ${
+            hasErr ? 'border-red-500/80 focus:border-red-500' : 'border-[#1a4d4d] focus:border-[#00ff88]'
+        } text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none transition-all duration-300`;
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -68,6 +110,34 @@ const OrganizeEvent = () => {
             ...prev,
             [name]: value
         }));
+
+        // Clear field error on change
+        if (fieldErrors[name]) {
+            setFieldErrors(prev => ({ ...prev, [name]: undefined }));
+        }
+        // Also check mappings to clear associated backend error
+        const mappings = {
+            eventName: 'title',
+            eventSubtitle: 'subtitle',
+            eventType: 'category',
+            eventTheme: 'theme',
+            modeOfConduct: 'mode',
+            eventLocation: 'location.venueName',
+            mapLink: 'location.mapLink',
+            eventStartDate: 'startDate',
+            eventEndDate: 'endDate',
+            registrationDeadline: 'registrationDeadline',
+            eventDescription: 'description',
+            prizeType: 'prizeType',
+            prizeDetails: 'prizeAmount',
+            participantLimit: 'maxParticipants',
+            upiId: 'upiId',
+            externalWebsiteLink: 'externalWebsiteLink'
+        };
+        const mapped = mappings[name];
+        if (mapped && fieldErrors[mapped]) {
+            setFieldErrors(prev => ({ ...prev, [mapped]: undefined }));
+        }
     };
 
     // FAQ handlers
@@ -77,6 +147,10 @@ const OrganizeEvent = () => {
             updated[index] = { ...updated[index], [field]: value };
             return { ...prev, faqs: updated };
         });
+        const path = `faqs.${index}.${field}`;
+        if (fieldErrors[path]) {
+            setFieldErrors(prev => ({ ...prev, [path]: undefined }));
+        }
     };
     const addFaq = () => {
         setEventData(prev => ({
@@ -89,6 +163,13 @@ const OrganizeEvent = () => {
             ...prev,
             faqs: prev.faqs.filter((_, i) => i !== index)
         }));
+        // Clean up errors for removed FAQ
+        setFieldErrors(prev => {
+            const copy = { ...prev };
+            delete copy[`faqs.${index}.question`];
+            delete copy[`faqs.${index}.answer`];
+            return copy;
+        });
     };
 
     // Announcement handlers
@@ -98,6 +179,10 @@ const OrganizeEvent = () => {
             updated[index] = { ...updated[index], [field]: value };
             return { ...prev, announcements: updated };
         });
+        const path = `announcements.${index}.${field}`;
+        if (fieldErrors[path]) {
+            setFieldErrors(prev => ({ ...prev, [path]: undefined }));
+        }
     };
     const addAnnouncement = () => {
         setEventData(prev => ({
@@ -110,13 +195,197 @@ const OrganizeEvent = () => {
             ...prev,
             announcements: prev.announcements.filter((_, i) => i !== index)
         }));
+        // Clean up errors for removed announcement
+        setFieldErrors(prev => {
+            const copy = { ...prev };
+            delete copy[`announcements.${index}.title`];
+            delete copy[`announcements.${index}.content`];
+            delete copy[`announcements.${index}.publishDate`];
+            return copy;
+        });
+    };
+
+    const validateStep1 = () => {
+        const errors = {};
+
+        // Title
+        if (!eventData.eventName || eventData.eventName.trim().length < 3) {
+            errors.eventName = 'Event name must be at least 3 characters.';
+        } else if (eventData.eventName.length > 200) {
+            errors.eventName = 'Event name cannot exceed 200 characters.';
+        }
+
+        // Subtitle
+        if (!eventData.eventSubtitle || eventData.eventSubtitle.trim().length === 0) {
+            errors.eventSubtitle = 'Event subtitle is required.';
+        } else if (eventData.eventSubtitle.length > 300) {
+            errors.eventSubtitle = 'Event subtitle cannot exceed 300 characters.';
+        }
+
+        // Theme
+        if (eventData.eventTheme && eventData.eventTheme.length > 200) {
+            errors.eventTheme = 'Theme cannot exceed 200 characters.';
+        }
+
+        // Location & mapLink
+        if (eventData.modeOfConduct === 'Offline') {
+            if (!eventData.eventLocation || eventData.eventLocation.trim().length === 0) {
+                errors.eventLocation = 'Venue name or address is required for offline events.';
+            }
+            if (eventData.mapLink && eventData.mapLink.trim().length > 0) {
+                let mapsLink = eventData.mapLink.trim();
+                if (!mapsLink.startsWith('http://') && !mapsLink.startsWith('https://')) {
+                    mapsLink = 'https://' + mapsLink;
+                }
+                try {
+                    new URL(mapsLink);
+                } catch (_) {
+                    errors.mapLink = 'Please enter a valid URL (e.g., https://maps.google.com/...)';
+                }
+            }
+        } else {
+            // Online mode: mapLink is optional but if provided must be valid URL
+            if (eventData.mapLink && eventData.mapLink.trim().length > 0) {
+                let mapsLink = eventData.mapLink.trim();
+                if (!mapsLink.startsWith('http://') && !mapsLink.startsWith('https://')) {
+                    mapsLink = 'https://' + mapsLink;
+                }
+                try {
+                    new URL(mapsLink);
+                } catch (_) {
+                    errors.mapLink = 'Please enter a valid URL (e.g., https://zoom.us/...)';
+                }
+            }
+        }
+
+        // Dates
+        if (!eventData.eventStartDate) {
+            errors.eventStartDate = 'Start date is required.';
+        }
+        if (!eventData.eventEndDate) {
+            errors.eventEndDate = 'End date is required.';
+        }
+        if (!eventData.eventTime) {
+            errors.eventTime = 'Event start time is required.';
+        }
+        if (!eventData.registrationDeadline) {
+            errors.registrationDeadline = 'Registration deadline is required.';
+        }
+
+        if (eventData.eventStartDate && eventData.eventEndDate) {
+            const start = new Date(eventData.eventStartDate);
+            const end = new Date(eventData.eventEndDate);
+            if (end < start) {
+                errors.eventEndDate = 'End date cannot be earlier than start date.';
+            }
+        }
+
+        if (eventData.eventStartDate && eventData.registrationDeadline) {
+            const start = new Date(eventData.eventStartDate);
+            const deadline = new Date(eventData.registrationDeadline);
+            if (deadline > start) {
+                errors.registrationDeadline = 'Registration deadline cannot be after the start date.';
+            }
+        }
+
+        // Team Size
+        if (eventData.registrationType === 'Group') {
+            const minSize = parseInt(eventData.minTeamSize) || 1;
+            const maxSize = parseInt(eventData.maxTeamSize) || 1;
+            if (minSize < 1) {
+                errors.minTeamSize = 'Minimum team size must be at least 1.';
+            }
+            if (maxSize < minSize) {
+                errors.maxTeamSize = 'Maximum team size must be greater than or equal to minimum team size.';
+            }
+        }
+
+        // Description
+        if (!eventData.eventDescription || eventData.eventDescription.trim().length < 10) {
+            errors.eventDescription = 'Description is required and must be at least 10 characters.';
+        }
+
+        // Poster
+        if (!eventData.eventPoster) {
+            errors.eventPoster = 'Event poster image is required.';
+        }
+
+        // FAQs
+        eventData.faqs.forEach((faq, index) => {
+            const hasQuestion = faq.question.trim().length > 0;
+            const hasAnswer = faq.answer.trim().length > 0;
+            if (hasQuestion || hasAnswer) {
+                if (faq.question.trim().length < 5) {
+                    errors[`faqs.${index}.question`] = 'Question must be at least 5 characters.';
+                }
+                if (faq.answer.trim().length < 5) {
+                    errors[`faqs.${index}.answer`] = 'Answer must be at least 5 characters.';
+                }
+            }
+        });
+
+        // Announcements
+        eventData.announcements.forEach((ann, index) => {
+            const hasTitle = ann.title.trim().length > 0;
+            const hasContent = ann.content.trim().length > 0;
+            if (hasTitle || hasContent) {
+                if (ann.title.trim().length < 2) {
+                    errors[`announcements.${index}.title`] = 'Title must be at least 2 characters.';
+                }
+                if (ann.content.trim().length < 5) {
+                    errors[`announcements.${index}.content`] = 'Content must be at least 5 characters.';
+                }
+            }
+        });
+
+        return errors;
+    };
+
+    const validateStep2 = () => {
+        const errors = {};
+
+        if (eventData.participantLimit) {
+            const limit = parseInt(eventData.participantLimit);
+            if (isNaN(limit) || limit < 1) {
+                errors.participantLimit = 'Participant limit must be a positive integer.';
+            }
+        }
+
+        if (eventData.paymentType === 'MANUAL_UPI') {
+            if (!eventData.upiId || eventData.upiId.trim().length === 0) {
+                errors.upiId = 'UPI ID is required for MANUAL UPI payment.';
+            } else {
+                const upiPattern = /^[\w.-]+@[\w.-]+$/;
+                if (!upiPattern.test(eventData.upiId.trim())) {
+                    errors.upiId = 'Please enter a valid UPI ID (e.g. name@upi)';
+                }
+            }
+            if (!eventData.upiQrCode) {
+                errors.upiQrCode = 'UPI QR Code image is required for MANUAL UPI payment.';
+            }
+        }
+
+        if (!eventData.termsAccepted) {
+            errors.termsAccepted = 'You must accept the terms and conditions.';
+        }
+
+        return errors;
     };
 
     const handleSubmit = async (e) => {
         if (e && e.preventDefault) e.preventDefault();
         setError(null);
+        setFieldErrors({});
 
         if (currentStep === 1) {
+            const clientErrors = validateStep1();
+            if (Object.keys(clientErrors).length > 0) {
+                setFieldErrors(clientErrors);
+                setError('Validation failed. Please correct the highlighted errors.');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+
             try {
                 setIsSubmitting(true);
                 // Parse dates
@@ -140,6 +409,11 @@ const OrganizeEvent = () => {
                     }
                 } catch (err) { console.error('Date parse error', err); }
 
+                let mapsLink = eventData.mapLink ? eventData.mapLink.trim() : undefined;
+                if (mapsLink && !mapsLink.startsWith('http://') && !mapsLink.startsWith('https://')) {
+                    mapsLink = 'https://' + mapsLink;
+                }
+
                 const step1Payload = {
                     title: eventData.eventName,
                     subtitle: eventData.eventSubtitle || undefined,
@@ -147,7 +421,8 @@ const OrganizeEvent = () => {
                     theme: eventData.eventTheme || undefined,
                     mode: eventData.modeOfConduct.toUpperCase(),
                     location: {
-                        mapLink: eventData.eventLocation || undefined
+                        venueName: eventData.eventLocation || undefined,
+                        mapLink: mapsLink || undefined
                     },
                     registrationType: eventData.registrationType.toUpperCase(),
                     minTeamSize: eventData.registrationType === 'Group' ? parseInt(eventData.minTeamSize) || 1 : undefined,
@@ -183,12 +458,29 @@ const OrganizeEvent = () => {
                 setCurrentStep(2);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } catch (err) {
-                setError(err.message || 'Failed to create event. Please ensure all required fields are filled.');
+                if (err.errors && Array.isArray(err.errors)) {
+                    const validationErrors = {};
+                    err.errors.forEach(issue => {
+                        validationErrors[issue.field] = issue.message;
+                    });
+                    setFieldErrors(validationErrors);
+                    setError('Validation failed. Please correct the highlighted errors.');
+                } else {
+                    setError(err.message || 'Failed to create event. Please ensure all required fields are filled.');
+                }
                 console.error(err);
             } finally {
                 setIsSubmitting(false);
             }
         } else if (currentStep === 2) {
+            const clientErrors = validateStep2();
+            if (Object.keys(clientErrors).length > 0) {
+                setFieldErrors(clientErrors);
+                setError('Please fix the validation errors below before submitting.');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+
             try {
                 setIsSubmitting(true);
                 if (!eventData.termsAccepted) return;
@@ -236,7 +528,16 @@ const OrganizeEvent = () => {
                 setCurrentStep(3);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } catch (err) {
-                setError(err.message || 'Failed to submit event design and configuration.');
+                if (err.errors && Array.isArray(err.errors)) {
+                    const validationErrors = {};
+                    err.errors.forEach(issue => {
+                        validationErrors[issue.field] = issue.message;
+                    });
+                    setFieldErrors(validationErrors);
+                    setError('Validation failed. Please correct the highlighted errors.');
+                } else {
+                    setError(err.message || 'Failed to submit event design and configuration.');
+                }
                 console.error(err);
             } finally {
                 setIsSubmitting(false);
@@ -309,8 +610,41 @@ const OrganizeEvent = () => {
                         </div>
 
                         {error && (
-                            <div className="mb-8 p-4 bg-red-500/10 border-2 border-red-500/50 rounded-xl text-red-400">
-                                {error}
+                            <div className="mb-8 p-4 bg-red-500/10 border-2 border-red-500/50 rounded-xl text-red-400 flex flex-col gap-2">
+                                <span className="font-semibold text-lg">{error}</span>
+                                {Object.keys(fieldErrors).length > 0 && (
+                                    <ul className="list-disc pl-5 text-sm space-y-1">
+                                        {Object.entries(fieldErrors).map(([field, msg]) => {
+                                            let readableField = field
+                                                .replace('title', 'Event Name')
+                                                .replace('eventName', 'Event Name')
+                                                .replace('subtitle', 'Subtitle')
+                                                .replace('eventSubtitle', 'Subtitle')
+                                                .replace('description', 'Description')
+                                                .replace('eventDescription', 'Description')
+                                                .replace('location.mapLink', 'Google Map Link')
+                                                .replace('mapLink', 'Google Map Link')
+                                                .replace('venueName', 'Venue Name')
+                                                .replace('eventLocation', 'Venue Name')
+                                                .replace('startDate', 'Start Date')
+                                                .replace('eventStartDate', 'Start Date')
+                                                .replace('endDate', 'End Date')
+                                                .replace('eventEndDate', 'End Date')
+                                                .replace('registrationDeadline', 'Registration Deadline')
+                                                .replace(/faqs\.(\d+)\.question/, (_, i) => `FAQ #${parseInt(i)+1} Question`)
+                                                .replace(/faqs\.(\d+)\.answer/, (_, i) => `FAQ #${parseInt(i)+1} Answer`)
+                                                .replace(/announcements\.(\d+)\.title/, (_, i) => `Announcement #${parseInt(i)+1} Title`)
+                                                .replace(/announcements\.(\d+)\.content/, (_, i) => `Announcement #${parseInt(i)+1} Content`);
+                                            
+                                            readableField = readableField.charAt(0).toUpperCase() + readableField.slice(1);
+                                            return (
+                                                <li key={field}>
+                                                    <strong>{readableField}:</strong> {msg}
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                )}
                             </div>
                         )}
 
@@ -328,9 +662,12 @@ const OrganizeEvent = () => {
                                         value={eventData.eventName}
                                         onChange={handleInputChange}
                                         placeholder="ThinkerRoot"
-                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                        className={getInputClass('eventName')}
                                         required
                                     />
+                                    {getFieldError('eventName') && (
+                                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('eventName')}</p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="text-white text-sm mb-3 block">
@@ -342,9 +679,12 @@ const OrganizeEvent = () => {
                                         value={eventData.eventSubtitle}
                                         onChange={handleInputChange}
                                         placeholder="This will be the subtext shown under the event name"
-                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                        className={getInputClass('eventSubtitle')}
                                         required
                                     />
+                                    {getFieldError('eventSubtitle') && (
+                                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('eventSubtitle')}</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -353,8 +693,8 @@ const OrganizeEvent = () => {
                                 <label className="text-white text-sm mb-4 block">
                                     Type of event <span className="text-red-400">*</span>
                                 </label>
-                                <div className="flex flex-wrap justify-between  gap-4 border-2 border-[#1a4d4d]">
-                                    {['Hackathon', 'Ideathon', 'Conclave', 'Webinar', 'Other'].map((type) => (
+                                <div className={`flex flex-wrap justify-between gap-4 border-2 ${getFieldError('eventType') ? 'border-red-500' : 'border-[#1a4d4d]'} rounded-xl p-2`}>
+                                    {['Hackathon', 'Ideathon', 'Techfest', 'Webinar', 'Other'].map((type) => (
                                         <label
                                             key={type}
                                             className={`flex items-center gap-3 px-6 py-3  rounded-xl cursor-pointer transition-all duration-300 ${eventData.eventType === type
@@ -374,6 +714,9 @@ const OrganizeEvent = () => {
                                         </label>
                                     ))}
                                 </div>
+                                {getFieldError('eventType') && (
+                                    <p className="text-red-400 text-xs mt-1.5">{getFieldError('eventType')}</p>
+                                )}
                             </div>
 
                             {/* Row 2: Theme and Mode of Conduct */}
@@ -388,15 +731,18 @@ const OrganizeEvent = () => {
                                         value={eventData.eventTheme}
                                         onChange={handleInputChange}
                                         placeholder="Sustainability, Web 3, AR/VR, etc..."
-                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                        className={getInputClass('eventTheme')}
                                         required
                                     />
+                                    {getFieldError('eventTheme') && (
+                                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('eventTheme')}</p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="text-white text-sm mb-4 block">
                                         Mode of Conduct <span className="text-red-400">*</span>
                                     </label>
-                                    <div className="flex gap-4 border-2 border-[#1a4d4d]">
+                                    <div className={`flex gap-4 border-2 ${getFieldError('modeOfConduct') ? 'border-red-500' : 'border-[#1a4d4d]'} rounded-xl p-2`}>
                                         {['Online', 'Offline'].map((mode) => (
                                             <label
                                                 key={mode}
@@ -417,6 +763,9 @@ const OrganizeEvent = () => {
                                             </label>
                                         ))}
                                     </div>
+                                    {getFieldError('modeOfConduct') && (
+                                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('modeOfConduct')}</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -461,9 +810,12 @@ const OrganizeEvent = () => {
                                                 value={eventData.minTeamSize}
                                                 onChange={handleInputChange}
                                                 min="1"
-                                                className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                className={getInputClass('minTeamSize')}
                                                 required
                                             />
+                                            {getFieldError('minTeamSize') && (
+                                                <p className="text-red-400 text-xs mt-1.5">{getFieldError('minTeamSize')}</p>
+                                            )}
                                         </div>
                                         <div className="flex-1">
                                             <label className="text-white text-sm mb-3 block">
@@ -475,9 +827,12 @@ const OrganizeEvent = () => {
                                                 value={eventData.maxTeamSize}
                                                 onChange={handleInputChange}
                                                 min="1"
-                                                className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                className={getInputClass('maxTeamSize')}
                                                 required
                                             />
+                                            {getFieldError('maxTeamSize') && (
+                                                <p className="text-red-400 text-xs mt-1.5">{getFieldError('maxTeamSize')}</p>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -485,19 +840,40 @@ const OrganizeEvent = () => {
 
                             {/* Row 3: Location and Event Access */}
                             <div className="grid lg:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="text-white text-sm mb-3 block">
-                                        Location of the event <span className="text-red-400">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="eventLocation"
-                                        value={eventData.eventLocation}
-                                        onChange={handleInputChange}
-                                        placeholder="Google map location link"
-                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
-                                        required
-                                    />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-white text-sm mb-3 block">
+                                            Venue Name / Address <span className="text-red-400">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="eventLocation"
+                                            value={eventData.eventLocation}
+                                            onChange={handleInputChange}
+                                            placeholder={eventData.modeOfConduct === 'Online' ? 'e.g. Zoom, Google Meet' : 'e.g. College Hall, Auditorium'}
+                                            className={getInputClass('eventLocation')}
+                                            required
+                                        />
+                                        {getFieldError('eventLocation') && (
+                                            <p className="text-red-400 text-xs mt-1.5">{getFieldError('eventLocation')}</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="text-white text-sm mb-3 block">
+                                            Link / Map Link <span className="text-gray-400">(Optional)</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="mapLink"
+                                            value={eventData.mapLink}
+                                            onChange={handleInputChange}
+                                            placeholder={eventData.modeOfConduct === 'Online' ? 'https://zoom.us/j/...' : 'https://maps.google.com/...'}
+                                            className={getInputClass('mapLink')}
+                                        />
+                                        {getFieldError('mapLink') && (
+                                            <p className="text-red-400 text-xs mt-1.5">{getFieldError('mapLink')}</p>
+                                        )}
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="text-white text-sm mb-4 block">
@@ -541,16 +917,19 @@ const OrganizeEvent = () => {
                                             onChange={handleInputChange}
                                             placeholder="499"
                                             min="0"
-                                            className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                            className={getInputClass('ticketPrice')}
                                             required
                                         />
                                         <p className="text-gray-500 text-xs mt-2">Enter the price per participant in INR</p>
+                                        {getFieldError('ticketPrice') && (
+                                            <p className="text-red-400 text-xs mt-1.5">{getFieldError('ticketPrice')}</p>
+                                        )}
                                     </div>
                                 </div>
                             )}
 
                             {/* Date & Time Section */}
-                            <div className="border-2 border-[#1a4d4d] rounded-xl p-6">
+                            <div className={`border-2 ${getFieldError('eventStartDate') || getFieldError('eventEndDate') || getFieldError('eventTime') || getFieldError('registrationDeadline') ? 'border-red-500 bg-red-500/5' : 'border-[#1a4d4d]'} rounded-xl p-6`}>
                                 <label className="text-white text-sm mb-4 block">
                                     Date & Time of the event <span className="text-red-400">*</span>
                                 </label>
@@ -564,7 +943,6 @@ const OrganizeEvent = () => {
                                                 alt="Calendar"
                                                 className="w-64 mx-auto lg:w-full h-auto rounded-lg"
                                             />
-
                                         </div>
                                     </div>
 
@@ -588,7 +966,7 @@ const OrganizeEvent = () => {
                                                         name="eventStartDate"
                                                         value={eventData.eventStartDate}
                                                         onChange={handleInputChange}
-                                                        className="flex-1 bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 min-w-0"
+                                                        className={`flex-1 bg-transparent border-2 ${getFieldError('eventStartDate') ? 'border-red-500' : 'border-[#1a4d4d]'} text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 min-w-0`}
                                                         required
                                                     />
                                                 </div>
@@ -601,11 +979,17 @@ const OrganizeEvent = () => {
                                                         name="eventEndDate"
                                                         value={eventData.eventEndDate}
                                                         onChange={handleInputChange}
-                                                        className="flex-1 bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 min-w-0"
+                                                        className={`flex-1 bg-transparent border-2 ${getFieldError('eventEndDate') ? 'border-red-500' : 'border-[#1a4d4d]'} text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 min-w-0`}
                                                         required
                                                     />
                                                 </div>
                                             </div>
+                                            {getFieldError('eventStartDate') && (
+                                                <p className="text-red-400 text-xs mt-1.5">{getFieldError('eventStartDate')}</p>
+                                            )}
+                                            {getFieldError('eventEndDate') && (
+                                                <p className="text-red-400 text-xs mt-1.5">{getFieldError('eventEndDate')}</p>
+                                            )}
                                         </div>
 
                                         {/* Time Input */}
@@ -620,10 +1004,13 @@ const OrganizeEvent = () => {
                                                     name="eventTime"
                                                     value={eventData.eventTime}
                                                     onChange={handleInputChange}
-                                                    className="flex-1 bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2  rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                    className={`flex-1 bg-transparent border-2 ${getFieldError('eventTime') ? 'border-red-500' : 'border-[#1a4d4d]'} text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2  rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300`}
                                                     required
                                                 />
                                             </div>
+                                            {getFieldError('eventTime') && (
+                                                <p className="text-red-400 text-xs mt-1.5">{getFieldError('eventTime')}</p>
+                                            )}
                                         </div>
 
                                         {/* Registration Deadline */}
@@ -638,10 +1025,13 @@ const OrganizeEvent = () => {
                                                     name="registrationDeadline"
                                                     value={eventData.registrationDeadline}
                                                     onChange={handleInputChange}
-                                                    className="flex-1 bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2  rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                    className={`flex-1 bg-transparent border-2 ${getFieldError('registrationDeadline') ? 'border-red-500' : 'border-[#1a4d4d]'} text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2  rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300`}
                                                     required
                                                 />
                                             </div>
+                                            {getFieldError('registrationDeadline') && (
+                                                <p className="text-red-400 text-xs mt-1.5">{getFieldError('registrationDeadline')}</p>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -667,15 +1057,24 @@ const OrganizeEvent = () => {
 
                                 {/* Description Textarea */}
                                 <div className="mb-8">
-                                    <label className="text-white text-sm mb-3 block">Description</label>
+                                    <div className="flex justify-between items-center mb-3">
+                                        <label className="text-white text-sm">Description <span className="text-red-400">*</span></label>
+                                        <span className="text-gray-500 text-xs">
+                                            {eventData.eventDescription.length} characters (Min 10)
+                                        </span>
+                                    </div>
                                     <textarea
                                         name="eventDescription"
                                         value={eventData.eventDescription}
                                         onChange={handleInputChange}
                                         rows="8"
-                                        placeholder="Event description"
-                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 resize-none"
+                                        placeholder="Enter event details, guidelines, rules, etc. (min 10 characters)"
+                                        className={getInputClass('eventDescription') + ' resize-none'}
+                                        required
                                     ></textarea>
+                                    {getFieldError('eventDescription') && (
+                                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('eventDescription')}</p>
+                                    )}
                                 </div>
 
                                 {/* Prize Type */}
@@ -704,6 +1103,9 @@ const OrganizeEvent = () => {
                                             </label>
                                         ))}
                                     </div>
+                                    {getFieldError('prizeType') && (
+                                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('prizeType')}</p>
+                                    )}
                                 </div>
 
                                 {/* Prize Details (Conditional) */}
@@ -719,9 +1121,12 @@ const OrganizeEvent = () => {
                                             name="prizeDetails"
                                             value={eventData.prizeDetails}
                                             onChange={handleInputChange}
-                                            placeholder="5 000 / 50 merch to selected participants"
-                                            className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                            placeholder="e.g. 5000 / 50 merch to selected participants"
+                                            className={getInputClass('prizeDetails')}
                                         />
+                                        {getFieldError('prizeDetails') && (
+                                            <p className="text-red-400 text-xs mt-1.5">{getFieldError('prizeDetails')}</p>
+                                        )}
                                     </div>
                                 )}
 
@@ -730,7 +1135,7 @@ const OrganizeEvent = () => {
                                     <label className="text-white text-sm mb-3 block">
                                         Event poster <span className="text-red-400">*</span>
                                     </label>
-                                    <div className="border-2 border-dashed border-[#1a4d4d] rounded-xl p-8 text-center hover:border-[#00ff88] transition-all duration-300">
+                                    <div className={`border-2 border-dashed ${getFieldError('eventPoster') ? 'border-red-500 bg-red-500/5' : 'border-[#1a4d4d] hover:border-[#00ff88]'} rounded-xl p-8 text-center transition-all duration-300`}>
                                         <input
                                             type="file"
                                             id="posterUpload"
@@ -740,6 +1145,7 @@ const OrganizeEvent = () => {
                                                 const file = e.target.files[0];
                                                 if (file) {
                                                     setEventData(prev => ({ ...prev, eventPoster: file }));
+                                                    setFieldErrors(prev => ({ ...prev, eventPoster: undefined, poster: undefined }));
                                                 }
                                             }}
                                         />
@@ -754,6 +1160,9 @@ const OrganizeEvent = () => {
                                         </label>
                                         {eventData.eventPoster && (
                                             <p className="text-[#00ff88] text-sm mt-3">{eventData.eventPoster.name}</p>
+                                        )}
+                                        {getFieldError('eventPoster') && (
+                                            <p className="text-red-400 text-sm mt-3">{getFieldError('eventPoster')}</p>
                                         )}
                                     </div>
                                 </div>
@@ -801,8 +1210,11 @@ const OrganizeEvent = () => {
                                                         value={faq.question}
                                                         onChange={(e) => handleFaqChange(index, 'question', e.target.value)}
                                                         placeholder="e.g. Who can participate?"
-                                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                        className={getInputClass(`faqs.${index}.question`)}
                                                     />
+                                                    {getFieldError(`faqs.${index}.question`) && (
+                                                        <p className="text-red-400 text-xs mt-1.5">{getFieldError(`faqs.${index}.question`)}</p>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <label className="text-white text-sm mb-2 block">Answer</label>
@@ -811,8 +1223,11 @@ const OrganizeEvent = () => {
                                                         onChange={(e) => handleFaqChange(index, 'answer', e.target.value)}
                                                         rows="3"
                                                         placeholder="Provide a clear, helpful answer..."
-                                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 resize-none"
+                                                        className={getInputClass(`faqs.${index}.answer`) + ' resize-none'}
                                                     ></textarea>
+                                                    {getFieldError(`faqs.${index}.answer`) && (
+                                                        <p className="text-red-400 text-xs mt-1.5">{getFieldError(`faqs.${index}.answer`)}</p>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -880,8 +1295,11 @@ const OrganizeEvent = () => {
                                                             value={announcement.title}
                                                             onChange={(e) => handleAnnouncementChange(index, 'title', e.target.value)}
                                                             placeholder="e.g. Registration Now Open! 🎉"
-                                                            className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                            className={getInputClass(`announcements.${index}.title`)}
                                                         />
+                                                        {getFieldError(`announcements.${index}.title`) && (
+                                                            <p className="text-red-400 text-xs mt-1.5">{getFieldError(`announcements.${index}.title`)}</p>
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <label className="text-white text-sm mb-2 block">Publish Date</label>
@@ -889,8 +1307,11 @@ const OrganizeEvent = () => {
                                                             type="datetime-local"
                                                             value={announcement.publishDate}
                                                             onChange={(e) => handleAnnouncementChange(index, 'publishDate', e.target.value)}
-                                                            className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                            className={`w-full bg-transparent border-2 ${getFieldError(`announcements.${index}.publishDate`) ? 'border-red-500' : 'border-[#1a4d4d]'} text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300`}
                                                         />
+                                                        {getFieldError(`announcements.${index}.publishDate`) && (
+                                                            <p className="text-red-400 text-xs mt-1.5">{getFieldError(`announcements.${index}.publishDate`)}</p>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div>
@@ -900,8 +1321,11 @@ const OrganizeEvent = () => {
                                                         onChange={(e) => handleAnnouncementChange(index, 'content', e.target.value)}
                                                         rows="3"
                                                         placeholder="Write the announcement details here..."
-                                                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 resize-none"
+                                                        className={getInputClass(`announcements.${index}.content`) + ' resize-none'}
                                                     ></textarea>
+                                                    {getFieldError(`announcements.${index}.content`) && (
+                                                        <p className="text-red-400 text-xs mt-1.5">{getFieldError(`announcements.${index}.content`)}</p>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -941,8 +1365,29 @@ const OrganizeEvent = () => {
                 {currentStep === 2 && (
                     <div className="rounded-3xl bg-[#022F2E] p-8 lg:p-6">
                         {error && (
-                            <div className="mb-8 p-4 bg-red-500/10 border-2 border-red-500/50 rounded-xl text-red-400">
-                                {error}
+                            <div className="mb-8 p-4 bg-red-500/10 border-2 border-red-500/50 rounded-xl text-red-400 flex flex-col gap-2">
+                                <span className="font-semibold text-lg">{error}</span>
+                                {Object.keys(fieldErrors).length > 0 && (
+                                    <ul className="list-disc pl-5 text-sm space-y-1">
+                                        {Object.entries(fieldErrors).map(([field, msg]) => {
+                                            let readableField = field
+                                                .replace('maxParticipants', 'Participant Limit')
+                                                .replace('participantLimit', 'Participant Limit')
+                                                .replace('upiId', 'UPI ID')
+                                                .replace('upiQrCode', 'UPI QR Code')
+                                                .replace('externalWebsiteLink', 'External Website Link')
+                                                .replace('agreedToTerms', 'Terms and Conditions')
+                                                .replace('termsAccepted', 'Terms and Conditions');
+                                            
+                                            readableField = readableField.charAt(0).toUpperCase() + readableField.slice(1);
+                                            return (
+                                                <li key={field}>
+                                                    <strong>{readableField}:</strong> {msg}
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                )}
                             </div>
                         )}
                         {/* Banner Upload Section */}
@@ -1143,8 +1588,11 @@ const OrganizeEvent = () => {
                                             value={eventData.participantLimit}
                                             onChange={handleInputChange}
                                             placeholder="500"
-                                            className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                            className={getInputClass('participantLimit')}
                                         />
+                                        {getFieldError('participantLimit') && (
+                                            <p className="text-red-400 text-xs mt-1.5">{getFieldError('participantLimit')}</p>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -1186,8 +1634,11 @@ const OrganizeEvent = () => {
                                             value={eventData.externalWebsiteLink}
                                             onChange={handleInputChange}
                                             placeholder="URL of external website"
-                                            className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                            className={getInputClass('externalWebsiteLink')}
                                         />
+                                        {getFieldError('externalWebsiteLink') && (
+                                            <p className="text-red-400 text-xs mt-1.5">{getFieldError('externalWebsiteLink')}</p>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -1235,15 +1686,18 @@ const OrganizeEvent = () => {
                                                 value={eventData.upiId}
                                                 onChange={handleInputChange}
                                                 placeholder="e.g. yourname@upi"
-                                                className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                                                className={getInputClass('upiId')}
                                                 required={eventData.paymentType === 'MANUAL_UPI'}
                                             />
+                                            {getFieldError('upiId') && (
+                                                <p className="text-red-400 text-xs mt-1.5">{getFieldError('upiId')}</p>
+                                            )}
                                         </div>
                                         <div>
                                             <label className="text-white text-sm mb-3 block">
                                                 Upload Payment QR Code <span className="text-red-400">*</span>
                                             </label>
-                                            <div className="border-2 border-dashed border-[#1a4d4d] rounded-xl p-4 text-center hover:border-[#00ff88] transition-all duration-300 relative">
+                                            <div className={`border-2 border-dashed ${getFieldError('upiQrCode') ? 'border-red-500 bg-red-500/5' : 'border-[#1a4d4d] hover:border-[#00ff88]'} rounded-xl p-4 text-center transition-all duration-300 relative`}>
                                                 <input
                                                     type="file"
                                                     id="upiQrCodeUpload"
@@ -1253,6 +1707,7 @@ const OrganizeEvent = () => {
                                                         const file = e.target.files[0];
                                                         if (file) {
                                                             setEventData(prev => ({ ...prev, upiQrCode: file }));
+                                                            setFieldErrors(prev => ({ ...prev, upiQrCode: undefined }));
                                                         }
                                                     }}
                                                 />
@@ -1267,6 +1722,9 @@ const OrganizeEvent = () => {
                                                 </label>
                                                 {eventData.upiQrCode && (
                                                     <p className="text-[#00ff88] text-sm mt-3">{eventData.upiQrCode.name}</p>
+                                                )}
+                                                {getFieldError('upiQrCode') && (
+                                                    <p className="text-red-400 text-sm mt-3">{getFieldError('upiQrCode')}</p>
                                                 )}
                                             </div>
                                         </div>
@@ -1349,7 +1807,12 @@ const OrganizeEvent = () => {
                                     <input
                                         type="checkbox"
                                         checked={eventData.termsAccepted}
-                                        onChange={(e) => setEventData(prev => ({ ...prev, termsAccepted: e.target.checked }))}
+                                        onChange={(e) => {
+                                            setEventData(prev => ({ ...prev, termsAccepted: e.target.checked }));
+                                            if (fieldErrors.termsAccepted || fieldErrors.agreedToTerms) {
+                                                setFieldErrors(prev => ({ ...prev, termsAccepted: undefined, agreedToTerms: undefined }));
+                                            }
+                                        }}
                                         className="w-5 h-5 accent-[#00ff88] rounded mt-0.5"
                                     />
                                     <span className="text-white text-sm group-hover:text-[#00ff88] transition-colors">
@@ -1359,6 +1822,9 @@ const OrganizeEvent = () => {
                                         </a>
                                     </span>
                                 </label>
+                                {getFieldError('termsAccepted') && (
+                                    <p className="text-red-400 text-xs mt-1.5">{getFieldError('termsAccepted')}</p>
+                                )}
                             </div>
 
                             {/* Preview and Submit Buttons */}

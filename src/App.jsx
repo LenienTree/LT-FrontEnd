@@ -1,16 +1,14 @@
 import React, { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Home from "./components/home/Home";
 import AboutNew from "./components/AboutNew";
+import TeamHalfCircle from "./components/TeamHalfCircle";
 import InternshipPopup from "./components/user/InternshipPopup";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsConditions from "./pages/TermsConditions";
 import { useAuth } from "./context/AuthContext";
 
 // Heavy pages are lazy-loaded so they are excluded from the initial JS bundle.
 // Each import() creates its own async chunk that is only fetched when the user
 // navigates to that route for the first time.
-const TeamHalfCircle   = lazy(() => import("./components/TeamHalfCircle"));
 const AuthModal        = lazy(() => import("./components/user/auth/AuthModal"));
 const Profile          = lazy(() => import("./components/user/Profile"));
 const CalenderPage     = lazy(() => import("./pages/calender"));
@@ -19,6 +17,11 @@ const EditEventPage    = lazy(() => import("./components/organizer/EditEventPage
 const EventDetails     = lazy(() => import("./components/EventDetails"));
 const Admin            = lazy(() => import("./components/admin/Admin"));
 const EventRegistration = lazy(() => import("./components/EventRegistration"));
+const ExplorePage      = lazy(() => import("./components/explore/ExplorePage"));
+const OrganizerDashboard = lazy(() => import("./components/organizer/OrganizerDashboard"));
+const PrivacyPolicy    = lazy(() => import("./pages/LntPrivacy"));
+const TermsConditions  = lazy(() => import("./pages/TermsConditions"));
+const ReferralRedirect = lazy(() => import("./components/ReferralRedirect"));
 
 // Minimal spinner shown while a lazy chunk is loading
 function PageLoader() {
@@ -57,6 +60,16 @@ function AdminRoute({ children }) {
 }
 
 function App() {
+  const location = useLocation();
+  const { user, logout } = useAuth();
+  const isProfileIncomplete = user && (!user.phone || !user.college || !user.graduationYear || !user.dateOfBirth);
+
+  React.useEffect(() => {
+    if (isProfileIncomplete && location.pathname !== '/') {
+      logout();
+    }
+  }, [isProfileIncomplete, location.pathname, logout]);
+
   return (
     <div className="text-white font-urbanist overflow-x-hidden">
       <Suspense fallback={<PageLoader />}>
@@ -70,16 +83,23 @@ function App() {
           <Route path="/test" element={<AboutNew />} />
           <Route path="/test1" element={<TeamHalfCircle />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/explore" element={<ExplorePage />} />
           <Route path="/calender" element={<CalenderPage />} />
           <Route path="/organize" element={<OrganizerRoute><OrganizeEvent /></OrganizerRoute>} />
           <Route path="/organize/edit/:id" element={<OrganizerRoute><EditEventPage /></OrganizerRoute>} />
+          <Route path="/organizer/dashboard" element={<OrganizerRoute><OrganizerDashboard /></OrganizerRoute>} />
           <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-          {/* Event detail — supports both /event/:id and legacy /event?id=... */}
+          {/* Short referral link — resolves code via API and redirects to the event page */}
+          <Route path="/r/:code" element={<ReferralRedirect />} />
+          {/* Event detail — supports /event/:id, short /e/:slug, and legacy /event?id=... */}
           <Route path="/event/:id" element={<EventDetails />} />
+          <Route path="/e/:id" element={<EventDetails />} />
           <Route path="/event" element={<EventDetails />} />
           <Route path="/event/:id/register" element={<EventRegistration />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsConditions />} />
+          {/* Safe fallback for file:// previews, subdirectory deploys, and unknown paths */}
+          <Route path="*" element={<Home />} />
         </Routes>
       </Suspense>
     </div>

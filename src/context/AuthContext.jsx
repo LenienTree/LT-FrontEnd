@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { auth as authApi, users, setToken, removeToken, getToken } from "../services/api";
+import { auth as authApi, users, notifications, setToken, removeToken, getToken } from "../services/api";
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
@@ -11,18 +11,22 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true); // true on first mount (checking auth)
     const [error, setError] = useState(null);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     // ── Auth Modal State ──
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [authModalView, setAuthModalView] = useState('login'); // 'login' or 'signup'
+    const [isAuthModalPersistent, setIsAuthModalPersistent] = useState(false);
 
-    const openAuthModal = useCallback((view = 'login') => {
+    const openAuthModal = useCallback((view = 'login', persistent = false) => {
         setAuthModalView(view);
         setIsAuthModalOpen(true);
+        setIsAuthModalPersistent(persistent);
     }, []);
 
     const closeAuthModal = useCallback(() => {
         setIsAuthModalOpen(false);
+        setIsAuthModalPersistent(false);
     }, []);
 
     // ── Bootstrap: re-hydrate user from stored token ──
@@ -34,8 +38,13 @@ export function AuthProvider({ children }) {
             }
             try {
                 const data = await users.getMyProfile();
-                // If getMyProfile() succeeded with our updated API wrapper, it returns the user object directly
-                setUser(data);
+                if (data && (!data.phone || !data.college || !data.graduationYear || !data.dateOfBirth)) {
+                    // Force logout returning users with incomplete profile fields
+                    removeToken();
+                    setUser(null);
+                } else {
+                    setUser(data);
+                }
             } catch {
                 removeToken();
                 setUser(null);
@@ -73,8 +82,13 @@ export function AuthProvider({ children }) {
         const data = await authApi.googleAuth({ idToken });
         if (data?.accessToken) setToken(data.accessToken);
         if (data?.user) setUser(data.user);
+
+        const u = data?.user;
+        if (u && (!u.phone || !u.college || !u.graduationYear || !u.dateOfBirth)) {
+            openAuthModal('google-completion');
+        }
         return data;
-    }, []);
+    }, [openAuthModal]);
 
     const logout = useCallback(() => {
         removeToken();
@@ -99,11 +113,34 @@ export function AuthProvider({ children }) {
         }
     }, [logout]);
 
+    const fetchUnreadCount = useCallback(async () => {
+        if (!getToken()) return;
+        try {
+            const data = await notifications.getUnreadCount();
+            setUnreadCount(data.unreadCount);
+        } catch (err) {
+            console.error("Failed to fetch unread count:", err);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!user) {
+            setUnreadCount(0);
+            return;
+        }
+        fetchUnreadCount();
+        const interval = setInterval(fetchUnreadCount, 30000);
+        return () => clearInterval(interval);
+    }, [user, fetchUnreadCount]);
+
     const value = {
         user,
         loading,
         error,
         isAuthenticated: !!user,
+        unreadCount,
+        setUnreadCount,
+        fetchUnreadCount,
         login,
         register,
         googleAuth,
@@ -114,6 +151,7 @@ export function AuthProvider({ children }) {
         setError,
         isAuthModalOpen,
         authModalView,
+        isAuthModalPersistent,
         openAuthModal,
         closeAuthModal,
     };
@@ -130,3 +168,4 @@ export function useAuth() {
     }
     return ctx;
 }
+console.log(".");

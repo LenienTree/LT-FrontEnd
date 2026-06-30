@@ -41,9 +41,13 @@ async function request(endpoint, options = {}) {
   // Auto-refresh on 401
   if (response.status === 401 && !options._retry) {
     try {
-      // Backend sets the new access token as an HTTP-only cookie (body is null).
-      // We just need to trigger the refresh call — the cookie is updated automatically.
-      await auth.refresh();
+      // Backend sets the new access token as an HTTP-only cookie, and now also
+      // returns it in the response body. We store the new access token in localStorage
+      // so it stays synchronized with the Authorization header.
+      const refreshResult = await auth.refresh();
+      if (refreshResult && refreshResult.accessToken) {
+        setToken(refreshResult.accessToken);
+      }
       return request(endpoint, { ...options, _retry: true });
     } catch (_) {
       removeToken();
@@ -68,13 +72,21 @@ async function request(endpoint, options = {}) {
     const message =
       (data && (data.message || data.error)) ||
       `API Error ${response.status}`;
-    throw new Error(message);
+    const error = new Error(message);
+    if (data && data.errors) {
+      error.errors = data.errors;
+    }
+    throw error;
   }
 
   // Handle standard backend wrapper { success, message, data }
   if (data && typeof data === 'object' && 'success' in data) {
     if (!data.success) {
-      throw new Error(data.message || 'API Error');
+      const error = new Error(data.message || 'API Error');
+      if (data.errors) {
+        error.errors = data.errors;
+      }
+      throw error;
     }
     // Return the payload
     return data.data !== undefined ? data.data : data;
@@ -98,6 +110,115 @@ const put = (url, body, opts) =>
     ...opts,
   });
 const del = (url, opts) => request(url, { method: "DELETE", ...opts });
+
+// ─── File Upload Helpers ──────────────────────────────────────────────────────
+
+/**
+ * Maximum upload size accepted by the API. Matches the backend's Fastify multipart
+ * limit (10 MB).
+ *
+ * IMPORTANT: the reverse proxy (nginx) in front of the API must allow request bodies
+ * at least this large via `client_max_body_size`. Nginx defaults to 1 MB and, when a
+ * body exceeds it, returns a 413 error page *before* the request reaches the app. That
+ * proxy-generated 413 has no CORS headers, so the browser misreports it as
+ * "No 'Access-Control-Allow-Origin' header is present" instead of a size error. Keep
+ * nginx's limit >= this value (e.g. `client_max_body_size 12M;`).
+ */
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+
+/**
+ * Compresses an image file client-side to ensure it is under the Nginx/backend limits
+ * and optimizes upload speed/storage.
+ * @param {File} file
+ * @param {object} options
+ * @returns {Promise<File>}
+ */
+export async function compressImage(file, { maxWidth = 1920, maxHeight = 1080, quality = 0.7, maxSizeBytes = 800 * 1024 } = {}) {
+  if (!file.type.startsWith("image/") || file.size <= maxSizeBytes) {
+    return file;
+  }
+  if (file.type === "image/gif" || file.type === "image/svg+xml") {
+    return file;
+  }
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxHeight) {
+          if (width / height > maxWidth / maxHeight) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const name = file.name.substring(0, file.name.lastIndexOf(".")) + ".jpg";
+            const compressedFile = new File([blob], name, {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            });
+            if (compressedFile.size >= file.size) {
+              resolve(file);
+            } else {
+              resolve(compressedFile);
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = event.target.result;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Build a multipart FormData for a single-file upload, validating the file up-front so
+ * an empty/oversized file fails with a clear message instead of a confusing network or
+ * (misleading) CORS error.
+ * Automatically compresses images that exceed the threshold (800 KB).
+ * @param {string} fieldName multipart field name the backend expects
+ * @param {File} file
+ * @returns {Promise<FormData>}
+ */
+async function fileForm(fieldName, file) {
+  if (!file) throw new Error("No file selected.");
+  if (file.size === 0) throw new Error("The selected file is empty.");
+  
+  let processedFile = file;
+  try {
+    processedFile = await compressImage(file);
+  } catch (e) {
+    console.error("Image compression failed, uploading original file", e);
+  }
+
+  if (processedFile.size > MAX_UPLOAD_BYTES) {
+    const mb = (processedFile.size / (1024 * 1024)).toFixed(1);
+    const maxMb = MAX_UPLOAD_BYTES / (1024 * 1024);
+    throw new Error(`File is too large (${mb} MB). Maximum allowed size is ${maxMb} MB.`);
+  }
+  const formData = new FormData();
+  formData.append(fieldName, processedFile);
+  return formData;
+}
 
 // ─── Auth Endpoints ───────────────────────────────────────────────────────────
 
@@ -184,21 +305,13 @@ export const users = {
    * Upload avatar image.
    * @param {File} file
    */
-  uploadAvatar: (file) => {
-    const formData = new FormData();
-    formData.append("avatar", file);
-    return post("/api/users/me/avatar", formData);
-  },
+  uploadAvatar: async (file) => post("/api/users/me/avatar", await fileForm("avatar", file)),
 
   /**
    * Add an image to the user's gallery.
    * @param {File} file
    */
-  addGalleryImage: (file) => {
-    const formData = new FormData();
-    formData.append("image", file);
-    return post("/api/users/me/gallery", formData);
-  },
+  addGalleryImage: async (file) => post("/api/users/me/gallery", await fileForm("image", file)),
 
   /**
    * Delete an image from the user's gallery.
@@ -223,6 +336,7 @@ export const users = {
    * @returns {User}
    */
   getUserById: (userId) => get(`/api/users/${userId}`),
+  getPublicProfile: (userId) => get(`/api/users/${userId}/public`),
 };
 
 // ─── Events – Public / Discovery ─────────────────────────────────────────────
@@ -256,6 +370,18 @@ export const events = {
    * @param {string} eventId
    */
   getFAQs: (eventId) => get(`/api/events/${eventId}/faqs`),
+
+  /**
+   * Get dynamic stats for an event (funnel/capacity).
+   * @param {string} eventId
+   */
+  getStats: (eventId) => get(`/api/events/${eventId}/stats`),
+
+  /**
+   * Get metadata for event social sharing.
+   * @param {string} eventId
+   */
+  getShare: (eventId) => get(`/api/events/${eventId}/share`),
 
   // ── Participant Operations ──
 
@@ -318,39 +444,27 @@ export const events = {
    * @param {string} eventId
    * @param {File} file
    */
-  uploadBanner: (eventId, file) => {
-    const formData = new FormData();
-    formData.append("banner", file);
-    return post(`/api/events/${eventId}/banner`, formData);
-  },
+  uploadBanner: async (eventId, file) =>
+    post(`/api/events/${eventId}/banner`, await fileForm("banner", file)),
 
   /**
    * Upload the event poster image.
    * @param {string} eventId
    * @param {File} file
    */
-  uploadPoster: (eventId, file) => {
-    const formData = new FormData();
-    formData.append("poster", file);
-    return post(`/api/events/${eventId}/poster`, formData);
-  },
+  uploadPoster: async (eventId, file) =>
+    post(`/api/events/${eventId}/poster`, await fileForm("poster", file)),
 
-  uploadLinkedinPoster: (eventId, file) => {
-    const formData = new FormData();
-    formData.append("poster", file);
-    return post(`/api/events/${eventId}/linkedin-poster`, formData);
-  },
+  uploadLinkedinPoster: async (eventId, file) =>
+    post(`/api/events/${eventId}/linkedin-poster`, await fileForm("poster", file)),
 
   /**
    * Upload the event UPI QR Code image.
    * @param {string} eventId
    * @param {File} file
    */
-  uploadUpiQrCode: (eventId, file) => {
-    const formData = new FormData();
-    formData.append("file", file); // Or "qrCode", checking backend... Wait, backend uses request.file() and handles it generically, so any field name works but it's good to just send it. Actually wait, Fastify handles multipart form data if we just send any field name for `request.file()`. Wait, let's look at `uploadBanner` in backend, it just uses `request.file()`. So the field name doesn't matter too much but let's use "qrCode".
-    return post(`/api/events/${eventId}/upi-qr`, formData);
-  },
+  uploadUpiQrCode: async (eventId, file) =>
+    post(`/api/events/${eventId}/upi-qr`, await fileForm("file", file)),
 
   /**
    * Delete an event (organizer).
@@ -460,6 +574,17 @@ export const bookmarks = {
   getAll: () => get("/api/bookmarks"),
 };
 
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export const notifications = {
+  getNotifications: (page = 1, limit = 20) =>
+    get(`/api/notifications?page=${page}&limit=${limit}`),
+  getUnreadCount: () => get("/api/notifications/unread-count"),
+  markRead: (ids) => put("/api/notifications/mark-read", { notificationIds: ids }),
+  markAllRead: () => put("/api/notifications/mark-all-read", {}),
+  deleteNotification: (id) => del(`/api/notifications/${id}`),
+};
+
 // ─── Organizer ────────────────────────────────────────────────────────────────
 
 export const organizer = {
@@ -474,6 +599,12 @@ export const organizer = {
    * @param {{ userId, eventId, certificateUrl }} data
    */
   issueCertificate: (data) => post("/api/organizer/certificates/issue", data),
+
+  /**
+   * Issue certificates to multiple participants at once.
+   * @param {{ eventId, recipients: { userId, certificateUrl }[] }} data
+   */
+  bulkIssueCertificates: (data) => post("/api/organizer/certificates/bulk-issue", data),
 
   /**
    * Get all certificates issued by the organizer.
@@ -524,8 +655,22 @@ export const admin = {
   getAuditLogs: (page = 1, limit = 20) =>
     get(`/api/admin/audit-logs?page=${page}&limit=${limit}`),
 
+  /** GET /api/admin/analytics */
+  getAnalytics: () => get("/api/admin/analytics"),
+
   /** GET /api/admin/organizer-requests — only pending (isOrganizer=false) */
   getOrganizerRequests: () => get("/api/admin/organizer-requests"),
+
+  /** GET /api/admin/events — all events, any status */
+  getAllEvents: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set('page', params.page);
+    if (params.limit) q.set('limit', params.limit);
+    if (params.status) q.set('status', params.status);
+    if (params.search) q.set('search', params.search);
+    const qs = q.toString();
+    return get(`/api/admin/events${qs ? `?${qs}` : ''}`);
+  },
 
   /** Approve organizer request: sets isOrganizer = true on the user */
   approveOrganizer: (userId) => put(`/api/admin/users/${userId}/approve-organizer`, {}),
@@ -539,25 +684,14 @@ export const admin = {
 
   // Homepage Config admin actions
   homepage: {
-    uploadBanner: (file) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      return post("/api/homepage/banners", formData);
-    },
+    uploadBanner: async (file) => post("/api/homepage/banners", await fileForm("file", file)),
     updateBannerOrder: (id, order) => put(`/api/homepage/banners/${id}`, { order }),
     deleteBanner: (id) => del(`/api/homepage/banners/${id}`),
-    uploadCommunityImage: (file) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      return post("/api/homepage/community", formData);
-    },
+    uploadCommunityImage: async (file) => post("/api/homepage/community", await fileForm("file", file)),
     updateCommunityImageOrder: (id, order) => put(`/api/homepage/community/${id}`, { order }),
     deleteCommunityImage: (id) => del(`/api/homepage/community/${id}`),
-    uploadTestimonialAvatar: (file) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      return post("/api/homepage/testimonials/avatar", formData);
-    },
+    uploadTestimonialAvatar: async (file) =>
+      post("/api/homepage/testimonials/avatar", await fileForm("file", file)),
     addTestimonial: (data) => post("/api/homepage/testimonials", data),
     updateTestimonial: (id, data) => put(`/api/homepage/testimonials/${id}`, data),
     deleteTestimonial: (id) => del(`/api/homepage/testimonials/${id}`),
@@ -571,6 +705,45 @@ export const homepage = {
   get: () => get("/api/homepage"),
 };
 
+// ─── Referral / UTM tracking ────────────────────────────────────────────────────
+
+export const referral = {
+  /** Public: record a click on a referral link. Body: { code } */
+  trackClick: (code) => post("/api/referral/click", { code }),
+
+  // ── Admin (any event) ──
+  admin: {
+    listColleges: () => get("/api/referral/admin/colleges"),
+    listStudents: (college) =>
+      get(`/api/referral/admin/colleges/${encodeURIComponent(college)}/students`),
+    /** Generate a referral link for any event, attributed to a student or college */
+    generate: (eventId, refereeUserId, college) =>
+      post("/api/referral/admin/generate", { eventId, refereeUserId, college }),
+    /** Stats for any event */
+    getStats: (eventId) => get(`/api/referral/admin/stats/${eventId}`),
+    /** Assign a student user to a specific college by email, optionally creating/registering them */
+    assignCollege: (email, college, name) =>
+      post("/api/referral/admin/assign-college", { email, college, name }),
+  },
+
+  // ── Organizer (own events only) ──
+  organizer: {
+    listEvents: () => get("/api/referral/organizer/events"),
+    listColleges: () => get("/api/referral/organizer/colleges"),
+    listStudents: (college) =>
+      get(`/api/referral/organizer/colleges/${encodeURIComponent(college)}/students`),
+    generate: (eventId, refereeUserId, college) =>
+      post("/api/referral/organizer/generate", { eventId, refereeUserId, college }),
+    getStats: (eventId) => get(`/api/referral/organizer/stats/${eventId}`),
+    assignCollege: (email, college, name) =>
+      post("/api/referral/organizer/assign-college", { email, college, name }),
+  },
+};
+
+export const contact = {
+  send: (data) => post("/api/contact", data),
+};
+
 // ─── Default export (grouped) ─────────────────────────────────────────────────
 
 const api = {
@@ -578,9 +751,12 @@ const api = {
   users,
   events,
   bookmarks,
+  notifications,
   organizer,
   admin,
   homepage,
+  referral,
+  contact,
 };
 
 export default api;

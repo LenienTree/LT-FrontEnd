@@ -1,22 +1,21 @@
-
 import { useState, useRef, useEffect } from "react"
 import { Menu, X, LogOut, User } from "lucide-react"
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from "../../context/AuthContext";
 import { users } from "../../services/api";
+import GlobalSearch from "./GlobalSearch";
+import NotificationBell from "./NotificationBell";
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isProfileOpen, setIsProfileOpen] = useState(false)
-    const [isNavVisible, setIsNavVisible] = useState(true)
+    const isNavVisible = true
     const profileRef = useRef(null)
     const lastScrollY = useRef(0)
     const navigate = useNavigate()
     const location = useLocation()
     const pathname = location.pathname
     const { isAuthenticated, logout, user, loading, openAuthModal } = useAuth()
-    const [profileImage, setProfileImage] = useState(null)
-    const [isAdmin, setIsAdmin] = useState(false)
 
     // Function to check if a link is active
     const isActive = (href) => {
@@ -26,42 +25,7 @@ export default function Header() {
         return pathname === href;
     }
 
-    // Fetch profile image when user logs in
-    useEffect(() => {
-        if (!isAuthenticated) {
-            setProfileImage(null)
-            return
-        }
-        users.getMyProfile()
-            .then(data => setProfileImage(data?.profileImage ?? null))
-            .catch(() => { })
-
-        users.getMyProfile()
-            .then(data => setIsAdmin(data?.role === 'ADMIN'))
-            .catch(() => { })
-    }, [isAuthenticated])
-
-    // Hide navbar on scroll down, show on scroll up
-    useEffect(() => {
-        function handleScroll() {
-            const currentScrollY = window.scrollY
-            if (currentScrollY < 10) {
-                // Always show at the very top
-                setIsNavVisible(true)
-            } else if (currentScrollY > lastScrollY.current) {
-                // Scrolling down — hide
-                setIsNavVisible(false)
-                setIsMenuOpen(false)
-            } else {
-                // Scrolling up — show
-                setIsNavVisible(true)
-            }
-            lastScrollY.current = currentScrollY
-        }
-
-        window.addEventListener('scroll', handleScroll, { passive: true })
-        return () => window.removeEventListener('scroll', handleScroll)
-    }, [])
+    // Fixed navbar: no scroll hiding behavior
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -79,160 +43,184 @@ export default function Header() {
 
     const handleLogout = () => {
         logout()
-        navigate('/login')
+        navigate('/', { replace: true })
     }
 
     const navItems = [
         { name: "Home", href: "/" },
+        { name: "Explore", href: "/explore" },
         { name: "Calendar", href: "/calender" },
     ]
 
     return (
-        <header
-            className="fixed top-0 left-10 right-10 z-50"
-            style={{
-                transform: isNavVisible ? 'translateY(0)' : 'translateY(-120%)',
-                transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-            }}
-        >
-            <div className="container mx-auto p-5">
-                <div className="flex items-center justify-between h-16">
+        <header className="fixed top-4 left-0 right-0 z-50 px-4 sm:px-6 lg:px-10">
+            {/* Unified floating pill navbar */}
+            <div className="mx-auto max-w-7xl rounded-2xl bg-[#022F2E]/90 backdrop-blur-md border border-white/10 shadow-xl px-4 py-2.5">
+                <div className="flex items-center gap-3">
+
                     {/* Logo */}
-                    <Link to="/" className="flex items-center space-x-2">
-                        <img src="/logo1.png" alt="lenient tree" width={70} height={70} />
-                        <span className="text-white font-semibold hidden sm:block"></span>
+                    <Link to="/" className="flex-shrink-0 flex items-center">
+                        <img src="/logo1.png" alt="LenienTree" width={44} height={44} />
                     </Link>
 
-                    {/* Desktop Navigation */}
-                    <div className="rounded-full hidden md:block  p-4 bg-white/10 shadow-md  ">
-                        <nav className="hidden md:flex gap-7 items-center space-x-10 mx-8 ">
-                            {navItems.map((item) => (
-                                <Link
-                                    key={item.name}
-                                    to={item.href}
-                                    className={`text-sm font-medium transition-colors ${isActive(item.href) ? "bg-black/40 px-2 text-[#9AE600] rounded-full" : "text-gray-300 hover:text-[#9AE600]"}`}
-                                >
-                                    {item.name}
-                                </Link>
-                            ))}
-                        </nav>
+                    {/* Desktop nav links — centered */}
+                    <nav className="hidden md:flex items-center gap-1 ml-2">
+                        {navItems.map((item) => (
+                            <Link
+                                key={item.name}
+                                to={item.href}
+                                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                                    isActive(item.href)
+                                        ? 'bg-white/10 text-[#9AE600]'
+                                        : 'text-gray-300 hover:text-white hover:bg-white/5'
+                                }`}
+                            >
+                                {item.name}
+                            </Link>
+                        ))}
+                    </nav>
+
+                    {/* Spacer */}
+                    <div className="flex-1" />
+
+                    {/* Search — desktop */}
+                    <div className="hidden md:block">
+                        <GlobalSearch />
                     </div>
 
-                    {/* Profile / Sign In — Desktop */}
+                    {/* Notification bell */}
+                    <NotificationBell />
+
+                    {/* Profile / Sign In — desktop */}
                     <div className="hidden md:block relative" ref={profileRef}>
                         {loading ? null : isAuthenticated ? (
                             <>
                                 <button
                                     onClick={() => setIsProfileOpen(!isProfileOpen)}
-                                    className="flex items-center space-x-2 focus:outline-none"
+                                    className="flex items-center gap-2 focus:outline-none"
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold overflow-hidden">
-                                        {profileImage
-                                            ? <img src={profileImage} alt="avatar" className="w-full h-full object-cover" />
-                                            : <User size={20} />}
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white overflow-hidden flex-shrink-0">
+                                        {user?.profileImage
+                                            ? <img src={user.profileImage} alt="avatar" className="w-full h-full object-cover" />
+                                            : <User size={16} />}
                                     </div>
-                                    <span className="text-white text-sm font-medium hidden lg:block">{user?.name ?? "Profile"}</span>
+                                    <span className="text-white text-sm font-medium hidden lg:block max-w-[120px] truncate">
+                                        {user?.name ?? 'Profile'}
+                                    </span>
                                 </button>
 
-                                {/* Dropdown Menu */}
                                 {isProfileOpen && (
-                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                                        {isAdmin && (
+                                    <div className="absolute right-0 mt-2 w-48 bg-[#0d2b2a] border border-white/10 rounded-xl shadow-2xl py-1 z-50">
+                                        {user?.role === 'ADMIN' && (
                                             <Link
                                                 to="/admin"
-                                                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                                className="block px-4 py-2 text-sm text-gray-200 hover:bg-white/5 hover:text-white transition-colors"
                                                 onClick={() => setIsProfileOpen(false)}
                                             >
                                                 Admin Dashboard
                                             </Link>
                                         )}
+                                        {(user?.isOrganizer || user?.role === 'ADMIN') && (
+                                            <Link
+                                                to="/organizer/dashboard"
+                                                className="block px-4 py-2 text-sm text-gray-200 hover:bg-white/5 hover:text-white transition-colors"
+                                                onClick={() => setIsProfileOpen(false)}
+                                            >
+                                                Organizer Dashboard
+                                            </Link>
+                                        )}
                                         <Link
                                             to="/profile"
-                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                            className="block px-4 py-2 text-sm text-gray-200 hover:bg-white/5 hover:text-white transition-colors"
                                             onClick={() => setIsProfileOpen(false)}
                                         >
                                             View Profile
                                         </Link>
-
-                                        <button
-                                            onClick={handleLogout}
-                                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
-                                        >
-                                            <LogOut className="mr-2 h-4 w-4" />
-                                            Logout
-                                        </button>
+                                        <div className="border-t border-white/10 mt-1 pt-1">
+                                            <button
+                                                onClick={handleLogout}
+                                                className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/5 hover:text-red-300 flex items-center gap-2 transition-colors"
+                                            >
+                                                <LogOut className="h-4 w-4" />
+                                                Logout
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </>
                         ) : (
                             <button
                                 onClick={() => openAuthModal('login')}
-                                className="flex items-center space-x-2 px-4 py-2 rounded-full bg-[#9AE600] text-black text-sm font-semibold hover:bg-[#85cc00] transition-colors"
+                                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#9AE600] text-black text-sm font-semibold hover:bg-[#aef72a] active:scale-95 transition-all duration-150"
                             >
-                                <User size={16} />
+                                <User size={14} />
                                 <span>Sign In</span>
                             </button>
                         )}
                     </div>
 
-                    {/* Mobile Menu Button */}
-                    <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden text-white p-2">
-                        {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                    {/* Mobile: hamburger */}
+                    <button
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        className="md:hidden text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                    >
+                        {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
                     </button>
                 </div>
+            </div>
 
-                {/* Mobile Navigation */}
-                {isMenuOpen && (
-                    <div className="md:hidden bg-[#022F2E] m-2 p-4 rounded-lg">
-                        <nav className="flex flex-col space-y-4">
-                            {navItems.map((item) => (
+            {/* Mobile dropdown */}
+            {isMenuOpen && (
+                <div className="md:hidden mx-auto max-w-7xl mt-2 rounded-2xl bg-[#022F2E]/95 backdrop-blur-md border border-white/10 shadow-xl p-4">
+                    <div className="mb-3">
+                        <GlobalSearch />
+                    </div>
+                    <nav className="flex flex-col gap-1">
+                        {navItems.map((item) => (
+                            <Link
+                                key={item.name}
+                                to={item.href}
+                                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                                    isActive(item.href)
+                                        ? 'bg-white/10 text-[#9AE600]'
+                                        : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                }`}
+                                onClick={() => setIsMenuOpen(false)}
+                            >
+                                {item.name}
+                            </Link>
+                        ))}
+                    </nav>
+                    <div className="border-t border-white/10 mt-3 pt-3">
+                        {isAuthenticated ? (
+                            <div className="flex flex-col gap-1">
                                 <Link
-                                    key={item.name}
-                                    to={item.href}
-                                    className={`text-sm font-medium transition-colors block py-1 ${isActive(item.href) ? "text-green-400" : "text-gray-300 hover:text-white"}`}
+                                    to="/profile"
+                                    className="px-4 py-2 rounded-xl text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
                                     onClick={() => setIsMenuOpen(false)}
                                 >
-                                    {item.name}
+                                    View Profile
                                 </Link>
-                            ))}
-                            <div className="border-t border-gray-700 pt-2 mt-2">
-                                {isAuthenticated ? (
-                                    <>
-                                        <Link
-                                            to="/profile"
-                                            className="block py-2 text-sm text-gray-300 hover:text-white"
-                                            onClick={() => setIsMenuOpen(false)}
-                                        >
-                                            View Profile
-                                        </Link>
-                                        <button
-                                            onClick={() => {
-                                                handleLogout();
-                                                setIsMenuOpen(false);
-                                            }}
-                                            className="w-full text-left py-2 text-sm text-red-400 hover:text-red-300 flex items-center"
-                                        >
-                                            <LogOut className="mr-2 h-4 w-4" />
-                                            Logout
-                                        </button>
-                                    </>
-                                ) : (
-                                    <button
-                                        onClick={() => {
-                                            openAuthModal('login');
-                                            setIsMenuOpen(false);
-                                        }}
-                                        className="w-full flex items-center space-x-2 py-2 text-sm text-[#9AE600] font-semibold hover:text-[#85cc00]"
-                                    >
-                                        <User size={16} />
-                                        <span>Sign In</span>
-                                    </button>
-                                )}
+                                <button
+                                    onClick={() => { handleLogout(); setIsMenuOpen(false); }}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-red-400 hover:bg-white/5 hover:text-red-300 transition-colors"
+                                >
+                                    <LogOut className="h-4 w-4" />
+                                    Logout
+                                </button>
                             </div>
-                        </nav>
+                        ) : (
+                            <button
+                                onClick={() => { openAuthModal('login'); setIsMenuOpen(false); }}
+                                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-[#9AE600] text-black text-sm font-semibold hover:bg-[#aef72a] transition-colors"
+                            >
+                                <User size={15} />
+                                <span>Sign In</span>
+                            </button>
+                        )}
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </header>
     )
 }

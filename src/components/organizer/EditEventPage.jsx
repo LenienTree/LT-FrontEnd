@@ -23,6 +23,61 @@ const EditEventPage = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const getFieldError = (fieldName) => {
+    const mappings = {
+      title: ['title'],
+      subtitle: ['subtitle'],
+      description: ['description'],
+      category: ['category'],
+      mode: ['mode'],
+      theme: ['theme'],
+      startDate: ['startDate'],
+      endDate: ['endDate'],
+      registrationDeadline: ['registrationDeadline'],
+      venueName: ['venueName', 'location.venueName'],
+      address: ['address'],
+      mapLink: ['mapLink', 'location.mapLink'],
+      prizeType: ['prizeType'],
+      prizeAmount: ['prizeAmount'],
+      ticketPrice: ['ticketPrice'],
+      upiId: ['upiId'],
+      upiQrCode: ['upiQrCode']
+    };
+    const keys = mappings[fieldName] || [fieldName];
+    for (const key of keys) {
+      if (fieldErrors[key]) return fieldErrors[key];
+    }
+    return null;
+  };
+
+  const getInputClass = (fieldName, baseClass = "") => {
+    const hasErr = !!getFieldError(fieldName);
+    return `w-full bg-transparent border-2 ${
+      hasErr ? 'border-red-500/80 focus:border-red-500' : 'border-[#1a4d4d] focus:border-[#00ff88]'
+    } text-white py-3 px-4 rounded-xl focus:outline-none transition-all duration-300 ${baseClass}`;
+  };
+
+  const updateInfoField = (field, value) => {
+    setInfoForm(prev => ({ ...prev, [field]: value }));
+    setFieldErrors(prev => {
+      if (!prev[field]) return prev;
+      const copy = { ...prev };
+      delete copy[field];
+      return copy;
+    });
+  };
+
+  const updatePaymentField = (field, value) => {
+    setPaymentConfig(prev => ({ ...prev, [field]: value }));
+    setFieldErrors(prev => {
+      if (!prev[field]) return prev;
+      const copy = { ...prev };
+      delete copy[field];
+      return copy;
+    });
+  };
   
   // Event Data State
   const [eventData, setEventData] = useState(null);
@@ -196,6 +251,7 @@ const EditEventPage = () => {
     setSaving(true);
     setError('');
     setSuccess('');
+    setFieldErrors({});
     try {
       const payload = {
         title: infoForm.title,
@@ -240,7 +296,17 @@ const EditEventPage = () => {
       setTimeout(() => setSuccess(''), 4000);
       fetchEventDetails();
     } catch (err) {
-      setError(err.message || 'Failed to save event details.');
+      if (err.errors && Array.isArray(err.errors)) {
+        const validationErrors = {};
+        err.errors.forEach(issue => {
+          validationErrors[issue.field] = issue.message;
+        });
+        setFieldErrors(validationErrors);
+        setError('Validation failed. Please correct the highlighted errors.');
+      } else {
+        setError(err.message || 'Failed to save event details.');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setSaving(false);
     }
@@ -250,6 +316,7 @@ const EditEventPage = () => {
     setSaving(true);
     setError('');
     setSuccess('');
+    setFieldErrors({});
     try {
       // Update form fields on the backend
       await eventsApi.updateDesign(id, { customFormFields: formFields });
@@ -257,7 +324,17 @@ const EditEventPage = () => {
       setTimeout(() => setSuccess(''), 4000);
       fetchEventDetails();
     } catch (err) {
-      setError(err.message || 'Failed to save registration form fields.');
+      if (err.errors && Array.isArray(err.errors)) {
+        const validationErrors = {};
+        err.errors.forEach(issue => {
+          validationErrors[issue.field] = issue.message;
+        });
+        setFieldErrors(validationErrors);
+        setError('Validation failed. Please correct the highlighted errors.');
+      } else {
+        setError(err.message || 'Failed to save registration form fields.');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setSaving(false);
     }
@@ -267,6 +344,7 @@ const EditEventPage = () => {
     setSaving(true);
     setError('');
     setSuccess('');
+    setFieldErrors({});
     try {
       const payload = {
         isPaid: paymentConfig.isPaid,
@@ -280,7 +358,17 @@ const EditEventPage = () => {
       setTimeout(() => setSuccess(''), 4000);
       fetchEventDetails();
     } catch (err) {
-      setError(err.message || 'Failed to update payment settings.');
+      if (err.errors && Array.isArray(err.errors)) {
+        const validationErrors = {};
+        err.errors.forEach(issue => {
+          validationErrors[issue.field] = issue.message;
+        });
+        setFieldErrors(validationErrors);
+        setError('Validation failed. Please correct the highlighted errors.');
+      } else {
+        setError(err.message || 'Failed to update payment settings.');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setSaving(false);
     }
@@ -290,6 +378,7 @@ const EditEventPage = () => {
     setSaving(true);
     setError('');
     setSuccess('');
+    setFieldErrors({});
     try {
       const payload = {
         requiresLinkedinShare: premiumConfig.requiresLinkedinShare,
@@ -301,7 +390,17 @@ const EditEventPage = () => {
       setTimeout(() => setSuccess(''), 4000);
       fetchEventDetails();
     } catch (err) {
-      setError(err.message || 'Failed to update premium settings.');
+      if (err.errors && Array.isArray(err.errors)) {
+        const validationErrors = {};
+        err.errors.forEach(issue => {
+          validationErrors[issue.field] = issue.message;
+        });
+        setFieldErrors(validationErrors);
+        setError('Validation failed. Please correct the highlighted errors.');
+      } else {
+        setError(err.message || 'Failed to update premium settings.');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setSaving(false);
     }
@@ -372,6 +471,12 @@ const EditEventPage = () => {
       setError('');
       const res = await eventsApi.uploadUpiQrCode(id, file);
       setPaymentConfig(prev => ({ ...prev, upiQrCode: res?.upiQrCode || URL.createObjectURL(file) }));
+      setFieldErrors(prev => {
+        if (!prev.upiQrCode) return prev;
+        const copy = { ...prev };
+        delete copy.upiQrCode;
+        return copy;
+      });
       setSuccess('UPI QR Code uploaded!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -670,9 +775,44 @@ const EditEventPage = () => {
 
             {/* Toasts */}
             {error && (
-              <div className="mb-6 px-5 py-4 bg-red-950/50 border border-red-500/50 rounded-2xl text-red-400 text-sm flex items-start gap-3 shadow-xl backdrop-blur-sm">
-                <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <span>{error}</span>
+              <div className="mb-6 px-5 py-4 bg-red-950/50 border border-red-500/50 rounded-2xl text-red-400 text-sm flex flex-col gap-2 shadow-xl backdrop-blur-sm">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <span className="font-semibold text-base">{error}</span>
+                </div>
+                {Object.keys(fieldErrors).length > 0 && (
+                  <ul className="list-disc pl-8 text-sm space-y-1 mt-1">
+                    {Object.entries(fieldErrors).map(([field, msg]) => {
+                      let readableField = field
+                        .replace('title', 'Event Title')
+                        .replace('subtitle', 'Subtitle')
+                        .replace('description', 'Event Description')
+                        .replace('category', 'Category')
+                        .replace('mode', 'Conduct Mode')
+                        .replace('theme', 'Theme')
+                        .replace('startDate', 'Start Date')
+                        .replace('endDate', 'End Date')
+                        .replace('registrationDeadline', 'Registration Deadline')
+                        .replace('location.venueName', 'Venue Name')
+                        .replace('venueName', 'Venue Name')
+                        .replace('location.mapLink', 'Google Map Link')
+                        .replace('mapLink', 'Google Map Link')
+                        .replace('address', 'Address')
+                        .replace('prizeType', 'Prize Pool Type')
+                        .replace('prizeAmount', 'Prize Pool Value')
+                        .replace('ticketPrice', 'Ticket Price')
+                        .replace('upiId', 'UPI ID')
+                        .replace('upiQrCode', 'UPI QR Code');
+                      
+                      readableField = readableField.charAt(0).toUpperCase() + readableField.slice(1);
+                      return (
+                        <li key={field}>
+                          <strong>{readableField}:</strong> {msg}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
             )}
             {success && (
@@ -694,20 +834,26 @@ const EditEventPage = () => {
                       <input
                         type="text"
                         value={infoForm.title}
-                        onChange={e => setInfoForm(prev => ({ ...prev, title: e.target.value }))}
-                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                        onChange={e => updateInfoField('title', e.target.value)}
+                        className={getInputClass('title')}
                         placeholder="e.g. InnoHack 2026"
                       />
+                      {getFieldError('title') && (
+                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('title')}</p>
+                      )}
                     </div>
                     <div>
                       <label className="text-gray-400 text-sm mb-2 block">Subtitle</label>
                       <input
                         type="text"
                         value={infoForm.subtitle}
-                        onChange={e => setInfoForm(prev => ({ ...prev, subtitle: e.target.value }))}
-                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                        onChange={e => updateInfoField('subtitle', e.target.value)}
+                        className={getInputClass('subtitle')}
                         placeholder="e.g. Hack to the Future"
                       />
+                      {getFieldError('subtitle') && (
+                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('subtitle')}</p>
+                      )}
                     </div>
                   </div>
 
@@ -715,11 +861,14 @@ const EditEventPage = () => {
                     <label className="text-gray-400 text-sm mb-2 block">Event Description *</label>
                     <textarea
                       value={infoForm.description}
-                      onChange={e => setInfoForm(prev => ({ ...prev, description: e.target.value }))}
+                      onChange={e => updateInfoField('description', e.target.value)}
                       rows={5}
-                      className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 resize-none text-sm leading-relaxed"
+                      className={getInputClass('description', 'resize-none text-sm leading-relaxed')}
                       placeholder="Explain what the event is about, prizes, rules, guidelines..."
                     />
+                    {getFieldError('description') && (
+                      <p className="text-red-400 text-xs mt-1.5">{getFieldError('description')}</p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -727,36 +876,45 @@ const EditEventPage = () => {
                       <label className="text-gray-400 text-sm mb-2 block">Category</label>
                       <select
                         value={infoForm.category}
-                        onChange={e => setInfoForm(prev => ({ ...prev, category: e.target.value }))}
-                        className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                        onChange={e => updateInfoField('category', e.target.value)}
+                        className={getInputClass('category', 'bg-[#0a1f1f]')}
                       >
                         <option value="Hackathon">Hackathon</option>
                         <option value="Ideathon">Ideathon</option>
                         <option value="Webinar">Webinar</option>
-                        <option value="Conclave">Conclave</option>
+                        <option value="Techfest">Techfest</option>
                         <option value="Other">Other</option>
                       </select>
+                      {getFieldError('category') && (
+                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('category')}</p>
+                      )}
                     </div>
                     <div>
                       <label className="text-gray-400 text-sm mb-2 block">Mode</label>
                       <select
                         value={infoForm.mode}
-                        onChange={e => setInfoForm(prev => ({ ...prev, mode: e.target.value }))}
-                        className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                        onChange={e => updateInfoField('mode', e.target.value)}
+                        className={getInputClass('mode', 'bg-[#0a1f1f]')}
                       >
                         <option value="ONLINE">Online</option>
                         <option value="OFFLINE">Offline</option>
                       </select>
+                      {getFieldError('mode') && (
+                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('mode')}</p>
+                      )}
                     </div>
                     <div>
                       <label className="text-gray-400 text-sm mb-2 block">Theme</label>
                       <input
                         type="text"
                         value={infoForm.theme}
-                        onChange={e => setInfoForm(prev => ({ ...prev, theme: e.target.value }))}
-                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300"
+                        onChange={e => updateInfoField('theme', e.target.value)}
+                        className={getInputClass('theme')}
                         placeholder="e.g. AI, Cyber Security"
                       />
+                      {getFieldError('theme') && (
+                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('theme')}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -769,27 +927,36 @@ const EditEventPage = () => {
                       <input
                         type="datetime-local"
                         value={infoForm.startDate}
-                        onChange={e => setInfoForm(prev => ({ ...prev, startDate: e.target.value }))}
-                        className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
+                        onChange={e => updateInfoField('startDate', e.target.value)}
+                        className={getInputClass('startDate', 'bg-[#0a1f1f] text-sm')}
                       />
+                      {getFieldError('startDate') && (
+                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('startDate')}</p>
+                      )}
                     </div>
                     <div>
                       <label className="text-gray-400 text-sm mb-2 block">End Date *</label>
                       <input
                         type="datetime-local"
                         value={infoForm.endDate}
-                        onChange={e => setInfoForm(prev => ({ ...prev, endDate: e.target.value }))}
-                        className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
+                        onChange={e => updateInfoField('endDate', e.target.value)}
+                        className={getInputClass('endDate', 'bg-[#0a1f1f] text-sm')}
                       />
+                      {getFieldError('endDate') && (
+                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('endDate')}</p>
+                      )}
                     </div>
                     <div>
                       <label className="text-gray-400 text-sm mb-2 block">Reg. Deadline *</label>
                       <input
                         type="datetime-local"
                         value={infoForm.registrationDeadline}
-                        onChange={e => setInfoForm(prev => ({ ...prev, registrationDeadline: e.target.value }))}
-                        className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
+                        onChange={e => updateInfoField('registrationDeadline', e.target.value)}
+                        className={getInputClass('registrationDeadline', 'bg-[#0a1f1f] text-sm')}
                       />
+                      {getFieldError('registrationDeadline') && (
+                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('registrationDeadline')}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -803,20 +970,26 @@ const EditEventPage = () => {
                         <input
                           type="text"
                           value={infoForm.venueName}
-                          onChange={e => setInfoForm(prev => ({ ...prev, venueName: e.target.value }))}
-                          className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
+                          onChange={e => updateInfoField('venueName', e.target.value)}
+                          className={getInputClass('venueName', 'text-sm')}
                           placeholder="e.g. Central Auditorium, Block B"
                         />
+                        {getFieldError('venueName') && (
+                          <p className="text-red-400 text-xs mt-1.5">{getFieldError('venueName')}</p>
+                        )}
                       </div>
                       <div>
                         <label className="text-gray-400 text-sm mb-2 block">Google Maps Embed/Share Link</label>
                         <input
                           type="text"
                           value={infoForm.mapLink}
-                          onChange={e => setInfoForm(prev => ({ ...prev, mapLink: e.target.value }))}
-                          className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
+                          onChange={e => updateInfoField('mapLink', e.target.value)}
+                          className={getInputClass('mapLink', 'text-sm')}
                           placeholder="https://maps.app.goo.gl/..."
                         />
+                        {getFieldError('mapLink') && (
+                          <p className="text-red-400 text-xs mt-1.5">{getFieldError('mapLink')}</p>
+                        )}
                       </div>
                     </div>
                     <div>
@@ -824,10 +997,13 @@ const EditEventPage = () => {
                       <input
                         type="text"
                         value={infoForm.address}
-                        onChange={e => setInfoForm(prev => ({ ...prev, address: e.target.value }))}
-                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
+                        onChange={e => updateInfoField('address', e.target.value)}
+                        className={getInputClass('address', 'text-sm')}
                         placeholder="Street, City, State, ZIP..."
                       />
+                      {getFieldError('address') && (
+                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('address')}</p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -839,13 +1015,16 @@ const EditEventPage = () => {
                       <label className="text-gray-400 text-sm mb-2 block">Prize Pool Type</label>
                       <select
                         value={infoForm.prizeType}
-                        onChange={e => setInfoForm(prev => ({ ...prev, prizeType: e.target.value }))}
-                        className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
+                        onChange={e => updateInfoField('prizeType', e.target.value)}
+                        className={getInputClass('prizeType', 'bg-[#0a1f1f] text-sm')}
                       >
                         <option value="NONE">No Prize</option>
                         <option value="CASH">Cash Prize Pool</option>
                         <option value="MERCH">Swag / Merch</option>
                       </select>
+                      {getFieldError('prizeType') && (
+                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('prizeType')}</p>
+                      )}
                     </div>
                     {infoForm.prizeType !== 'NONE' && (
                       <div>
@@ -853,10 +1032,13 @@ const EditEventPage = () => {
                         <input
                           type="number"
                           value={infoForm.prizeAmount}
-                          onChange={e => setInfoForm(prev => ({ ...prev, prizeAmount: e.target.value }))}
-                          className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
+                          onChange={e => updateInfoField('prizeAmount', e.target.value)}
+                          className={getInputClass('prizeAmount', 'text-sm')}
                           min="0"
                         />
+                        {getFieldError('prizeAmount') && (
+                          <p className="text-red-400 text-xs mt-1.5">{getFieldError('prizeAmount')}</p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1237,6 +1419,12 @@ const EditEventPage = () => {
                             isPaid: checked,
                             paymentType: checked ? 'MANUAL_UPI' : 'FREE'
                           }));
+                          setFieldErrors(prev => ({
+                            ...prev,
+                            ticketPrice: undefined,
+                            upiId: undefined,
+                            upiQrCode: undefined
+                          }));
                         }}
                         className="w-6 h-6 rounded border-2 border-[#1a4d4d] bg-transparent checked:bg-[#00ff88] checked:border-[#00ff88] focus:ring-0 cursor-pointer accent-[#00ff88]"
                       />
@@ -1251,18 +1439,21 @@ const EditEventPage = () => {
                         <input
                           type="number"
                           value={paymentConfig.ticketPrice}
-                          onChange={e => setPaymentConfig(prev => ({ ...prev, ticketPrice: e.target.value }))}
-                          className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm font-semibold"
+                          onChange={e => updatePaymentField('ticketPrice', e.target.value)}
+                          className={getInputClass('ticketPrice', 'text-sm font-semibold')}
                           min="0"
                           placeholder="e.g. 299"
                         />
+                        {getFieldError('ticketPrice') && (
+                          <p className="text-red-400 text-xs mt-1.5">{getFieldError('ticketPrice')}</p>
+                        )}
                       </div>
                       <div>
                         <label className="text-gray-400 text-sm mb-2 block">Payment Aggregator / Type *</label>
                         <select
                           value={paymentConfig.paymentType}
-                          onChange={e => setPaymentConfig(prev => ({ ...prev, paymentType: e.target.value }))}
-                          className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
+                          onChange={e => updatePaymentField('paymentType', e.target.value)}
+                          className={getInputClass('paymentType', 'bg-[#0a1f1f] text-sm')}
                         >
                           <option value="MANUAL_UPI">Manual UPI QR & Receipt Verification</option>
                           <option value="RAZORPAY">Razorpay Automated Gateway integration</option>
@@ -1283,10 +1474,13 @@ const EditEventPage = () => {
                           <input
                             type="text"
                             value={paymentConfig.upiId}
-                            onChange={e => setPaymentConfig(prev => ({ ...prev, upiId: e.target.value }))}
-                            className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm font-semibold"
+                            onChange={e => updatePaymentField('upiId', e.target.value)}
+                            className={getInputClass('upiId', 'text-sm font-semibold')}
                             placeholder="e.g. lenienttree@okaxis"
                           />
+                          {getFieldError('upiId') && (
+                            <p className="text-red-400 text-xs mt-1.5">{getFieldError('upiId')}</p>
+                          )}
                         </div>
                         <p className="text-xs text-gray-500 leading-relaxed">
                           Enter the exact UPI ID where registrants will send payments. Ensure this coordinates correctly with your bank account before saving.
@@ -1296,14 +1490,17 @@ const EditEventPage = () => {
                       <div className="space-y-3">
                         <label className="text-gray-400 text-sm font-semibold block">UPI QR Code Image</label>
                         {paymentConfig.upiQrCode ? (
-                          <div className="relative group overflow-hidden rounded-2xl border-2 border-[#1a4d4d] max-w-[180px] bg-white p-2">
+                          <div className={`relative group overflow-hidden rounded-2xl border-2 ${getFieldError('upiQrCode') ? 'border-red-500' : 'border-[#1a4d4d]'} max-w-[180px] bg-white p-2`}>
                             <img src={paymentConfig.upiQrCode} alt="UPI QR" className="w-full h-auto object-contain" />
                           </div>
                         ) : (
-                          <div className="flex flex-col items-center justify-center p-4 bg-[#0a1f1f]/50 border-2 border-dashed border-[#1a4d4d] rounded-2xl text-gray-500 max-w-[180px] h-[180px]">
+                          <div className={`flex flex-col items-center justify-center p-4 bg-[#0a1f1f]/50 border-2 border-dashed ${getFieldError('upiQrCode') ? 'border-red-500 bg-red-500/5' : 'border-[#1a4d4d]'} rounded-2xl text-gray-500 max-w-[180px] h-[180px]`}>
                             <QrCode className="w-10 h-10 mb-2" />
                             <span className="text-[10px] text-center">No QR uploaded yet</span>
                           </div>
+                        )}
+                        {getFieldError('upiQrCode') && (
+                          <p className="text-red-400 text-xs mt-1">{getFieldError('upiQrCode')}</p>
                         )}
                         <input type="file" ref={upiQrInputRef} onChange={handleQrCodeUpload} accept="image/*" className="hidden" />
                         <button

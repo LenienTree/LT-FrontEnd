@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Bookmark, BookmarkCheck, Loader2, Pencil } from 'lucide-react';
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
+import { ArrowLeft, Bookmark, BookmarkCheck, Loader2, Pencil, Share2, Twitter, Linkedin, Send, Copy } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 import Header from './layout/Header';
 import Footer from './layout/Footer';
 import CountdownTimer from './CountdownTimer';
 import { events as eventsApi, bookmarks as bookmarksApi } from '../services/api';
+import { captureReferral } from '../services/referralTracker';
 import { useAuth } from '../context/AuthContext';
 
 // ─── FAQ Accordion ────────────────────────────────────────────────────────────
@@ -38,6 +40,8 @@ const EventDetails = () => {
     const { id: paramId } = useParams();
     const [searchParams] = useSearchParams();
     const eventId = paramId || searchParams.get('id');
+    // Support both the new short `?r=` param and the legacy `?ref=`.
+    const refCode = searchParams.get('r') || searchParams.get('ref');
 
     const { isAuthenticated, openAuthModal, user } = useAuth();
 
@@ -46,6 +50,8 @@ const EventDetails = () => {
     const [faqs, setFaqs] = useState([]);
     const [registrationStatus, setRegistrationStatus] = useState(null);
     const [isBookmarked, setIsBookmarked] = useState(false);
+    const [relatedEvents, setRelatedEvents] = useState([]);
+    const [copied, setCopied] = useState(false);
 
     const [loading, setLoading] = useState(true);
     const [registering, setRegistering] = useState(false);
@@ -63,18 +69,27 @@ const EventDetails = () => {
 
         const fetchEvent = async () => {
             try {
-                const [eventRes, announcementsRes, faqsRes] = await Promise.allSettled([
-                    eventsApi.getById(eventId),
-                    eventsApi.getAnnouncements(eventId),
-                    eventsApi.getFAQs(eventId),
-                ]);
-
-                if (eventRes.status === 'fulfilled') {
-                    setEventData(eventRes.value?.event || eventRes.value);
-                } else {
+                // Resolve the event first — `eventId` may be a UUID or a short slug.
+                // Everything else is keyed off the resolved real id (data.id).
+                const eventRes = await eventsApi.getById(eventId).catch(() => null);
+                const data = eventRes?.event || eventRes;
+                if (!data?.id) {
                     setError('Event not found.');
+                    setLoading(false);
+                    return;
                 }
+                setEventData(data);
+                const realId = data.id;
+                const loadedCategory = data.category;
 
+                // Attribute the referral (from ?r= / ?ref=) against the real event id
+                // so it matches what the registration page reads.
+                if (refCode) captureReferral(realId, refCode);
+
+                const [announcementsRes, faqsRes] = await Promise.allSettled([
+                    eventsApi.getAnnouncements(realId),
+                    eventsApi.getFAQs(realId),
+                ]);
                 if (announcementsRes.status === 'fulfilled') {
                     setAnnouncements(announcementsRes.value?.announcements || announcementsRes.value || []);
                 }
@@ -85,9 +100,18 @@ const EventDetails = () => {
                 // Check registration status only if logged in
                 if (isAuthenticated) {
                     try {
-                        const statusRes = await eventsApi.checkRegistrationStatus(eventId);
+                        const statusRes = await eventsApi.checkRegistrationStatus(realId);
                         setRegistrationStatus(statusRes);
                         setIsBookmarked(statusRes?.isBookmarked || false);
+                    } catch (_) { /* silent */ }
+                }
+
+                // Fetch related events if category exists
+                if (loadedCategory) {
+                    try {
+                        const relatedRes = await eventsApi.getAll({ category: loadedCategory, limit: 5 });
+                        const relatedList = relatedRes?.events || (Array.isArray(relatedRes) ? relatedRes : []);
+                        setRelatedEvents(relatedList.filter(e => e.id !== realId).slice(0, 3));
                     } catch (_) { /* silent */ }
                 }
             } catch (err) {
@@ -105,7 +129,7 @@ const EventDetails = () => {
             openAuthModal('login');
             return;
         }
-        navigate(`/event/${eventId}/register`);
+        navigate(`/event/${eventData?.id ?? eventId}/register`);
     };
 
     const handleBookmark = async () => {
@@ -115,7 +139,7 @@ const EventDetails = () => {
         }
         setBookmarking(true);
         try {
-            const res = await bookmarksApi.toggle(eventId);
+            const res = await bookmarksApi.toggle(eventData?.id ?? eventId);
             setIsBookmarked(res?.bookmarked ?? !isBookmarked);
         } catch (err) {
             setError(err.message || 'Bookmark failed.');
@@ -147,9 +171,30 @@ const EventDetails = () => {
     const endDate = eventData.endDate ? new Date(eventData.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
     const dateRange = startDate && endDate ? `${startDate} – ${endDate}` : startDate;
     const isRegistered = registrationStatus?.isRegistered;
-    console.log("Event data", eventData)
+    
+    const eventUrl = window.location.href;
+    const totalRegistrations = eventData._count?.registrations ?? 0;
+    const maxParticipants = eventData.maxParticipants ?? 0;
+    const percentFilled = maxParticipants > 0 ? Math.min(100, Math.round((totalRegistrations / maxParticipants) * 100)) : 0;
+    const isFull = maxParticipants > 0 && totalRegistrations >= maxParticipants;
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(eventUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
     return (
         <div className="min-h-screen  bg-[#0a1f1f]">
+            <Helmet>
+                <title>{`${eventData.title} | LenientTree`}</title>
+                <meta name="description" content={eventData.subtitle || eventData.description} />
+                <meta property="og:title" content={eventData.title} />
+                <meta property="og:description" content={eventData.subtitle || eventData.description} />
+                <meta property="og:image" content={eventData.bannerImage || eventData.eventPoster} />
+                <meta property="og:type" content="website" />
+                <meta name="twitter:card" content="summary_large_image" />
+            </Helmet>
             <Header />
 
             <div className="container mx-auto px-4 sm:px-6 md:px-10 pt-24 py-8">
@@ -182,7 +227,7 @@ const EventDetails = () => {
                         <div className={`absolute inset-0 ${
                             eventData.isPremium
                                 ? "bg-gradient-to-r from-amber-950 via-amber-900 to-[#1e1405]"
-                                : "bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700"
+                               : "bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700"
                         }`} />
                     )}
                 </div>
@@ -323,15 +368,75 @@ const EventDetails = () => {
                             </button>
                         </div>
 
-                        {/* Participant count */}
-                        {eventData.maxParticipants && (
-                            <div className="flex items-center justify-center gap-2 text-gray-400">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                                <span className="text-sm">{eventData.maxParticipants} slots available</span>
+                        {/* Capacity Bar */}
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mt-4">
+                            <div className="flex justify-between items-center text-xs font-semibold text-gray-400 mb-2">
+                                <span>Registration Capacity</span>
+                                <span className="text-white">
+                                    {totalRegistrations}{maxParticipants > 0 ? ` / ${maxParticipants}` : ""} slots filled
+                                </span>
                             </div>
-                        )}
+                            {maxParticipants > 0 ? (
+                                <>
+                                    <div className="w-full h-2.5 bg-white/10 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-gradient-to-r from-emerald-500 to-[#9AE600] rounded-full transition-all duration-500" 
+                                            style={{ width: `${percentFilled}%` }} 
+                                        />
+                                    </div>
+                                    {isFull && (
+                                        <p className="text-[10px] text-rose-400 font-bold mt-2 text-center">
+                                            ⚠️ Registration is full!
+                                        </p>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="text-[10px] text-[#9AE600] font-bold mt-1">
+                                    Unlimited capacity (open enrollment)
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Share buttons */}
+                        <div className="mt-6 border-t border-white/10 pt-4">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Share Event</p>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={copyToClipboard}
+                                    className="p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white hover:text-[#9AE600] transition-all flex items-center justify-center gap-1.5 text-xs font-semibold flex-grow"
+                                >
+                                    <Copy className="w-4 h-4" />
+                                    {copied ? "Copied!" : "Copy Link"}
+                                </button>
+                                <a
+                                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this event: ${eventData.title}`)}&url=${encodeURIComponent(eventUrl)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white hover:text-sky-400 transition-all flex items-center justify-center"
+                                    title="Share on Twitter"
+                                >
+                                    <Twitter className="w-4 h-4" />
+                                </a>
+                                <a
+                                    href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(eventUrl)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white hover:text-blue-500 transition-all flex items-center justify-center"
+                                    title="Share on LinkedIn"
+                                >
+                                    <Linkedin className="w-4 h-4" />
+                                </a>
+                                <a
+                                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out this event: ${eventData.title} - ${eventUrl}`)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white hover:text-emerald-500 transition-all flex items-center justify-center"
+                                    title="Share on WhatsApp"
+                                >
+                                    <Send className="w-4 h-4 -rotate-45" />
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -426,6 +531,40 @@ const EventDetails = () => {
                         </div>
                     )}
                 </div>
+
+                {/* Related Events */}
+                {relatedEvents.length > 0 && (
+                    <div className="mb-12 border-t border-white/10 pt-12">
+                        <h3 className="text-white text-2xl font-bold mb-6">Related Events</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {relatedEvents.map((evt) => (
+                                <Link
+                                    key={evt.id}
+                                    to={`/event/${evt.id}`}
+                                    className="group bg-[#0d2f2f]/30 border border-[#1a4d4d] rounded-2xl overflow-hidden hover:border-[#00ff88]/50 hover:bg-[#0d2f2f]/50 transition-all duration-300 flex flex-col"
+                                >
+                                    <div className="aspect-[16/9] relative overflow-hidden bg-black/20">
+                                        {evt.bannerImage ? (
+                                            <img src={evt.bannerImage} alt={evt.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-[#0d2f2f] text-gray-500 text-xs">
+                                                No Banner
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="p-4 flex flex-col flex-grow">
+                                        <h4 className="text-white font-bold text-sm line-clamp-1 group-hover:text-[#00ff88] transition-colors">{evt.title}</h4>
+                                        <p className="text-xs text-gray-400 mt-1 line-clamp-2 leading-relaxed flex-grow">{evt.subtitle || evt.description}</p>
+                                        <div className="flex justify-between items-center text-[10px] text-gray-400 mt-4 border-t border-white/5 pt-3 font-semibold uppercase tracking-wider">
+                                            <span>{new Date(evt.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                                            <span className="text-[#00ff88]">{evt.mode}</span>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             <Footer />

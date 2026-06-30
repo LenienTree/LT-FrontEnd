@@ -26,7 +26,7 @@ const Field = ({ label, name, value, onChange, type = 'text', readOnly = false }
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user: authUser, logout } = useAuth();
+  const { user: authUser, logout, refetchUser } = useAuth();
   const avatarInputRef = useRef(null);
   const bannerInputRef = useRef(null);
   const posterInputRef = useRef(null);
@@ -35,6 +35,7 @@ const Profile = () => {
 
   // Profile data state
   const [profileData, setProfileData] = useState(null);
+  const [skillInput, setSkillInput] = useState("");
   const [myEvents, setMyEvents] = useState([]);
   const [myCreatedEvents, setMyCreatedEvents] = useState([]);
   const [loadingCreatedEvents, setLoadingCreatedEvents] = useState(false);
@@ -103,6 +104,37 @@ const Profile = () => {
     setProfileData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleAddSkill = () => {
+    if (skillInput.trim()) {
+      const currentSkills = profileData.skills || [];
+      const newSkill = skillInput.trim();
+      if (!currentSkills.some(s => s.skill.toLowerCase() === newSkill.toLowerCase())) {
+        setProfileData(prev => ({
+          ...prev,
+          skills: [...currentSkills, { skill: newSkill }]
+        }));
+      }
+      setSkillInput("");
+    }
+  };
+
+  const handleRemoveSkill = (skillToRemove) => {
+    setProfileData(prev => ({
+      ...prev,
+      skills: (prev.skills || []).filter(s => s.skill !== skillToRemove)
+    }));
+  };
+
+  const handleSocialLinkChange = (key, value) => {
+    setProfileData(prev => ({
+      ...prev,
+      socialLinks: {
+        ...(prev.socialLinks || {}),
+        [key]: value
+      }
+    }));
+  };
+
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     setProfileError('');
@@ -113,13 +145,14 @@ const Profile = () => {
         name: profileData.name,
         phone: profileData.phone,
         college: profileData.college,
-        graduationYear: profileData.graduationYear,
+        graduationYear: parseInt(profileData.graduationYear) || undefined,
         bio: profileData.bio,
-        skills: profileData.skills,
-        socialLinks: profileData.socialLinks,
+        skills: (profileData.skills || []).map(s => s.skill),
+        socialLinks: profileData.socialLinks || {},
         dateOfBirth: profileData.dateOfBirth,
       });
       setProfileData(updated?.user || updated || profileData);
+      await refetchUser();
       setProfileSuccess('Profile saved successfully!');
       setTimeout(() => setProfileSuccess(''), 3000);
     } catch (err) {
@@ -139,6 +172,7 @@ const Profile = () => {
         ...prev,
         profileImage: res?.profileImage || res?.user?.profileImage || prev.profileImage
       }));
+      await refetchUser();
       setProfileSuccess('Avatar updated!');
       setTimeout(() => setProfileSuccess(''), 3000);
     } catch (err) {
@@ -184,6 +218,7 @@ const Profile = () => {
       });
       setShowOrgModal(false);
       setOrgSubmitted(true);
+      await refetchUser();
       setProfileSuccess('Your request has been submitted! We will review and get back to you.');
       setTimeout(() => setProfileSuccess(''), 5000);
     } catch (err) {
@@ -363,6 +398,95 @@ const Profile = () => {
                       className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 resize-none"
                     />
                   </div>
+
+                  {/* Skills Editor */}
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Skills</label>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {(profileData?.skills || []).map((s, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#1a4d4d] text-white border border-[#00ff88]/30">
+                          {s.skill}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSkill(s.skill)}
+                            className="text-gray-400 hover:text-white transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Add a skill (e.g. React)"
+                        value={skillInput}
+                        onChange={(e) => setSkillInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddSkill();
+                          }
+                        }}
+                        className="flex-grow bg-transparent border-2 border-[#1a4d4d] text-white py-2.5 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddSkill}
+                        className="px-4 py-2 bg-[#1a4d4d] hover:bg-[#00ff88] text-white hover:text-black rounded-xl text-xs font-bold transition-all"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Social Links Editor */}
+                  <div className="border-t border-[#1a4d4d] pt-6 space-y-4">
+                    <h3 className="text-white text-sm font-semibold mb-2">Social & Web Links</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-gray-400 text-xs mb-1.5 block">LinkedIn</label>
+                        <input
+                          type="text"
+                          placeholder="https://linkedin.com/in/username"
+                          value={profileData?.socialLinks?.linkedin || ""}
+                          onChange={(e) => handleSocialLinkChange("linkedin", e.target.value)}
+                          className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-2.5 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-gray-400 text-xs mb-1.5 block">GitHub</label>
+                        <input
+                          type="text"
+                          placeholder="https://github.com/username"
+                          value={profileData?.socialLinks?.github || ""}
+                          onChange={(e) => handleSocialLinkChange("github", e.target.value)}
+                          className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-2.5 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-gray-400 text-xs mb-1.5 block">Twitter / X</label>
+                        <input
+                          type="text"
+                          placeholder="https://x.com/username"
+                          value={profileData?.socialLinks?.twitter || ""}
+                          onChange={(e) => handleSocialLinkChange("twitter", e.target.value)}
+                          className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-2.5 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-gray-400 text-xs mb-1.5 block">Website</label>
+                        <input
+                          type="text"
+                          placeholder="https://mywebsite.com"
+                          value={profileData?.socialLinks?.website || ""}
+                          onChange={(e) => handleSocialLinkChange("website", e.target.value)}
+                          className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-2.5 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <button
                     type="submit"
                     disabled={savingProfile}

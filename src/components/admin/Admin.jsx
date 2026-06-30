@@ -5,17 +5,21 @@ import {
   CheckCircle, XCircle, Shield, Search, Bell, LogOut,
   ChevronLeft, ChevronRight, RefreshCw, Loader2,
   UserCheck, AlertTriangle, Pencil, Trash2, SlidersHorizontal,
-  Upload, Plus, ArrowUp, ArrowDown, Image, Settings, Home, Briefcase
+  Upload, Plus, ArrowUp, ArrowDown, Image, Settings, Home, Briefcase, Link2,
+  Linkedin, Github, Instagram, Twitter, Globe, Phone, GraduationCap,
+  Mail, Calendar, BookOpen, Heart, User, Check, X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { admin, homepage as homepageApi } from '../../services/api';
 import { events as eventsApi } from '../../services/api';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
 
 import { fmtNum, fmtDate, fmtDateTime } from './AdminHelpers';
 import { Badge, RoleBadge } from './Badges';
 import StatCard from './StatCard';
 import SectionHeader from './SectionHeader';
 import Header from '../layout/Header';
+import ReferralManager from '../shared/ReferralManager';
 
 // ─── Admin Component ──────────────────────────────────────────────────────────
 
@@ -32,6 +36,10 @@ const Admin = () => {
   const [recentUsers, setRecentUsers] = useState([]);
   const [loadingDash, setLoadingDash] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+
+  // Analytics tab data
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
   // Pending events
   const [pendingEvents, setPendingEvents] = useState([]);
@@ -359,7 +367,7 @@ const Admin = () => {
   const fetchAllEvents = useCallback(async () => {
     setLoadingAllEvents(true);
     try {
-      const data = await eventsApi.getAll({ limit: 1000 });
+      const data = await admin.getAllEvents({ limit: 1000 });
       setAllEvents(data?.data || data || []);
     } catch {
       showToast('Failed to load all events', 'error');
@@ -461,6 +469,19 @@ const Admin = () => {
     fetchSurveyResponses(1, surveySearch);
   };
 
+  // ── Fetch Analytics Data ──
+  const fetchAnalyticsData = useCallback(async () => {
+    setLoadingAnalytics(true);
+    try {
+      const data = await admin.getAnalytics();
+      setAnalyticsData(data);
+    } catch {
+      showToast('Failed to load analytics data', 'error');
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  }, []);
+
   useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
   useEffect(() => {
     if (activeTab === 'events') fetchPending();
@@ -470,6 +491,7 @@ const Admin = () => {
     if (activeTab === 'recentUsers') fetchRecentUsers(1);
     if (activeTab === 'homepage') fetchHomepageData();
     if (activeTab === 'internships') fetchSurveyResponses(1);
+    if (activeTab === 'analytics') fetchAnalyticsData();
   }, [activeTab]);
 
   // ── Actions ──
@@ -500,6 +522,19 @@ const Admin = () => {
       setRecentEvents(prev => prev.map(ev => ev.id === id ? { ...ev, isPremium: nextStatus } : ev));
     } catch (e) {
       showToast(e.message || 'Failed to toggle premium status', 'error');
+    }
+  };
+
+  const handleDeleteEvent = async (id, title) => {
+    if (!window.confirm(`Are you sure you want to delete the event "${title}"? This will cancel registrations.`)) return;
+    try {
+      await eventsApi.deleteEvent(id);
+      showToast('Event deleted successfully!');
+      setAllEvents(prev => prev.filter(ev => ev.id !== id));
+      setRecentEvents(prev => prev.filter(ev => ev.id !== id));
+      setPendingEvents(prev => prev.filter(ev => ev.id !== id));
+    } catch (e) {
+      showToast(e.message || 'Failed to delete event', 'error');
     }
   };
 
@@ -551,11 +586,13 @@ const Admin = () => {
   // ── Nav Items ──
   const navItems = [
     { key: 'dashboard', label: 'Dashboard', icon: BarChart2 },
+    { key: 'analytics', label: 'Admin Analytics', icon: TrendingUp },
     { key: 'events', label: 'Pending Events', icon: CalendarDays },
     { key: 'allEvents', label: 'All Events', icon: CalendarDays },
     { key: 'organizer', label: 'Organizer Requests', icon: UserCheck },
     { key: 'recentUsers', label: 'Recent Users', icon: Users },
     { key: 'users', label: 'All Users', icon: SlidersHorizontal },
+    { key: 'referrals', label: 'Referrals', icon: Link2 },
     { key: 'homepage', label: 'Homepage Config', icon: Settings },
     { key: 'internships', label: 'Internship Survey', icon: Briefcase },
   ];
@@ -584,7 +621,7 @@ const Admin = () => {
       )}
 
       <aside className={`
-        fixed top-0 left-0 h-82 w-64 bg-[#061818] border-r border-[#1a4d4d] z-40
+        fixed top-0 left-0 h-screen w-64 bg-[#061818] border-r border-[#1a4d4d] z-40
         flex flex-col transition-transform duration-300
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static lg:z-auto
@@ -647,8 +684,8 @@ const Admin = () => {
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
 <Header/>
 
-        {/* Page content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        {/* Page content — pt offset clears the fixed floating header */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 pt-24 sm:pt-24 lg:pt-24 overflow-y-auto">
 
           {/* Toast */}
           {toast && (
@@ -948,6 +985,13 @@ const Admin = () => {
                             <Pencil className="w-4 h-4" />
                             Edit
                           </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteEvent(ev.id, ev.title); }}
+                            className="flex items-center gap-1.5 bg-red-900/50 hover:bg-red-600 border border-red-500/50 text-red-400 hover:text-white text-sm font-medium px-4 py-2 rounded-xl transition-all hover:scale-[1.02]"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -1186,62 +1230,7 @@ const Admin = () => {
               )}
 
 
-              {/* ── View User Modal ── */}
-              {viewUserModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-                  <div className="w-full max-w-md bg-[#0d2f2f] border-2 border-[#1a4d4d] rounded-2xl p-6 shadow-2xl">
-                    <div className="flex items-center justify-between mb-5">
-                      <h3 className="text-white font-semibold text-lg">User Profile</h3>
-                      <button onClick={() => setViewUserModal(null)} className="text-gray-400 hover:text-white transition-colors">
-                        <XCircle className="w-5 h-5" />
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-4 mb-5">
-                      <div className="w-14 h-14 rounded-full bg-[#1a4d4d] flex items-center justify-center flex-shrink-0">
-                        {viewUserModal.profileImage
-                          ? <img src={viewUserModal.profileImage} alt="" className="w-full h-full object-cover rounded-full" />
-                          : <Users className="w-7 h-7 text-gray-400" />}
-                      </div>
-                      <div>
-                        <p className="text-white font-semibold">{viewUserModal.name || '—'}</p>
-                        <p className="text-gray-400 text-sm">{viewUserModal.email}</p>
-                        <div className="mt-1"><RoleBadge role={viewUserModal.role} isOrganizer={viewUserModal.isOrganizer} /></div>
-                      </div>
-                    </div>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Status</span>
-                        <Badge status={viewUserModal.status} />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Joined</span>
-                        <span className="text-white font-mono text-xs">{fmtDateTime(viewUserModal.createdAt)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Organizer</span>
-                        <span className={viewUserModal.isOrganizer ? 'text-[#00ff88]' : 'text-gray-500'}>
-                          {viewUserModal.isOrganizer ? 'Yes' : 'No'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex gap-3 mt-5">
-                      <button
-                        onClick={() => { handleToggleBlock(viewUserModal); setViewUserModal(null); }}
-                        className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all
-                          ${viewUserModal.status === 'BLOCKED'
-                            ? 'bg-green-900/40 border border-green-500/40 text-green-400 hover:bg-green-700 hover:text-white'
-                            : 'bg-red-900/40 border border-red-500/40 text-red-400 hover:bg-red-700 hover:text-white'}`}
-                      >
-                        {viewUserModal.status === 'BLOCKED' ? 'Unblock User' : 'Block User'}
-                      </button>
-                      <button onClick={() => setViewUserModal(null)}
-                        className="flex-1 py-2.5 rounded-xl text-sm text-gray-400 border border-[#1a4d4d] hover:border-[#00ff88] hover:text-white transition-all">
-                        Close
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* View User Modal is now global, located at the bottom of the main content */}
             </div>
           )}
 
@@ -1301,15 +1290,24 @@ const Admin = () => {
                             <td className="px-5 py-3"><Badge status={u.status} /></td>
                             <td className="px-5 py-3 text-gray-400">{fmtDate(u.createdAt)}</td>
                             <td className="px-5 py-3 text-right">
-                              <button
-                                onClick={() => handleToggleBlock(u)}
-                                className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all
-                                  ${u.status === 'BLOCKED'
-                                    ? 'bg-green-900/40 hover:bg-green-700 text-green-400 hover:text-white border border-green-500/40'
-                                    : 'bg-red-900/40 hover:bg-red-700 text-red-400 hover:text-white border border-red-500/40'}`}
-                              >
-                                {u.status === 'BLOCKED' ? 'Unblock' : 'Block'}
-                              </button>
+                              <div className="flex items-center justify-end gap-2.5">
+                                <button
+                                  onClick={() => setViewUserModal(u)}
+                                  className="text-blue-400 hover:text-blue-300 transition-colors p-1.5 rounded-lg hover:bg-blue-900/20"
+                                  title="View Profile"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleToggleBlock(u)}
+                                  className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all
+                                    ${u.status === 'BLOCKED'
+                                      ? 'bg-green-900/40 hover:bg-green-700 text-green-400 hover:text-white border border-green-500/40'
+                                      : 'bg-red-900/40 hover:bg-red-700 text-red-400 hover:text-white border border-red-500/40'}`}
+                                >
+                                  {u.status === 'BLOCKED' ? 'Unblock' : 'Block'}
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -1321,7 +1319,7 @@ const Admin = () => {
                   <div className="md:hidden space-y-3">
                     {users.map((u) => (
                       <div key={u.id} className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-4">
-                        <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start justify-between gap-2 mb-3">
                           <div className="flex-1 min-w-0">
                             <p className="text-white font-medium truncate">{u.name || u.email}</p>
                             <p className="text-gray-500 text-xs truncate">{u.email}</p>
@@ -1332,12 +1330,18 @@ const Admin = () => {
                             </div>
                             <p className="text-gray-600 text-xs mt-1">{fmtDate(u.createdAt)}</p>
                           </div>
+                        </div>
+                        <div className="flex gap-3 pt-2 border-t border-[#1a4d4d]">
+                          <button onClick={() => setViewUserModal(u)}
+                            className="flex-1 flex items-center justify-center gap-1.5 text-blue-400 text-xs py-1.5 rounded-lg hover:bg-blue-900/20 transition-colors">
+                            <Eye className="w-3.5 h-3.5" /> View Profile
+                          </button>
                           <button
                             onClick={() => handleToggleBlock(u)}
-                            className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all
+                            className={`flex-1 flex items-center justify-center text-xs font-semibold py-1.5 rounded-lg transition-all
                               ${u.status === 'BLOCKED'
-                                ? 'bg-green-900/40 text-green-400 border border-green-500/40'
-                                : 'bg-red-900/40 text-red-400 border border-red-500/40'}`}
+                                ? 'bg-green-900/40 text-green-400 border border-green-500/40 hover:bg-green-700 hover:text-white'
+                                : 'bg-red-900/40 text-red-400 border border-red-500/40 hover:bg-red-700 hover:text-white'}`}
                           >
                             {u.status === 'BLOCKED' ? 'Unblock' : 'Block'}
                           </button>
@@ -1372,6 +1376,13 @@ const Admin = () => {
                   )}
                 </>
               )}
+            </div>
+          )}
+
+          {activeTab === 'referrals' && (
+            <div>
+              <SectionHeader title="Referral & UTM Tracking" />
+              <ReferralManager mode="admin" accent="#00ff88" />
             </div>
           )}
 
@@ -1705,7 +1716,6 @@ const Admin = () => {
             </div>
           )}
 
-
           {/* ── INTERNSHIP SURVEY TAB ── */}
           {activeTab === 'internships' && (
             <div className="space-y-6 pt-20">
@@ -1892,6 +1902,187 @@ const Admin = () => {
             </div>
           )}
 
+          {/* ── ANALYTICS TAB ── */}
+          {activeTab === 'analytics' && (
+            <div>
+              <div className='h-15'></div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-[#00ff88]" />
+                  <h1 className="text-white text-xl font-bold">Advanced Statistics & Charts</h1>
+                </div>
+                <button
+                  onClick={fetchAnalyticsData}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:text-white hover:bg-white/10 transition-all self-end"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Refresh
+                </button>
+              </div>
+
+              {loadingAnalytics || !analyticsData ? (
+                <div className="flex items-center justify-center py-24">
+                  <Loader2 className="w-10 h-10 text-[#00ff88] animate-spin" />
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {/* Grid 1: Key Numbers */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                      <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Est. Revenue</p>
+                      <p className="text-3xl font-extrabold text-[#00ff88] mt-2">₹{analyticsData.totalRevenue.toLocaleString()}</p>
+                      <p className="text-[10px] text-gray-500 mt-2">Aggregated from paid events ticket sales</p>
+                    </div>
+                  </div>
+
+                  {/* Grid 2: Charts (Signups and Registrations) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* User Growth Chart */}
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                      <h3 className="text-white text-sm font-bold mb-4">Daily User Sign-ups (Last 30 Days)</h3>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={analyticsData.dailySignups}>
+                            <defs>
+                              <linearGradient id="colorSignups" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#00ff88" stopOpacity={0.4}/>
+                                <stop offset="95%" stopColor="#00ff88" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1a4d4d" opacity={0.3} />
+                            <XAxis dataKey="date" stroke="#888888" fontSize={10} tickFormatter={(str) => {
+                              try {
+                                return new Date(str).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                              } catch { return str; }
+                            }} />
+                            <YAxis stroke="#888888" fontSize={10} />
+                            <Tooltip contentStyle={{ backgroundColor: '#061818', border: '1px solid #1a4d4d' }} labelFormatter={(str) => new Date(str).toLocaleDateString(undefined, { dateStyle: 'medium' })} />
+                            <Area type="monotone" dataKey="count" stroke="#00ff88" strokeWidth={2} fillOpacity={1} fill="url(#colorSignups)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Registrations Chart */}
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                      <h3 className="text-white text-sm font-bold mb-4">Daily Event Registrations (Last 30 Days)</h3>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={analyticsData.recentRegistrations}>
+                            <defs>
+                              <linearGradient id="colorRegistrations" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1a4d4d" opacity={0.3} />
+                            <XAxis dataKey="date" stroke="#888888" fontSize={10} tickFormatter={(str) => {
+                              try {
+                                return new Date(str).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                              } catch { return str; }
+                            }} />
+                            <YAxis stroke="#888888" fontSize={10} />
+                            <Tooltip contentStyle={{ backgroundColor: '#061818', border: '1px solid #1a4d4d' }} labelFormatter={(str) => new Date(str).toLocaleDateString(undefined, { dateStyle: 'medium' })} />
+                            <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorRegistrations)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Grid 3: Breakdown Charts */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Category Distribution */}
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6 lg:col-span-2">
+                      <h3 className="text-white text-sm font-bold mb-4">Event Categories Breakdown</h3>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={analyticsData.eventsByCategory}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1a4d4d" opacity={0.3} />
+                            <XAxis dataKey="category" stroke="#888888" fontSize={10} />
+                            <YAxis stroke="#888888" fontSize={10} />
+                            <Tooltip contentStyle={{ backgroundColor: '#061818', border: '1px solid #1a4d4d' }} />
+                            <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                              {analyticsData.eventsByCategory.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#00ff88' : '#3b82f6'} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Status Breakdown (Pie Chart) */}
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                      <h3 className="text-white text-sm font-bold mb-4">Event Blueprints by Status</h3>
+                      <div className="h-64 flex flex-col justify-between">
+                        <div className="h-44">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={analyticsData.eventsByStatus}
+                                dataKey="count"
+                                nameKey="status"
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={40}
+                                outerRadius={60}
+                                paddingAngle={5}
+                              >
+                                {analyticsData.eventsByStatus.map((entry, index) => {
+                                  const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#6b7280'];
+                                  return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
+                                })}
+                              </Pie>
+                              <Tooltip contentStyle={{ backgroundColor: '#061818', border: '1px solid #1a4d4d' }} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-[10px] text-gray-300">
+                          {analyticsData.eventsByStatus.map((item, idx) => {
+                            const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#6b7280'];
+                            return (
+                              <div key={idx} className="flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                                <span className="capitalize">{item.status.toLowerCase().replace('_', ' ')}</span>
+                                <span className="text-gray-500 font-bold">({item.count})</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Top Performing Events */}
+                  <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                    <h3 className="text-white text-sm font-bold mb-4">Top 5 Performing Events by Registrant Count</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-white/5 text-[10px] uppercase font-bold text-gray-400 border-b border-[#1a4d4d]">
+                            <th className="px-4 py-3">Event Blueprint</th>
+                            <th className="px-4 py-3">Category</th>
+                            <th className="px-4 py-3 text-right">Registrations</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {analyticsData.topEvents.map((ev, idx) => (
+                            <tr key={ev.id || idx} className="hover:bg-white/[0.02]">
+                              <td className="px-4 py-3 font-semibold text-white">{ev.title}</td>
+                              <td className="px-4 py-3 text-gray-400 capitalize">{ev.category.toLowerCase()}</td>
+                              <td className="px-4 py-3 text-right font-bold text-[#00ff88]">{ev.registrations}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Testimonial Form Modal */}
           {testimonialModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
@@ -2073,6 +2264,274 @@ const Admin = () => {
                         Approve
                       </button>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Redesigned View User Modal (Global) ── */}
+              {viewUserModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md px-4 py-8 overflow-y-auto">
+                  <div className="w-full max-w-md bg-[#0a2323] border border-[#1a4d4d] rounded-3xl shadow-2xl flex flex-col my-8 max-h-[90vh]">
+                    
+                    {/* Modal Header */}
+                    <div className="flex items-center justify-between p-6 border-b border-[#1a4d4d]">
+                      <h3 className="text-white font-bold text-xl flex items-center gap-2">
+                        <User className="w-5 h-5 text-[#00ff88]" /> User Profile Details
+                      </h3>
+                      <button 
+                        onClick={() => setViewUserModal(null)} 
+                        className="text-gray-400 hover:text-white transition-colors p-1 hover:bg-[#1a4d4d]/50 rounded-lg"
+                      >
+                        <X className="w-6 h-6" />
+                      </button>
+                    </div>
+
+                    {/* Modal Body - Scrollable */}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                      
+                      {/* Profile Top Summary */}
+                      <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-[#0d2f2f]/60 border border-[#1a4d4d]/60 rounded-2xl">
+                        <div className="w-20 h-20 rounded-full bg-[#1a4d4d] border-2 border-[#00ff88]/50 flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#00ff88]/10 overflow-hidden">
+                          {viewUserModal.profileImage ? (
+                            <img src={viewUserModal.profileImage} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-10 h-10 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 text-center sm:text-left min-w-0">
+                          <h4 className="text-white text-xl font-bold truncate">{viewUserModal.name || '—'}</h4>
+                          <p className="text-gray-400 text-sm font-mono truncate mt-0.5">{viewUserModal.email}</p>
+                          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-3">
+                            <RoleBadge role={viewUserModal.role} isOrganizer={viewUserModal.isOrganizer} />
+                            <Badge status={viewUserModal.status} />
+                            {viewUserModal.isEmailVerified ? (
+                              <span className="flex items-center gap-1 text-[10px] bg-green-500/10 border border-green-500/30 text-green-400 font-bold px-2 py-0.5 rounded-full uppercase">
+                                <Check className="w-2.5 h-2.5" /> Verified
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-[10px] bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 font-bold px-2 py-0.5 rounded-full uppercase">
+                                <X className="w-2.5 h-2.5" /> Unverified
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Stacked Details Sections */}
+                      <div className="space-y-6">
+                        {/* Contact & Personal */}
+                        <div className="space-y-3">
+                          <h5 className="text-[#00ff88] text-xs font-semibold uppercase tracking-wider">Contact & Personal</h5>
+                          <div className="space-y-3 bg-[#0d2f2f]/30 p-4 border border-[#1a4d4d]/40 rounded-2xl">
+                            <div className="flex items-start gap-3">
+                              <Phone className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <span className="text-gray-500 block text-xs">Phone Number</span>
+                                <span className="text-gray-200 text-sm font-mono">{viewUserModal.phone || '—'}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                              <Calendar className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <span className="text-gray-500 block text-xs">Date of Birth</span>
+                                <span className="text-gray-200 text-sm">{viewUserModal.dateOfBirth ? fmtDate(viewUserModal.dateOfBirth) : '—'}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                              <Mail className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <span className="text-gray-500 block text-xs">Google Linked</span>
+                                <span className="text-gray-200 text-sm">{viewUserModal.googleId ? 'Yes' : 'No'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Academic & Platform Info */}
+                        <div className="space-y-3">
+                          <h5 className="text-[#00ff88] text-xs font-semibold uppercase tracking-wider">Academic & Platform</h5>
+                          <div className="space-y-3 bg-[#0d2f2f]/30 p-4 border border-[#1a4d4d]/40 rounded-2xl">
+                            <div className="flex items-start gap-3">
+                              <GraduationCap className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                              <div className="min-w-0">
+                                <span className="text-gray-500 block text-xs">College / Institution</span>
+                                <span className="text-gray-200 text-sm block truncate" title={viewUserModal.college}>{viewUserModal.college || '—'}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                              <Calendar className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <span className="text-gray-500 block text-xs">Graduation Year</span>
+                                <span className="text-gray-200 text-sm">{viewUserModal.graduationYear || '—'}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                              <Clock className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <span className="text-gray-500 block text-xs">Joined Date</span>
+                                <span className="text-gray-200 text-sm font-mono text-xs">{fmtDateTime(viewUserModal.createdAt)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bio Section */}
+                      <div className="space-y-2">
+                        <h5 className="text-[#00ff88] text-xs font-semibold uppercase tracking-wider">Bio Description</h5>
+                        <div className="bg-[#0d2f2f]/30 p-4 border border-[#1a4d4d]/40 rounded-2xl">
+                          <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+                            {viewUserModal.bio || 'No bio description provided.'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Skills section */}
+                      <div className="space-y-2.5">
+                        <h5 className="text-[#00ff88] text-xs font-semibold uppercase tracking-wider">Skills</h5>
+                        <div className="bg-[#0d2f2f]/30 p-4 border border-[#1a4d4d]/40 rounded-2xl">
+                          {viewUserModal.skills && viewUserModal.skills.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {viewUserModal.skills.map((s, idx) => (
+                                <span key={idx} className="text-xs bg-[#1a4d4d]/50 hover:bg-[#1a4d4d] border border-[#1a4d4d] text-[#00ff88] px-3 py-1 rounded-lg transition-colors font-medium">
+                                  {s.skill}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 text-xs italic">No skills listed.</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Internship Section */}
+                      <div className="space-y-2.5">
+                        <h5 className="text-[#00ff88] text-xs font-semibold uppercase tracking-wider">Internship Preferences</h5>
+                        <div className="bg-[#0d2f2f]/30 p-4 border border-[#1a4d4d]/40 rounded-2xl flex flex-col gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-500 text-xs">Interested in Internships:</span>
+                            {viewUserModal.internshipInterest ? (
+                              <span className="text-xs bg-green-500/10 border border-green-500/25 text-green-400 px-2 py-0.5 rounded-full font-bold">YES</span>
+                            ) : (
+                              <span className="text-xs bg-gray-500/10 border border-gray-500/25 text-gray-400 px-2 py-0.5 rounded-full font-bold">NO</span>
+                            )}
+                          </div>
+                          {viewUserModal.internshipInterest && (
+                            <div>
+                              <span className="text-gray-500 text-xs block mb-1.5">Domains of Interest:</span>
+                              {viewUserModal.internshipDomains && viewUserModal.internshipDomains.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                  {viewUserModal.internshipDomains.map((domain, idx) => (
+                                    <span key={idx} className="text-xs bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 px-2.5 py-0.5 rounded-md">
+                                      {domain}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-gray-500 text-xs italic">No specific domains specified.</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Stats Overview */}
+                      <div className="space-y-3">
+                        <h5 className="text-[#00ff88] text-xs font-semibold uppercase tracking-wider">Activity Stats</h5>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-[#0d2f2f]/40 p-4 border border-[#1a4d4d]/30 rounded-2xl text-center">
+                            <span className="text-2xl font-extrabold text-[#00ff88] block">{viewUserModal._count?.organizedEvents || 0}</span>
+                            <span className="text-gray-500 text-xs uppercase tracking-wide">Events Organized</span>
+                          </div>
+                          <div className="bg-[#0d2f2f]/40 p-4 border border-[#1a4d4d]/30 rounded-2xl text-center">
+                            <span className="text-2xl font-extrabold text-[#00ff88] block">{viewUserModal._count?.registrations || 0}</span>
+                            <span className="text-gray-500 text-xs uppercase tracking-wide">Event Registrations</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Social Links */}
+                      <div className="space-y-3">
+                        <h5 className="text-[#00ff88] text-xs font-semibold uppercase tracking-wider">Social Links</h5>
+                        <div className="flex items-center gap-3 p-4 bg-[#0d2f2f]/30 border border-[#1a4d4d]/40 rounded-2xl">
+                          {/* LinkedIn */}
+                          {viewUserModal.socialLinks?.linkedin ? (
+                            <a href={viewUserModal.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-blue-900/20 hover:bg-blue-900/40 text-blue-400 hover:text-blue-300 rounded-xl transition-all border border-blue-500/20" title="LinkedIn">
+                              <Linkedin className="w-5 h-5" />
+                            </a>
+                          ) : (
+                            <span className="p-2.5 bg-[#1a4d4d]/10 text-gray-600 rounded-xl cursor-not-allowed border border-[#1a4d4d]/10" title="LinkedIn (Not provided)">
+                              <Linkedin className="w-5 h-5" />
+                            </span>
+                          )}
+
+                          {/* GitHub */}
+                          {viewUserModal.socialLinks?.github ? (
+                            <a href={viewUserModal.socialLinks.github} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-gray-900/50 hover:bg-gray-800 text-white rounded-xl transition-all border border-gray-500/20" title="GitHub">
+                              <Github className="w-5 h-5" />
+                            </a>
+                          ) : (
+                            <span className="p-2.5 bg-[#1a4d4d]/10 text-gray-600 rounded-xl cursor-not-allowed border border-[#1a4d4d]/10" title="GitHub (Not provided)">
+                              <Github className="w-5 h-5" />
+                            </span>
+                          )}
+
+                          {/* Instagram */}
+                          {viewUserModal.socialLinks?.instagram ? (
+                            <a href={viewUserModal.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-pink-900/20 hover:bg-pink-900/40 text-pink-400 hover:text-pink-300 rounded-xl transition-all border border-pink-500/20" title="Instagram">
+                              <Instagram className="w-5 h-5" />
+                            </a>
+                          ) : (
+                            <span className="p-2.5 bg-[#1a4d4d]/10 text-gray-600 rounded-xl cursor-not-allowed border border-[#1a4d4d]/10" title="Instagram (Not provided)">
+                              <Instagram className="w-5 h-5" />
+                            </span>
+                          )}
+
+                          {/* Twitter */}
+                          {viewUserModal.socialLinks?.twitter ? (
+                            <a href={viewUserModal.socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-sky-900/20 hover:bg-sky-900/40 text-sky-400 hover:text-sky-300 rounded-xl transition-all border border-sky-500/20" title="Twitter">
+                              <Twitter className="w-5 h-5" />
+                            </a>
+                          ) : (
+                            <span className="p-2.5 bg-[#1a4d4d]/10 text-gray-600 rounded-xl cursor-not-allowed border border-[#1a4d4d]/10" title="Twitter (Not provided)">
+                              <Twitter className="w-5 h-5" />
+                            </span>
+                          )}
+
+                          {/* Website */}
+                          {viewUserModal.socialLinks?.website ? (
+                            <a href={viewUserModal.socialLinks.website} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-emerald-900/20 hover:bg-emerald-900/40 text-emerald-400 hover:text-emerald-300 rounded-xl transition-all border border-emerald-500/20" title="Website / Portfolio">
+                              <Globe className="w-5 h-5" />
+                            </a>
+                          ) : (
+                            <span className="p-2.5 bg-[#1a4d4d]/10 text-gray-600 rounded-xl cursor-not-allowed border border-[#1a4d4d]/10" title="Website (Not provided)">
+                              <Globe className="w-5 h-5" />
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* Modal Footer */}
+                    <div className="flex gap-4 p-6 border-t border-[#1a4d4d]">
+                      <button
+                        onClick={() => { handleToggleBlock(viewUserModal); setViewUserModal(null); }}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all
+                          ${viewUserModal.status === 'BLOCKED'
+                            ? 'bg-green-950/80 border border-green-500/40 text-green-400 hover:bg-green-700 hover:text-white'
+                            : 'bg-red-950/80 border border-red-500/40 text-red-400 hover:bg-red-700 hover:text-white'}`}
+                      >
+                        {viewUserModal.status === 'BLOCKED' ? 'Unblock User' : 'Block User'}
+                      </button>
+                      <button 
+                        onClick={() => setViewUserModal(null)}
+                        className="flex-1 py-2.5 rounded-xl text-sm text-gray-400 border border-[#1a4d4d] hover:border-[#00ff88] hover:text-white transition-all font-medium"
+                      >
+                        Close
+                      </button>
+                    </div>
+
                   </div>
                 </div>
               )}
