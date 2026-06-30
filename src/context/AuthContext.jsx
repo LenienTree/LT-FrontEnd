@@ -38,7 +38,7 @@ export function AuthProvider({ children }) {
             }
             try {
                 const data = await users.getMyProfile();
-                if (data && (!data.phone || !data.college || !data.graduationYear || !data.dateOfBirth)) {
+                if (data && data.role !== 'ADMIN' && (!data.phone || !data.college || !data.graduationYear || !data.dateOfBirth)) {
                     // Force logout returning users with incomplete profile fields
                     removeToken();
                     setUser(null);
@@ -84,7 +84,7 @@ export function AuthProvider({ children }) {
         if (data?.user) setUser(data.user);
 
         const u = data?.user;
-        if (u && (!u.phone || !u.college || !u.graduationYear || !u.dateOfBirth)) {
+        if (u && u.role !== 'ADMIN' && (!u.phone || !u.college || !u.graduationYear || !u.dateOfBirth)) {
             openAuthModal('google-completion');
         }
         return data;
