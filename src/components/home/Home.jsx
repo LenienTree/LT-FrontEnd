@@ -24,7 +24,7 @@ const Home = () => {
   useEffect(() => {
     if (!isAuthenticated) {
       const timer = setTimeout(() => {
-        openAuthModal('signup', true);
+        openAuthModal('login', true);
       }, 10000);
       return () => clearTimeout(timer);
     }

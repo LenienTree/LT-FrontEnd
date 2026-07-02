@@ -6,7 +6,7 @@ import { Eye, EyeOff } from 'lucide-react';
 
 const Login = ({ switchToSignup, onSuccess }) => {
     const navigate = useNavigate();
-    const { login, googleAuth, forgotPassword } = useAuth();
+    const { login, googleAuth, forgotPassword, openAuthModal } = useAuth();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -108,7 +108,13 @@ const Login = ({ switchToSignup, onSuccess }) => {
                                         try {
                                             setLoading(true);
                                             // credentialResponse.credential is the JWT idToken
-                                            await googleAuth(credentialResponse.credential);
+                                            const data = await googleAuth(credentialResponse.credential);
+                                            const profile = data?.user;
+                                            const isProfileIncomplete = profile && (!profile.phone || !profile.college || !profile.graduationYear || !profile.dateOfBirth);
+                                            if (isProfileIncomplete) {
+                                                openAuthModal('googleCompletion', true);
+                                                return;
+                                            }
                                             if (onSuccess) onSuccess();
                                             else navigate('/');
                                         } catch (err) {

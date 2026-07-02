@@ -61,14 +61,14 @@ function AdminRoute({ children }) {
 
 function App() {
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, openAuthModal } = useAuth();
   const isProfileIncomplete = user && (!user.phone || !user.college || !user.graduationYear || !user.dateOfBirth);
 
   React.useEffect(() => {
-    if (isProfileIncomplete && location.pathname !== '/') {
-      logout();
+    if (isProfileIncomplete) {
+      openAuthModal('googleCompletion', true);
     }
-  }, [isProfileIncomplete, location.pathname, logout]);
+  }, [isProfileIncomplete, location.pathname, openAuthModal]);
 
   return (
     <div className="text-white font-urbanist overflow-x-hidden">
