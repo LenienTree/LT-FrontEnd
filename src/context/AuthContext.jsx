@@ -40,19 +40,7 @@ export function AuthProvider({ children }) {
             }
             try {
                 const data = await users.getMyProfile();
-                if (data && (!data.phone || !data.college || !data.graduationYear || !data.dateOfBirth)) {
-                    if (data.googleId) {
-                        // Keep Google user logged in but force complete profile
-                        setUser(data);
-                        openAuthModal('google-completion');
-                    } else {
-                        // Force logout returning non-Google users with incomplete profile fields
-                        removeToken();
-                        setUser(null);
-                    }
-                } else {
-                    setUser(data);
-                }
+                setUser(data);
             } catch {
                 removeToken();
                 setUser(null);
@@ -61,7 +49,7 @@ export function AuthProvider({ children }) {
             }
         };
         init();
-    }, [openAuthModal]);
+    }, []);
 
     // ── Actions ──
 
@@ -93,13 +81,8 @@ export function AuthProvider({ children }) {
         if (data?.accessToken) setToken(data.accessToken);
         if (data?.refreshToken) setRefreshToken(data.refreshToken);
         if (data?.user) setUser(data.user);
-
-        const u = data?.user;
-        if (u && (!u.phone || !u.college || !u.graduationYear || !u.dateOfBirth)) {
-            openAuthModal('google-completion');
-        }
         return data;
-    }, [openAuthModal]);
+    }, []);
 
     const logout = useCallback(() => {
         removeToken();

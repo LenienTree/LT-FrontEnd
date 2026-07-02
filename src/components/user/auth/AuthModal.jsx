@@ -7,8 +7,7 @@ import GoogleCompletion from './GoogleCompletion';
 const AuthModal = () => {
     const { isAuthModalOpen, authModalView, closeAuthModal, openAuthModal, user, isAuthModalPersistent } = useAuth();
 
-    const isProfileIncomplete = user && (!user.phone || !user.college || !user.graduationYear || !user.dateOfBirth);
-    const cannotClose = isProfileIncomplete || isAuthModalPersistent;
+    const cannotClose = isAuthModalPersistent;
 
     if (!isAuthModalOpen) return null;
 
