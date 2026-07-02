@@ -29,11 +29,7 @@ export function AuthProvider({ children }) {
         setIsAuthModalPersistent(false);
     }, []);
 
-    // ── Register global logout callback ──
-    useEffect(() => {
-        registerLogoutCallback(logout);
-        return () => registerLogoutCallback(null);
-    }, [logout]);
+
 
     // ── Bootstrap: re-hydrate user from stored token ──
     useEffect(() => {
@@ -109,6 +105,12 @@ export function AuthProvider({ children }) {
         removeToken();
         setUser(null);
     }, []);
+
+    // ── Register global logout callback ──
+    useEffect(() => {
+        registerLogoutCallback(logout);
+        return () => registerLogoutCallback(null);
+    }, [logout]);
 
     const forgotPassword = useCallback(async (email) => {
         return authApi.forgotPassword({ email });
