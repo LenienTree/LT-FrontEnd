@@ -12,7 +12,17 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000";
 
 export const getToken = () => localStorage.getItem("lt_token");
 export const setToken = (token) => localStorage.setItem("lt_token", token);
-export const removeToken = () => localStorage.removeItem("lt_token");
+export const getRefreshToken = () => localStorage.getItem("lt_refresh_token");
+export const setRefreshToken = (token) => localStorage.setItem("lt_refresh_token", token);
+export const removeToken = () => {
+  localStorage.removeItem("lt_token");
+  localStorage.removeItem("lt_refresh_token");
+};
+
+let logoutCallback = null;
+export const registerLogoutCallback = (cb) => {
+  logoutCallback = cb;
+};
 
 // ─── Core Fetch Wrapper ───────────────────────────────────────────────────────
 
@@ -39,7 +49,7 @@ async function request(endpoint, options = {}) {
   });
 
   // Auto-refresh on 401
-  if (response.status === 401 && !options._retry) {
+  if (response.status === 401 && !options._retry && !endpoint.includes("/auth/refresh")) {
     try {
       // Backend sets the new access token as an HTTP-only cookie, and now also
       // returns it in the response body. We store the new access token in localStorage
@@ -48,9 +58,13 @@ async function request(endpoint, options = {}) {
       if (refreshResult && refreshResult.accessToken) {
         setToken(refreshResult.accessToken);
       }
+      if (refreshResult && refreshResult.refreshToken) {
+        setRefreshToken(refreshResult.refreshToken);
+      }
       return request(endpoint, { ...options, _retry: true });
     } catch (_) {
       removeToken();
+      if (logoutCallback) logoutCallback();
     }
   }
 
@@ -247,7 +261,10 @@ export const auth = {
    * Refresh the access token using the stored refresh token cookie.
    * @returns {{ token }}
    */
-  refresh: () => post("/api/auth/refresh", {}),
+  refresh: () => {
+    const refreshToken = getRefreshToken();
+    return post("/api/auth/refresh", { refreshToken });
+  },
 
   /**
    * Send forgot-password email.

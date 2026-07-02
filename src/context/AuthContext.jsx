@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { auth as authApi, users, notifications, setToken, removeToken, getToken } from "../services/api";
+import { auth as authApi, users, notifications, setToken, removeToken, getToken, setRefreshToken, registerLogoutCallback } from "../services/api";
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
@@ -29,6 +29,12 @@ export function AuthProvider({ children }) {
         setIsAuthModalPersistent(false);
     }, []);
 
+    // ── Register global logout callback ──
+    useEffect(() => {
+        registerLogoutCallback(logout);
+        return () => registerLogoutCallback(null);
+    }, [logout]);
+
     // ── Bootstrap: re-hydrate user from stored token ──
     useEffect(() => {
         const init = async () => {
@@ -39,9 +45,15 @@ export function AuthProvider({ children }) {
             try {
                 const data = await users.getMyProfile();
                 if (data && (!data.phone || !data.college || !data.graduationYear || !data.dateOfBirth)) {
-                    // Force logout returning users with incomplete profile fields
-                    removeToken();
-                    setUser(null);
+                    if (data.googleId) {
+                        // Keep Google user logged in but force complete profile
+                        setUser(data);
+                        openAuthModal('google-completion');
+                    } else {
+                        // Force logout returning non-Google users with incomplete profile fields
+                        removeToken();
+                        setUser(null);
+                    }
                 } else {
                     setUser(data);
                 }
@@ -53,7 +65,7 @@ export function AuthProvider({ children }) {
             }
         };
         init();
-    }, []);
+    }, [openAuthModal]);
 
     // ── Actions ──
 
@@ -63,6 +75,7 @@ export function AuthProvider({ children }) {
         // The api.js wrapper returns 'data' from { success, message, data }
         // For login, 'data' is { user, accessToken, refreshToken }
         if (data?.accessToken) setToken(data.accessToken);
+        if (data?.refreshToken) setRefreshToken(data.refreshToken);
         if (data?.user) setUser(data.user);
         return data;
     }, []);
@@ -71,6 +84,7 @@ export function AuthProvider({ children }) {
         setError(null);
         const data = await authApi.register(formData);
         if (data?.accessToken) setToken(data.accessToken);
+        if (data?.refreshToken) setRefreshToken(data.refreshToken);
         if (data?.user) setUser(data.user);
         return data;
     }, []);
@@ -81,6 +95,7 @@ export function AuthProvider({ children }) {
         // which allows us to set the token in local storage for session rehydration.
         const data = await authApi.googleAuth({ idToken });
         if (data?.accessToken) setToken(data.accessToken);
+        if (data?.refreshToken) setRefreshToken(data.refreshToken);
         if (data?.user) setUser(data.user);
 
         const u = data?.user;

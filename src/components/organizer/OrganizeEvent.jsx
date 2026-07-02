@@ -280,13 +280,8 @@ const OrganizeEvent = () => {
             }
         }
 
-        if (eventData.eventStartDate && eventData.registrationDeadline) {
-            const start = new Date(eventData.eventStartDate);
-            const deadline = new Date(eventData.registrationDeadline);
-            if (deadline > start) {
-                errors.registrationDeadline = 'Registration deadline cannot be after the start date.';
-            }
-        }
+
+
 
         // Team Size
         if (eventData.registrationType === 'Group') {
