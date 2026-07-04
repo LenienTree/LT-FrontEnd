@@ -62,7 +62,7 @@ function AdminRoute({ children }) {
 function App() {
   const location = useLocation();
   const { user, openAuthModal } = useAuth();
-  const isGoogleProfileIncomplete = user?.googleId && (!user.phone || !user.college || !user.graduationYear || !user.dateOfBirth);
+  const isGoogleProfileIncomplete = user?.googleId && (!user.phone || !user.currentRole || !user.dateOfBirth);
 
   React.useEffect(() => {
     if (isGoogleProfileIncomplete) {

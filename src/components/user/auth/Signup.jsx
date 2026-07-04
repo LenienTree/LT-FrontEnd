@@ -3,6 +3,17 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
 
+const formatDateInput = (value) => {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) {
+    return digits;
+  } else if (digits.length <= 4) {
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  } else {
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+  }
+};
+
 const Signup = ({ switchToLogin, onSuccess }) => {
   const navigate = useNavigate();
   const { register } = useAuth();
@@ -34,9 +45,13 @@ const Signup = ({ switchToLogin, onSuccess }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    let val = type === 'checkbox' ? checked : value;
+    if (name === 'dateOfBirth') {
+      val = formatDateInput(value);
+    }
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: val
     }));
   };
 
@@ -51,11 +66,28 @@ const Signup = ({ switchToLogin, onSuccess }) => {
       setError('Please accept the terms and conditions');
       return;
     }
+
+    const dobPattern = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (!dobPattern.test(formData.dateOfBirth)) {
+      setError('Please enter Date of Birth in DD/MM/YYYY format.');
+      return;
+    }
+    const [d, m, y] = formData.dateOfBirth.split('/').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    if (dateObj.getFullYear() !== y || dateObj.getMonth() !== m - 1 || dateObj.getDate() !== d) {
+      setError('Please enter a valid Date of Birth.');
+      return;
+    }
+
     setError('');
     setLoading(true);
     try {
       const { agreeToTerms, ...payload } = formData;
-      await register(payload);
+      const formattedDob = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      await register({
+        ...payload,
+        dateOfBirth: formattedDob
+      });
       if (onSuccess) onSuccess();
       else navigate('/');
     } catch (err) {
@@ -132,11 +164,12 @@ const Signup = ({ switchToLogin, onSuccess }) => {
             <div>
               <input
                 id="signup-dob"
-                type="date"
+                type="text"
                 name="dateOfBirth"
-                placeholder="Date of Birth"
+                placeholder="Date of Birth (DD/MM/YYYY)"
                 value={formData.dateOfBirth}
                 onChange={handleChange}
+                maxLength={10}
                 className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-6 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 backdrop-blur-sm"
                 required
               />

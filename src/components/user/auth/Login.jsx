@@ -110,7 +110,7 @@ const Login = ({ switchToSignup, onSuccess }) => {
                                             // credentialResponse.credential is the JWT idToken
                                             const data = await googleAuth(credentialResponse.credential);
                                             const profile = data?.user;
-                                            const isProfileIncomplete = profile && (!profile.phone || !profile.college || !profile.graduationYear || !profile.dateOfBirth);
+                                            const isProfileIncomplete = profile && (!profile.phone || !profile.currentRole || !profile.dateOfBirth);
                                             if (isProfileIncomplete) {
                                                 openAuthModal('googleCompletion', true);
                                                 return;

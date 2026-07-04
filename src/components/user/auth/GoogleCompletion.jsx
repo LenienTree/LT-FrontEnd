@@ -2,6 +2,17 @@ import React, { useState } from 'react';
 import { users } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 
+const formatDateInput = (value) => {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) {
+    return digits;
+  } else if (digits.length <= 4) {
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  } else {
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+  }
+};
+
 const GoogleCompletion = ({ onSuccess }) => {
   const { user, refetchUser, logout } = useAuth();
 
@@ -17,9 +28,13 @@ const GoogleCompletion = ({ onSuccess }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    let val = value;
+    if (name === 'dateOfBirth') {
+      val = formatDateInput(value);
+    }
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: val
     }));
   };
 
@@ -30,14 +45,27 @@ const GoogleCompletion = ({ onSuccess }) => {
       return;
     }
 
+    const dobPattern = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (!dobPattern.test(formData.dateOfBirth)) {
+      setError('Please enter Date of Birth in DD/MM/YYYY format.');
+      return;
+    }
+    const [d, m, y] = formData.dateOfBirth.split('/').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    if (dateObj.getFullYear() !== y || dateObj.getMonth() !== m - 1 || dateObj.getDate() !== d) {
+      setError('Please enter a valid Date of Birth.');
+      return;
+    }
+
     setError('');
     setLoading(true);
     try {
+      const formattedDob = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       await users.updateMyProfile({
         name: formData.name,
         phone: formData.phone,
         currentRole: formData.currentRole,
-        dateOfBirth: formData.dateOfBirth
+        dateOfBirth: formattedDob
       });
       // Refetch user to update profile details in AuthContext
       await refetchUser();
@@ -117,14 +145,15 @@ const GoogleCompletion = ({ onSuccess }) => {
             </div>
 
             <div>
-              <label htmlFor="comp-dob" className="block text-xs font-semibold text-gray-400 mb-1">Date of Birth</label>
+              <label htmlFor="comp-dob" className="block text-xs font-semibold text-gray-400 mb-1">Date of Birth (DD/MM/YYYY)</label>
               <input
                 id="comp-dob"
-                type="date"
+                type="text"
                 name="dateOfBirth"
-                placeholder="Date of Birth"
+                placeholder="DD/MM/YYYY"
                 value={formData.dateOfBirth}
                 onChange={handleChange}
+                maxLength={10}
                 className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-6 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 backdrop-blur-sm"
                 required
               />
