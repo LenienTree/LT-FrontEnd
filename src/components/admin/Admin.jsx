@@ -34,6 +34,7 @@ const Admin = () => {
   const [stats, setStats] = useState(null);
   const [recentEvents, setRecentEvents] = useState([]);
   const [recentUsers, setRecentUsers] = useState([]);
+  const [interestStats, setInterestStats] = useState([]);
   const [loadingDash, setLoadingDash] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
@@ -343,6 +344,7 @@ const Admin = () => {
       setStats(data?.stats ?? null);
       setRecentEvents(data?.recentEvents ?? []);
       setRecentUsers(data?.recentUsers ?? []);
+      setInterestStats(data?.interestStats ?? []);
       setLastUpdated(new Date());
     } catch (e) {
       showToast('Failed to load dashboard stats', 'error');
@@ -469,13 +471,25 @@ const Admin = () => {
       const nextStatus = !currentStatus;
       await admin.togglePremium(id, nextStatus);
       showToast(nextStatus ? 'Event marked as Premium!' : 'Premium status removed.');
-      
+
       // Update local state for allEvents
       setAllEvents(prev => prev.map(ev => ev.id === id ? { ...ev, isPremium: nextStatus } : ev));
       // Update local state for recentEvents
       setRecentEvents(prev => prev.map(ev => ev.id === id ? { ...ev, isPremium: nextStatus } : ev));
     } catch (e) {
       showToast(e.message || 'Failed to toggle premium status', 'error');
+    }
+  };
+
+  const handleToggleLanding = async (id, currentStatus) => {
+    try {
+      const nextStatus = !currentStatus;
+      await admin.toggleShowOnLanding(id, nextStatus);
+      showToast(nextStatus ? 'Event will now show on the landing page!' : 'Event hidden from the landing page.');
+      setAllEvents(prev => prev.map(ev => ev.id === id ? { ...ev, showOnLanding: nextStatus } : ev));
+      setRecentEvents(prev => prev.map(ev => ev.id === id ? { ...ev, showOnLanding: nextStatus } : ev));
+    } catch (e) {
+      showToast(e.message || 'Failed to toggle landing visibility', 'error');
     }
   };
 
@@ -674,6 +688,29 @@ const Admin = () => {
                     {statCards.map((card) => (
                       <StatCard key={card.label} {...card} />
                     ))}
+                  </div>
+
+                  <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6 mb-6">
+                    <SectionHeader title="Signup Interest Analytics" count={interestStats.reduce((sum, item) => sum + item.count, 0)} />
+                    {interestStats.length === 0 ? (
+                      <p className="text-gray-500 text-sm">No signup interests captured yet.</p>
+                    ) : (
+                      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                        {interestStats.map((item) => (
+                          <div key={item.label} className="bg-[#071515] border border-[#1a4d4d]/70 rounded-xl p-4">
+                            <div className="flex items-start gap-3">
+                              <div className="w-9 h-9 rounded-lg bg-[#00ff88]/10 text-[#00ff88] flex items-center justify-center flex-shrink-0">
+                                <Heart className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-white text-sm font-semibold leading-snug">{item.label}</p>
+                                <p className="text-[#00ff88] text-2xl font-extrabold mt-2">{fmtNum(item.count)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Recent section */}
@@ -914,6 +951,11 @@ const Admin = () => {
                                 👑 Premium
                               </span>
                             )}
+                            {ev.showOnLanding && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#00ff88]/40 text-[#00ff88] bg-[#00ff88]/10 flex items-center gap-1">
+                                🌐 On Landing
+                              </span>
+                            )}
                           </div>
                           <p className="text-gray-400 text-sm">{ev.category} · {ev.mode}</p>
                           <p className="text-gray-500 text-xs mt-1">
@@ -921,6 +963,19 @@ const Admin = () => {
                           </p>
                         </div>
                         <div className="flex gap-2 flex-shrink-0 items-center">
+                          {!['hackathon', 'ideathon'].includes((ev.category || '').toLowerCase()) && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleToggleLanding(ev.id, ev.showOnLanding); }}
+                              title="Control whether this event appears on the main landing page"
+                              className={`flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-xl transition-all ${
+                                ev.showOnLanding
+                                  ? 'bg-[#00b36b] hover:bg-[#00c878] text-white shadow-lg shadow-[#00ff88]/20 hover:scale-[1.02]'
+                                  : 'bg-[#061818]/60 border border-[#1a4d4d] hover:border-[#00ff88]/50 text-gray-400 hover:text-[#00ff88] hover:scale-[1.02]'
+                              }`}
+                            >
+                              🌐 {ev.showOnLanding ? 'On Landing' : 'Show on Landing'}
+                            </button>
+                          )}
                           <button
                             onClick={(e) => { e.stopPropagation(); handleTogglePremium(ev.id, ev.isPremium); }}
                             className={`flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-xl transition-all ${
@@ -2198,6 +2253,24 @@ const Admin = () => {
                                 <span className="text-gray-500 text-xs italic">No specific domains specified.</span>
                               )}
                             </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Signup Interests Section */}
+                      <div className="space-y-2.5">
+                        <h5 className="text-[#00ff88] text-xs font-semibold uppercase tracking-wider">Signup Interests</h5>
+                        <div className="bg-[#0d2f2f]/30 p-4 border border-[#1a4d4d]/40 rounded-2xl">
+                          {viewUserModal.interests && viewUserModal.interests.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {viewUserModal.interests.map((interest, idx) => (
+                                <span key={idx} className="text-xs bg-[#00ff88]/10 border border-[#00ff88]/25 text-[#00ff88] px-2.5 py-0.5 rounded-md">
+                                  {interest}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 text-xs italic">No signup interests selected.</span>
                           )}
                         </div>
                       </div>

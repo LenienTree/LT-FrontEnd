@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
+    root: __dirname,
     // Use absolute asset URLs (/assets/...) so deep links like /e/<slug> load
     // their JS/CSS correctly. With a relative base ('./') the browser resolves
     // assets against the current route (e.g. /e/assets/...), which 404s and the

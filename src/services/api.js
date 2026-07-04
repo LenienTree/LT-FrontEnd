@@ -648,6 +648,10 @@ export const admin = {
   togglePremium: (id, isPremium = false) =>
     put(`/api/admin/events/${id}/premium`, { isPremium }),
 
+  /** PUT /api/admin/events/:id/landing — show/hide event on the landing page */
+  toggleShowOnLanding: (id, showOnLanding = false) =>
+    put(`/api/admin/events/${id}/landing`, { showOnLanding }),
+
   /** PUT /api/admin/events/:id/reject */
   rejectEvent: (id, reason) =>
     put(`/api/admin/events/${id}/reject`, { reason }),

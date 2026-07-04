@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { users } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { INTEREST_OPTIONS } from '../../../constants/interests';
 
 const formatDateInput = (value) => {
   const digits = value.replace(/\D/g, '').slice(0, 8);
@@ -20,7 +21,8 @@ const GoogleCompletion = ({ onSuccess }) => {
     name: user?.name || '',
     phone: '',
     currentRole: '',
-    dateOfBirth: ''
+    dateOfBirth: '',
+    interests: user?.interests || []
   });
 
   const [loading, setLoading] = useState(false);
@@ -38,10 +40,27 @@ const GoogleCompletion = ({ onSuccess }) => {
     }));
   };
 
+  const handleInterestChange = (interest) => {
+    setFormData(prev => {
+      const interests = prev.interests.includes(interest)
+        ? prev.interests.filter(item => item !== interest)
+        : [...prev.interests, interest];
+
+      return {
+        ...prev,
+        interests
+      };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.phone || !formData.currentRole || !formData.dateOfBirth) {
       setError('Please fill in all mandatory fields.');
+      return;
+    }
+    if (formData.interests.length === 0) {
+      setError('Please select at least one interest.');
       return;
     }
 
@@ -65,7 +84,8 @@ const GoogleCompletion = ({ onSuccess }) => {
         name: formData.name,
         phone: formData.phone,
         currentRole: formData.currentRole,
-        dateOfBirth: formattedDob
+        dateOfBirth: formattedDob,
+        interests: formData.interests
       });
       // Refetch user to update profile details in AuthContext
       await refetchUser();
@@ -157,6 +177,23 @@ const GoogleCompletion = ({ onSuccess }) => {
                 className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-6 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 backdrop-blur-sm"
                 required
               />
+            </div>
+
+            <div className="bg-[#071515] border border-[#1a4d4d] rounded-xl p-4">
+              <p className="text-gray-300 text-sm font-semibold mb-3">I am interested in</p>
+              <div className="space-y-2.5">
+                {INTEREST_OPTIONS.map((interest) => (
+                  <label key={interest} className="flex items-start gap-3 text-sm text-gray-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.interests.includes(interest)}
+                      onChange={() => handleInterestChange(interest)}
+                      className="mt-0.5 w-4 h-4 bg-transparent border-2 border-[#1a4d4d] rounded accent-[#00ff88] cursor-pointer"
+                    />
+                    <span>{interest}</span>
+                  </label>
+                ))}
+              </div>
             </div>
 
             <button

@@ -39,7 +39,7 @@ const Home = () => {
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [sections, setSections] = useState([]);
   const [isLoadingSections, setIsLoadingSections] = useState(true);
-  const [activeCategoryTab, setActiveCategoryTab] = useState("HACKATHON");
+  const [activeCategoryTab, setActiveCategoryTab] = useState("ALL");
   const [selectedDayPopover, setSelectedDayPopover] = useState(null);
 
   // Default/Fallback homepage configurator values
@@ -754,12 +754,17 @@ const Home = () => {
             </p>
           </div>
 
-          {/* Category Filter Tabs — Hackathon & Ideathon are showcased inline;
-               other categories route directly to the Explore page filtered by that category. */}
+          {/* Category Filter Tabs — all categories are showcased inline.
+               Hackathons & Ideathons appear once approved; every other category
+               appears only when an admin enables "Show on Landing" for that event. */}
           <div className="flex flex-wrap justify-center gap-2.5 mb-10 px-2">
             {[
-              { id: "HACKATHON", label: "Hackathons", inline: true },
-              { id: "IDEATHON",  label: "Ideathons",  inline: true },
+              { id: "ALL",       label: "All"        },
+              { id: "HACKATHON", label: "Hackathons" },
+              { id: "IDEATHON",  label: "Ideathons"  },
+              { id: "WEBINAR",   label: "Webinars"   },
+              { id: "TECHFEST",  label: "Techfests"  },
+              { id: "OTHER",     label: "Others"     },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -772,20 +777,6 @@ const Home = () => {
               >
                 {tab.label}
               </button>
-            ))}
-            {/* Other categories → go straight to Explore with a filter */}
-            {[
-              { id: "Webinar",  label: "Webinars"  },
-              { id: "Techfest", label: "Techfests"  },
-              { id: "Other",    label: "Others"     },
-            ].map((tab) => (
-              <Link
-                key={tab.id}
-                to={`/explore?category=${tab.id}`}
-                className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 border bg-white/5 border-white/10 text-gray-300 hover:border-white/20 hover:bg-white/10"
-              >
-                {tab.label}
-              </Link>
             ))}
           </div>
 
@@ -802,13 +793,23 @@ const Home = () => {
             <div>
               {(() => {
                 const now = Date.now();
+                // Hackathons & Ideathons appear on the landing page once approved.
+                // Every other category is gated behind the admin "Show on Landing" toggle.
+                const approvalCategories = ["HACKATHON", "IDEATHON"];
+                // An event belongs on the landing page if it's an approval category
+                // (visible once approved) or an admin flagged it via "Show on Landing".
+                const isLandingEligible = (event) =>
+                  approvalCategories.includes((event.category || "").toUpperCase()) ||
+                  event.showOnLanding === true;
                 const filteredEvents = allDbEvents.filter((event) => {
                   // Landing page only lists events that haven't fully ended yet —
                   // they stay visible through the event itself (even once
                   // registration closes) and drop off only after endDate passes.
                   const notEnded = !event.endDate || new Date(event.endDate).getTime() >= now;
-                  // Inline tabs are HACKATHON and IDEATHON only.
-                  return notEnded && event.category?.toUpperCase() === activeCategoryTab;
+                  if (!notEnded || !isLandingEligible(event)) return false;
+                  // "All" shows every landing-eligible event; the rest filter by category.
+                  if (activeCategoryTab === "ALL") return true;
+                  return event.category?.toUpperCase() === activeCategoryTab;
                 });
 
                 return (
@@ -825,7 +826,7 @@ const Home = () => {
                     ) : (
                       <div className="col-span-full py-16 text-center text-white/50 bg-[#041a1a]/40 border border-[#143d3d] rounded-3xl p-8 flex flex-col items-center justify-center gap-3">
                         <CalendarDays className="w-12 h-12 text-[#64F422]/60" />
-                        <p className="text-base font-bold text-white/80">No upcoming events in this category.</p>
+                        <p className="text-base font-bold text-white/80">{activeCategoryTab === "ALL" ? "No upcoming events yet." : "No upcoming events in this category."}</p>
                         <p className="text-xs text-gray-400">Stay tuned! We are planning exciting events for you.</p>
                       </div>
                     )}

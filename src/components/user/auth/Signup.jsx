@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
+import { INTEREST_OPTIONS } from '../../../constants/interests';
 
 const formatDateInput = (value) => {
   const digits = value.replace(/\D/g, '').slice(0, 8);
@@ -25,6 +26,7 @@ const Signup = ({ switchToLogin, onSuccess }) => {
     dateOfBirth: '',
     email: '',
     password: '',
+    interests: [],
     agreeToTerms: false
   });
 
@@ -55,6 +57,19 @@ const Signup = ({ switchToLogin, onSuccess }) => {
     }));
   };
 
+  const handleInterestChange = (interest) => {
+    setFormData(prev => {
+      const interests = prev.interests.includes(interest)
+        ? prev.interests.filter(item => item !== interest)
+        : [...prev.interests, interest];
+
+      return {
+        ...prev,
+        interests
+      };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!allRulesPassed) {
@@ -64,6 +79,10 @@ const Signup = ({ switchToLogin, onSuccess }) => {
     }
     if (!formData.agreeToTerms) {
       setError('Please accept the terms and conditions');
+      return;
+    }
+    if (formData.interests.length === 0) {
+      setError('Please select at least one interest.');
       return;
     }
 
@@ -241,6 +260,23 @@ const Signup = ({ switchToLogin, onSuccess }) => {
                   })}
                 </div>
               )}
+            </div>
+
+            <div className="bg-[#071515] border border-[#1a4d4d] rounded-xl p-4">
+              <p className="text-gray-300 text-sm font-semibold mb-3">I am interested in</p>
+              <div className="space-y-2.5">
+                {INTEREST_OPTIONS.map((interest) => (
+                  <label key={interest} className="flex items-start gap-3 text-sm text-gray-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.interests.includes(interest)}
+                      onChange={() => handleInterestChange(interest)}
+                      className="mt-0.5 w-4 h-4 bg-transparent border-2 border-[#1a4d4d] rounded accent-[#00ff88] cursor-pointer"
+                    />
+                    <span>{interest}</span>
+                  </label>
+                ))}
+              </div>
             </div>
 
             {/* Terms */}

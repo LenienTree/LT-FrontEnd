@@ -1905,9 +1905,27 @@ const OrganizeEvent = () => {
                                 </button>
                             </div>
 
-                            <p className="text-gray-500 text-xs text-center mb-8">
+                            <p className="text-gray-500 text-xs text-center mb-6">
                                 Please save this ID or screenshot it for later use. Check email to know the date and time of your scheduled meet
                             </p>
+
+                            {/* Approval status — Hackathons & Ideathons need admin review;
+                                 all other categories are published live immediately. */}
+                            {['Hackathon', 'Ideathon'].includes(eventData.eventType) ? (
+                                <div className="bg-amber-900/20 border border-amber-500/40 rounded-xl p-4 mb-8 text-center">
+                                    <p className="text-amber-300 text-sm font-semibold">🕒 Pending admin approval</p>
+                                    <p className="text-amber-200/70 text-xs mt-1">
+                                        Your {eventData.eventType.toLowerCase()} has been submitted for review. You'll be notified by email once an admin approves it, and it will then appear on the site.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="bg-[#00ff88]/10 border border-[#00ff88]/40 rounded-xl p-4 mb-8 text-center">
+                                    <p className="text-[#00ff88] text-sm font-semibold">✅ Your event is live</p>
+                                    <p className="text-[#8fe9c0] text-xs mt-1">
+                                        It's published and visible on the Explore page right away — no approval needed. An admin can additionally feature it on the home page.
+                                    </p>
+                                </div>
+                            )}
 
                             {/* Action Buttons */}
                             <div className="space-y-3">
