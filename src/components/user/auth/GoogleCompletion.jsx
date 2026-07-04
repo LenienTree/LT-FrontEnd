@@ -8,8 +8,7 @@ const GoogleCompletion = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     name: user?.name || '',
     phone: '',
-    college: '',
-    graduationYear: '',
+    currentRole: '',
     dateOfBirth: ''
   });
 
@@ -26,7 +25,7 @@ const GoogleCompletion = ({ onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone || !formData.college || !formData.graduationYear || !formData.dateOfBirth) {
+    if (!formData.name || !formData.phone || !formData.currentRole || !formData.dateOfBirth) {
       setError('Please fill in all mandatory fields.');
       return;
     }
@@ -37,8 +36,7 @@ const GoogleCompletion = ({ onSuccess }) => {
       await users.updateMyProfile({
         name: formData.name,
         phone: formData.phone,
-        college: formData.college,
-        graduationYear: Number(formData.graduationYear),
+        currentRole: formData.currentRole,
         dateOfBirth: formData.dateOfBirth
       });
       // Refetch user to update profile details in AuthContext
@@ -100,31 +98,22 @@ const GoogleCompletion = ({ onSuccess }) => {
             </div>
 
             <div>
-              <label htmlFor="comp-college" className="block text-xs font-semibold text-gray-400 mb-1">College</label>
-              <input
-                id="comp-college"
-                type="text"
-                name="college"
-                placeholder="College"
-                value={formData.college}
+              <label htmlFor="comp-current-role" className="block text-xs font-semibold text-gray-400 mb-1">Current Role</label>
+              <select
+                id="comp-current-role"
+                name="currentRole"
+                value={formData.currentRole}
                 onChange={handleChange}
-                className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-6 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 backdrop-blur-sm"
+                className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-6 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 backdrop-blur-sm cursor-pointer"
                 required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="comp-grad-year" className="block text-xs font-semibold text-gray-400 mb-1">Graduation Year</label>
-              <input
-                id="comp-grad-year"
-                type="number"
-                name="graduationYear"
-                placeholder="Year of graduation (e.g. 2026)"
-                value={formData.graduationYear}
-                onChange={handleChange}
-                className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-3 px-6 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 backdrop-blur-sm"
-                required
-              />
+              >
+                <option value="" disabled className="text-gray-500 bg-[#0a1f1f]">Select Current Role</option>
+                <option value="student" className="text-white bg-[#0a1f1f]">Student</option>
+                <option value="developer" className="text-white bg-[#0a1f1f]">Developer</option>
+                <option value="designer" className="text-white bg-[#0a1f1f]">Designer</option>
+                <option value="founder" className="text-white bg-[#0a1f1f]">Founder</option>
+                <option value="others" className="text-white bg-[#0a1f1f]">Others</option>
+              </select>
             </div>
 
             <div>

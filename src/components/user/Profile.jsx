@@ -144,8 +144,7 @@ const Profile = () => {
       const updated = await users.updateMyProfile({
         name: profileData.name,
         phone: profileData.phone,
-        college: profileData.college,
-        graduationYear: parseInt(profileData.graduationYear) || undefined,
+        currentRole: profileData.currentRole,
         bio: profileData.bio,
         skills: (profileData.skills || []).map(s => s.skill),
         socialLinks: profileData.socialLinks || {},
@@ -379,8 +378,22 @@ const Profile = () => {
                 <form onSubmit={handleSaveProfile} className="space-y-6">
                   <Field label="Full Name" name="name" value={profileData?.name || ''} onChange={handleInputChange} />
                   <Field label="Phone number" name="phone" type="tel" value={profileData?.phone || ''} onChange={handleInputChange} />
-                  <Field label="College" name="college" value={profileData?.college || ''} onChange={handleInputChange} />
-                  <Field label="Graduation Year" name="graduationYear" type="number" value={profileData?.graduationYear || ''} onChange={handleInputChange} />
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Current Role</label>
+                    <select
+                      name="currentRole"
+                      value={profileData?.currentRole || ''}
+                      onChange={handleInputChange}
+                      className="w-full bg-[#0d2f2f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 cursor-pointer"
+                    >
+                      <option value="" disabled className="text-gray-500 bg-[#0d2f2f]">Select Current Role</option>
+                      <option value="student" className="text-white bg-[#0d2f2f]">Student</option>
+                      <option value="developer" className="text-white bg-[#0d2f2f]">Developer</option>
+                      <option value="designer" className="text-white bg-[#0d2f2f]">Designer</option>
+                      <option value="founder" className="text-white bg-[#0d2f2f]">Founder</option>
+                      <option value="others" className="text-white bg-[#0d2f2f]">Others</option>
+                    </select>
+                  </div>
                   <Field 
                     label="Date of Birth" 
                     name="dateOfBirth" 
