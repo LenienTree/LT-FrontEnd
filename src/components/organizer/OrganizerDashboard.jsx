@@ -55,8 +55,13 @@ export default function OrganizerDashboard() {
     setLoadingParticipants(true);
     setBulkMessage("");
     try {
-      const list = await eventsApi.getParticipants(event.id);
-      setParticipants(list || []);
+      const res = await eventsApi.getParticipants(event.id);
+      // getParticipants returns a paginated result ({ data, meta }); unwrap the
+      // array so participants.map/.filter/.length work (raw arrays also handled).
+      const list = Array.isArray(res)
+        ? res
+        : (Array.isArray(res?.data) ? res.data : []);
+      setParticipants(list);
     } catch (err) {
       console.error("Failed to load participants:", err);
     } finally {

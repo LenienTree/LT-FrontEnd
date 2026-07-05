@@ -597,7 +597,7 @@ export const notifications = {
   getNotifications: (page = 1, limit = 20) =>
     get(`/api/notifications?page=${page}&limit=${limit}`),
   getUnreadCount: () => get("/api/notifications/unread-count"),
-  markRead: (ids) => put("/api/notifications/mark-read", { notificationIds: ids }),
+  markRead: (ids) => put("/api/notifications/mark-read", { ids }),
   markAllRead: () => put("/api/notifications/mark-all-read", {}),
   deleteNotification: (id) => del(`/api/notifications/${id}`),
 };

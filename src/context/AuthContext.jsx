@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { auth as authApi, users, notifications, setToken, removeToken, getToken, setRefreshToken, registerLogoutCallback } from "../services/api";
+import { trackEvent } from "../utils/analytics";
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,7 @@ export function AuthProvider({ children }) {
         if (data?.accessToken) setToken(data.accessToken);
         if (data?.refreshToken) setRefreshToken(data.refreshToken);
         if (data?.user) setUser(data.user);
+        trackEvent("login", { method: "password" });
         return data;
     }, []);
 
@@ -70,6 +72,7 @@ export function AuthProvider({ children }) {
         if (data?.accessToken) setToken(data.accessToken);
         if (data?.refreshToken) setRefreshToken(data.refreshToken);
         if (data?.user) setUser(data.user);
+        trackEvent("sign_up", { method: "password" });
         return data;
     }, []);
 
@@ -81,6 +84,7 @@ export function AuthProvider({ children }) {
         if (data?.accessToken) setToken(data.accessToken);
         if (data?.refreshToken) setRefreshToken(data.refreshToken);
         if (data?.user) setUser(data.user);
+        trackEvent("login", { method: "google" });
         return data;
     }, []);
 

@@ -5,7 +5,11 @@ import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { HelmetProvider } from "react-helmet-async";
+import { initGA } from "./utils/analytics";
 import "./index.css";
+
+// Load Google Analytics as early as possible (no-op unless VITE_GA_MEASUREMENT_ID is set).
+initGA();
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(

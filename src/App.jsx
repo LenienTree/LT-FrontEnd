@@ -5,6 +5,7 @@ import AboutNew from "./components/AboutNew";
 import TeamHalfCircle from "./components/TeamHalfCircle";
 import InternshipPopup from "./components/user/InternshipPopup";
 import { useAuth } from "./context/AuthContext";
+import { trackPageView } from "./utils/analytics";
 
 // Heavy pages are lazy-loaded so they are excluded from the initial JS bundle.
 // Each import() creates its own async chunk that is only fetched when the user
@@ -63,6 +64,12 @@ function App() {
   const location = useLocation();
   const { user, openAuthModal } = useAuth();
   const isGoogleProfileIncomplete = user?.googleId && (!user.phone || !user.currentRole || !user.dateOfBirth);
+
+  // Report a GA4 page_view on every client-side navigation (SPA routing does
+  // not trigger the automatic page_view, so we send it ourselves).
+  React.useEffect(() => {
+    trackPageView(location.pathname + location.search);
+  }, [location.pathname, location.search]);
 
   React.useEffect(() => {
     if (isGoogleProfileIncomplete) {

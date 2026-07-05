@@ -6,6 +6,7 @@ import Footer from './layout/Footer';
 import { events as eventsApi } from '../services/api';
 import { getReferral, clearReferral } from '../services/referralTracker';
 import { useAuth } from '../context/AuthContext';
+import { trackEvent } from '../utils/analytics';
 
 const EventRegistration = () => {
     const navigate = useNavigate();
@@ -201,6 +202,7 @@ const EventRegistration = () => {
                                 ...(referralCode ? { referralCode } : {})
                             });
                             clearReferral(eventId);
+                            trackEvent('event_register', { event_id: eventId, payment_type: 'RAZORPAY', is_paid: true });
                             setSuccess('Registration successful! Check your email for confirmation.');
                             setTimeout(() => {
                                 navigate(`/event/${eventId}`);
@@ -240,6 +242,7 @@ const EventRegistration = () => {
                 if (referralCode) fd.append('referralCode', referralCode);
                 await eventsApi.registerForEvent(eventId, fd);
                 clearReferral(eventId);
+                trackEvent('event_register', { event_id: eventId, payment_type: 'MANUAL_UPI', is_paid: true });
                 setSuccess('Registration submitted! Your payment will be verified by the organizer.');
                 setTimeout(() => {
                     navigate(`/event/${eventId}`);
@@ -253,6 +256,7 @@ const EventRegistration = () => {
                 ...(referralCode ? { referralCode } : {})
             });
             clearReferral(eventId);
+            trackEvent('event_register', { event_id: eventId, payment_type: 'FREE', is_paid: false });
             setSuccess('Registration successful! Check your email for confirmation.');
             setTimeout(() => {
                 navigate(`/event/${eventId}`);
