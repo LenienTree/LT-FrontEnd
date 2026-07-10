@@ -27,6 +27,16 @@ export default defineConfig({
                     'vendor-react': ['react', 'react-dom', 'react-router-dom'],
                     // Animation libraries — loaded separately so main chunk stays lean
                     'vendor-gsap': ['gsap'],
+                    // 3D stack — heavy and only used by the /about and /test1 routes.
+                    // Isolated so it is fetched lazily by those routes and never ships
+                    // in the initial/landing bundle.
+                    'vendor-three': [
+                        'three',
+                        '@react-three/fiber',
+                        '@react-three/drei',
+                        '@react-three/postprocessing',
+                        'maath',
+                    ],
                     // UI utilities
                     'vendor-ui': ['lucide-react', 'react-icons', 'clsx'],
                 },

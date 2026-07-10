@@ -1,8 +1,6 @@
 import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Home from "./components/home/Home";
-import AboutNew from "./components/AboutNew";
-import TeamHalfCircle from "./components/TeamHalfCircle";
 import InternshipPopup from "./components/user/InternshipPopup";
 import { useAuth } from "./context/AuthContext";
 import { trackPageView } from "./utils/analytics";
@@ -10,6 +8,11 @@ import { trackPageView } from "./utils/analytics";
 // Heavy pages are lazy-loaded so they are excluded from the initial JS bundle.
 // Each import() creates its own async chunk that is only fetched when the user
 // navigates to that route for the first time.
+// AboutNew + TeamHalfCircle pull in the heavy three.js / @react-three 3D stack.
+// They are route-only (not shown on the landing page), so lazy-load them to keep
+// three.js out of the initial bundle.
+const AboutNew         = lazy(() => import("./components/AboutNew"));
+const TeamHalfCircle   = lazy(() => import("./components/TeamHalfCircle"));
 const AuthModal        = lazy(() => import("./components/user/auth/AuthModal"));
 const Profile          = lazy(() => import("./components/user/Profile"));
 const CalenderPage     = lazy(() => import("./pages/calender"));
