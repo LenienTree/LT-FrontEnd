@@ -16,8 +16,9 @@ export function AuthProvider({ children }) {
 
     // ── Auth Modal State ──
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-    const [authModalView, setAuthModalView] = useState('login'); // 'login' or 'signup'
+    const [authModalView, setAuthModalView] = useState('login'); // 'role-select' | 'login' | 'signup' | 'googleCompletion'
     const [isAuthModalPersistent, setIsAuthModalPersistent] = useState(false);
+    const [signupRole, setSignupRole] = useState(null); // selected userType for role-first signup
 
     const openAuthModal = useCallback((view = 'login', persistent = false) => {
         setAuthModalView(view);
@@ -158,6 +159,8 @@ export function AuthProvider({ children }) {
         isAuthModalPersistent,
         openAuthModal,
         closeAuthModal,
+        signupRole,
+        setSignupRole,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

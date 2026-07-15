@@ -88,7 +88,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<AuthRedirect view="login" />} />
-          <Route path="/signup" element={<AuthRedirect view="signup" />} />
+          <Route path="/signup" element={<AuthRedirect view="role-select" />} />
           <Route path="/about" element={<AboutNew />} />
           <Route path="/test" element={<AboutNew />} />
           <Route path="/test1" element={<TeamHalfCircle />} />

@@ -307,6 +307,12 @@ export const users = {
   updateMyProfile: (data) => put("/api/users/me", data),
 
   /**
+   * Update the logged-in user's role-specific profile fields (whitelisted per userType server-side).
+   * @param {Record<string, any>} data
+   */
+  updateRoleProfile: (data) => put("/api/users/me/role-profile", data),
+
+  /**
    * Get all events the logged-in user has registered for.
    * @returns {Registration[]}
    */
@@ -323,6 +329,12 @@ export const users = {
    * @param {File} file
    */
   uploadAvatar: async (file) => post("/api/users/me/avatar", await fileForm("avatar", file)),
+
+  /**
+   * Upload a resume (professionals). PDF/DOC, max 5 MB — enforced server-side.
+   * @param {File} file
+   */
+  uploadResume: async (file) => post("/api/users/me/resume", await fileForm("resume", file)),
 
   /**
    * Add an image to the user's gallery.

@@ -5,6 +5,16 @@ import Header from '../layout/Header';
 import Footer from '../layout/Footer';
 import { useAuth } from '../../context/AuthContext';
 import { users, bookmarks, events as eventsApi } from '../../services/api';
+import { ROLE_FIELDS, ROLE_LABELS } from '../../constants/roleForms';
+
+// Maps a userType to its 1:1 profile relation key returned by GET /users/me.
+const RELATION_KEY = {
+  SCHOOL_STUDENT: 'schoolProfile',
+  COLLEGE_STUDENT: 'collegeProfile',
+  PROFESSIONAL: 'professionalProfile',
+  HR_RECRUITER: 'hrProfile',
+  FOUNDER: 'founderProfile',
+};
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
 
@@ -42,6 +52,10 @@ const Profile = () => {
   const [myCertificates, setMyCertificates] = useState([]);
   const [myBookmarks, setMyBookmarks] = useState([]);
 
+  // Role-specific profile (school/college/professional/hr/founder)
+  const [roleProfile, setRoleProfile] = useState({});
+  const [resumeUploading, setResumeUploading] = useState(false);
+
 
 
   // UI state
@@ -77,6 +91,8 @@ const Profile = () => {
         if (profileRes.status === 'fulfilled') {
           const profile = profileRes.value;
           setProfileData(profile);
+          const relKey = RELATION_KEY[profile.userType];
+          if (relKey && profile[relKey]) setRoleProfile({ ...profile[relKey] });
         }
 
         if (eventsRes.status === 'fulfilled') {
@@ -135,6 +151,97 @@ const Profile = () => {
     }));
   };
 
+  const setRoleField = (name, value) => setRoleProfile(prev => ({ ...prev, [name]: value }));
+
+  const toggleRoleMulti = (name, option) => setRoleProfile(prev => {
+    const cur = prev[name] || [];
+    return { ...prev, [name]: cur.includes(option) ? cur.filter(x => x !== option) : [...cur, option] };
+  });
+
+  const handleResumeChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setResumeUploading(true);
+    setProfileError('');
+    try {
+      const res = await users.uploadResume(file);
+      setRoleProfile(prev => ({ ...prev, resumeUrl: res?.resumeUrl || prev.resumeUrl }));
+      setProfileSuccess('Resume uploaded.');
+      setTimeout(() => setProfileSuccess(''), 3000);
+    } catch (err) {
+      setProfileError(err.message || 'Resume upload failed.');
+    } finally {
+      setResumeUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  // Editable role-specific fields (profile-scope only; base fields live in the form above).
+  const renderRoleInput = (fld) => {
+    const val = roleProfile[fld.name];
+    const base = 'w-full bg-transparent border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300';
+    switch (fld.type) {
+      case 'select':
+        return (
+          <select value={val || ''} onChange={(e) => setRoleField(fld.name, e.target.value)} className={`${base} bg-[#0d2f2f] cursor-pointer`}>
+            <option value="" disabled className="bg-[#0d2f2f]">{fld.label}</option>
+            {fld.options.map((o) => <option key={o} value={o} className="bg-[#0d2f2f]">{o}</option>)}
+          </select>
+        );
+      case 'multiselect':
+        return (
+          <div className="bg-[#071515] border border-[#1a4d4d] rounded-xl p-4 space-y-2.5 max-h-52 overflow-y-auto">
+            {fld.options.map((o) => (
+              <label key={o} className="flex items-start gap-3 text-sm text-gray-300 cursor-pointer">
+                <input type="checkbox" checked={(val || []).includes(o)} onChange={() => toggleRoleMulti(fld.name, o)} className="mt-0.5 w-4 h-4 bg-transparent border-2 border-[#1a4d4d] rounded accent-[#00ff88] cursor-pointer" />
+                <span>{o}</span>
+              </label>
+            ))}
+          </div>
+        );
+      case 'tags':
+        return (
+          <input type="text" value={Array.isArray(val) ? val.join(', ') : (val || '')}
+            onChange={(e) => setRoleField(fld.name, e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
+            placeholder={fld.placeholder} className={base} />
+        );
+      default:
+        return (
+          <input type={fld.type === 'tel' ? 'tel' : fld.type === 'url' ? 'url' : 'text'} value={val || ''}
+            onChange={(e) => setRoleField(fld.name, e.target.value)} placeholder={fld.placeholder || fld.label} className={base} />
+        );
+    }
+  };
+
+  const renderRoleEditor = () => {
+    const userType = profileData?.userType;
+    const roleFields = (ROLE_FIELDS[userType] || []).filter((f) => f.scope === 'profile');
+    const isPro = userType === 'PROFESSIONAL';
+    if (!userType || (roleFields.length === 0 && !isPro)) return null;
+    return (
+      <div className="border-t border-[#1a4d4d] pt-6 space-y-4">
+        <h3 className="text-white text-sm font-semibold mb-2">{ROLE_LABELS[userType]} details</h3>
+        {roleFields.map((fld) => (
+          <div key={fld.name}>
+            <label className="text-gray-400 text-sm mb-2 block">{fld.label}</label>
+            {renderRoleInput(fld)}
+          </div>
+        ))}
+        {isPro && (
+          <div>
+            <label className="text-gray-400 text-sm mb-2 block">Resume (PDF/DOC, max 5 MB)</label>
+            {roleProfile.resumeUrl && (
+              <a href={roleProfile.resumeUrl} target="_blank" rel="noopener noreferrer" className="text-[#00ff88] text-sm hover:underline block mb-2">View current resume ↗</a>
+            )}
+            <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeChange} disabled={resumeUploading}
+              className="w-full text-sm text-gray-300 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:bg-[#00ff88] file:text-[#0a1f1f] file:font-semibold hover:file:bg-[#00cc70] cursor-pointer border-2 border-[#1a4d4d] rounded-xl p-2" />
+            {resumeUploading && <p className="text-gray-400 text-xs mt-1">Uploading…</p>}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     setProfileError('');
@@ -150,6 +257,10 @@ const Profile = () => {
         socialLinks: profileData.socialLinks || {},
         dateOfBirth: profileData.dateOfBirth,
       });
+      // Persist role-specific fields (server whitelists per userType).
+      if (profileData?.userType) {
+        await users.updateRoleProfile(roleProfile);
+      }
       setProfileData(updated?.user || updated || profileData);
       await refetchUser();
       setProfileSuccess('Profile saved successfully!');
@@ -499,6 +610,9 @@ const Profile = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Role-specific fields */}
+                  {renderRoleEditor()}
 
                   <button
                     type="submit"

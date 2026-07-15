@@ -2,10 +2,11 @@ import React from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import Login from './Login';
 import Signup from './Signup';
+import RoleSelect from './RoleSelect';
 import GoogleCompletion from './GoogleCompletion';
 
 const AuthModal = () => {
-    const { isAuthModalOpen, authModalView, closeAuthModal, openAuthModal, user, isAuthModalPersistent } = useAuth();
+    const { isAuthModalOpen, authModalView, closeAuthModal, openAuthModal, user, isAuthModalPersistent, signupRole, setSignupRole } = useAuth();
 
     const cannotClose = isAuthModalPersistent;
 
@@ -35,9 +36,19 @@ const AuthModal = () => {
                 )}
 
                 {authModalView === 'login' ? (
-                    <Login switchToSignup={() => openAuthModal('signup')} onSuccess={closeAuthModal} />
+                    <Login switchToSignup={() => openAuthModal('role-select')} onSuccess={closeAuthModal} />
+                ) : authModalView === 'role-select' || (authModalView === 'signup' && !signupRole) ? (
+                    <RoleSelect
+                        onPick={(roleId) => { setSignupRole(roleId); openAuthModal('signup'); }}
+                        switchToLogin={() => openAuthModal('login')}
+                    />
                 ) : authModalView === 'signup' ? (
-                    <Signup switchToLogin={() => openAuthModal('login')} onSuccess={closeAuthModal} />
+                    <Signup
+                        role={signupRole}
+                        onBack={() => openAuthModal('role-select')}
+                        switchToLogin={() => openAuthModal('login')}
+                        onSuccess={closeAuthModal}
+                    />
                 ) : (
                     <GoogleCompletion onSuccess={closeAuthModal} />
                 )}
