@@ -129,6 +129,11 @@ const EventDetails = () => {
             openAuthModal('login');
             return;
         }
+        // If this event has an external registration link, open it in a new tab
+        if (eventData?.registrationLink) {
+            window.open(eventData.registrationLink, '_blank', 'noopener,noreferrer');
+            return;
+        }
         navigate(`/event/${eventData?.id ?? eventId}/register`);
     };
 

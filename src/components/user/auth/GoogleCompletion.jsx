@@ -41,16 +41,10 @@ const GoogleCompletion = ({ onSuccess }) => {
   };
 
   const handleInterestChange = (interest) => {
-    setFormData(prev => {
-      const interests = prev.interests.includes(interest)
-        ? prev.interests.filter(item => item !== interest)
-        : [...prev.interests, interest];
-
-      return {
-        ...prev,
-        interests
-      };
-    });
+    setFormData(prev => ({
+      ...prev,
+      interests: [interest]
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -60,7 +54,7 @@ const GoogleCompletion = ({ onSuccess }) => {
       return;
     }
     if (formData.interests.length === 0) {
-      setError('Please select at least one interest.');
+      setError('Please select an interest.');
       return;
     }
 
@@ -185,10 +179,11 @@ const GoogleCompletion = ({ onSuccess }) => {
                 {INTEREST_OPTIONS.map((interest) => (
                   <label key={interest} className="flex items-start gap-3 text-sm text-gray-300 cursor-pointer">
                     <input
-                      type="checkbox"
+                      type="radio"
+                      name="interests"
                       checked={formData.interests.includes(interest)}
                       onChange={() => handleInterestChange(interest)}
-                      className="mt-0.5 w-4 h-4 bg-transparent border-2 border-[#1a4d4d] rounded accent-[#00ff88] cursor-pointer"
+                      className="mt-0.5 w-4 h-4 accent-[#00ff88] cursor-pointer"
                     />
                     <span>{interest}</span>
                   </label>
