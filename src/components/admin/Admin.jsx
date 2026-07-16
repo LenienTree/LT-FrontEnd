@@ -85,6 +85,18 @@ const Admin = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // Interest drilldown modal
+  const [interestModal, setInterestModal] = useState(null); // { label, users, loading }
+  const handleInterestClick = async (label) => {
+    setInterestModal({ label, users: [], loading: true });
+    try {
+      const users = await admin.getInterestUsers(label);
+      setInterestModal({ label, users: Array.isArray(users) ? users : [], loading: false });
+    } catch {
+      setInterestModal({ label, users: [], loading: false });
+    }
+  };
+
   // Homepage state
   const [homepageData, setHomepageData] = useState({ banners: [], community: [], testimonials: [], sections: [] });
   const [loadingHomepage, setLoadingHomepage] = useState(false);
@@ -697,21 +709,91 @@ const Admin = () => {
                     ) : (
                       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
                         {interestStats.map((item) => (
-                          <div key={item.label} className="bg-[#071515] border border-[#1a4d4d]/70 rounded-xl p-4">
+                          <button
+                            key={item.label}
+                            onClick={() => handleInterestClick(item.label)}
+                            className="bg-[#071515] border border-[#1a4d4d]/70 rounded-xl p-4 text-left hover:border-[#00ff88]/50 hover:bg-[#0a1e1e] transition-all duration-200 group w-full"
+                          >
                             <div className="flex items-start gap-3">
-                              <div className="w-9 h-9 rounded-lg bg-[#00ff88]/10 text-[#00ff88] flex items-center justify-center flex-shrink-0">
+                              <div className="w-9 h-9 rounded-lg bg-[#00ff88]/10 text-[#00ff88] flex items-center justify-center flex-shrink-0 group-hover:bg-[#00ff88]/20 transition-colors">
                                 <Heart className="w-4 h-4" />
                               </div>
                               <div className="min-w-0">
                                 <p className="text-white text-sm font-semibold leading-snug">{item.label}</p>
                                 <p className="text-[#00ff88] text-2xl font-extrabold mt-2">{fmtNum(item.count)}</p>
+                                <p className="text-gray-600 text-xs mt-1 group-hover:text-[#00ff88]/60 transition-colors">View students →</p>
                               </div>
                             </div>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     )}
                   </div>
+
+                  {/* Interest drilldown modal */}
+                  {interestModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4" onClick={() => setInterestModal(null)}>
+                      <div className="w-full max-w-2xl bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+                        {/* Modal header */}
+                        <div className="flex items-center justify-between p-5 border-b border-[#1a4d4d]">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-[#00ff88]/15 text-[#00ff88] flex items-center justify-center">
+                              <Heart className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <h3 className="text-white font-bold text-base">{interestModal.label}</h3>
+                              <p className="text-gray-500 text-xs">{interestModal.loading ? 'Loading...' : `${interestModal.users.length} student${interestModal.users.length !== 1 ? 's' : ''}`}</p>
+                            </div>
+                          </div>
+                          <button onClick={() => setInterestModal(null)} className="text-gray-500 hover:text-white transition-colors p-1">
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+
+                        {/* Modal body */}
+                        <div className="max-h-[60vh] overflow-y-auto">
+                          {interestModal.loading ? (
+                            <div className="flex justify-center py-12">
+                              <Loader2 className="w-8 h-8 text-[#00ff88] animate-spin" />
+                            </div>
+                          ) : interestModal.users.length === 0 ? (
+                            <div className="py-12 text-center">
+                              <Users className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+                              <p className="text-gray-500 text-sm">No students found for this interest.</p>
+                            </div>
+                          ) : (
+                            <table className="w-full text-sm">
+                              <thead className="sticky top-0 bg-[#071515] border-b border-[#1a4d4d]">
+                                <tr>
+                                  <th className="px-5 py-3 text-left text-gray-400 font-medium text-xs uppercase tracking-wide">Name</th>
+                                  <th className="px-5 py-3 text-left text-gray-400 font-medium text-xs uppercase tracking-wide">Email</th>
+                                  <th className="px-5 py-3 text-left text-gray-400 font-medium text-xs uppercase tracking-wide">Phone</th>
+                                  <th className="px-5 py-3 text-left text-gray-400 font-medium text-xs uppercase tracking-wide">College</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {interestModal.users.map((u, i) => (
+                                  <tr key={u.id} className={`border-b border-[#1a4d4d]/50 hover:bg-[#071515]/80 transition-colors ${i % 2 === 0 ? '' : 'bg-[#071515]/30'}`}>
+                                    <td className="px-5 py-3">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-7 h-7 rounded-full bg-[#1a4d4d] flex items-center justify-center flex-shrink-0">
+                                          <User className="w-3.5 h-3.5 text-[#00ff88]" />
+                                        </div>
+                                        <span className="text-white font-medium">{u.name || '—'}</span>
+                                      </div>
+                                    </td>
+                                    <td className="px-5 py-3 text-gray-400">{u.email}</td>
+                                    <td className="px-5 py-3 text-gray-400">{u.phone || <span className="text-gray-600">—</span>}</td>
+                                    <td className="px-5 py-3 text-gray-400">{u.college || <span className="text-gray-600">—</span>}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Recent section */}
                   <div className="grid lg:grid-cols-2 gap-6">

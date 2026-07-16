@@ -710,7 +710,11 @@ export const admin = {
     updateTestimonial: (id, data) => put(`/api/homepage/testimonials/${id}`, data),
     deleteTestimonial: (id) => del(`/api/homepage/testimonials/${id}`),
     updateSectionsOrder: (sections) => put("/api/homepage/sections/order", { sections }),
-  }
+  },
+
+  /** GET /api/admin/interest-users?interest=<label> */
+  getInterestUsers: (interest) =>
+    get(`/api/admin/interest-users?interest=${encodeURIComponent(interest)}`),
 };
 
 // ─── Public Homepage ───────────────────────────────────────────────────────────
