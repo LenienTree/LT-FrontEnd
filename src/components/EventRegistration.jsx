@@ -27,6 +27,10 @@ const EventRegistration = () => {
     // Manual UPI payment proof
     const [paymentProofFile, setPaymentProofFile] = useState(null);
 
+    // IEEE Member registration state
+    const [isMember, setIsMember] = useState(false);
+    const [ieeeMemberId, setIeeeMemberId] = useState('');
+
     // LinkedIn post flow (only for the special events / premium settings)
     const isShareEvent = eventData?.requiresLinkedinShare ?? false;
     const [linkedinPostLink, setLinkedinPostLink] = useState('');
@@ -163,6 +167,13 @@ const EventRegistration = () => {
                 }
             }
 
+            // IEEE membership validation
+            if (eventData?.isIeeeEvent) {
+                if (isMember && eventData?.requiresIeeeId && !ieeeMemberId.trim()) {
+                    throw new Error('Please enter your IEEE Member ID.');
+                }
+            }
+
             const formDataBase = {
                 ...form,
                 teamMembers: teamMembers.length > 0 ? teamMembers : undefined,
@@ -176,12 +187,18 @@ const EventRegistration = () => {
             const getEmail = (data) => data.email || data.Email || '';
             const getPhone = (data) => data.phone || data.Phone || data['Phone Number'] || '';
 
-            if (eventData?.isPaid && eventData?.paymentType === 'RAZORPAY') {
+            // Calculate dynamic price if IEEE event
+            const effectivePrice = eventData?.isIeeeEvent
+                ? (isMember ? (eventData?.ieeeMemberPrice ?? 0) : (eventData?.nonIeeeMemberPrice ?? 0))
+                : (eventData?.ticketPrice ?? 0);
+            const isPaidForUser = eventData?.isPaid && effectivePrice > 0;
+
+            if (isPaidForUser && eventData?.paymentType === 'RAZORPAY') {
                 // ── Razorpay Payment Flow ──
                 const res = await loadRazorpayScript();
                 if (!res) throw new Error("Razorpay SDK failed to load. Are you online?");
 
-                const orderData = await eventsApi.createRazorpayOrder(eventId, { teamSize: 1 + teamMembers.length });
+                const orderData = await eventsApi.createRazorpayOrder(eventId, { teamSize: 1 + teamMembers.length, isMember });
                 if (!orderData || !orderData.order_id) throw new Error("Failed to create Razorpay order.");
 
                 const options = {
@@ -199,6 +216,8 @@ const EventRegistration = () => {
                                 razorpayPaymentId: response.razorpay_payment_id,
                                 razorpayOrderId: response.razorpay_order_id,
                                 razorpaySignature: response.razorpay_signature,
+                                isMember,
+                                ieeeMemberId,
                                 ...(referralCode ? { referralCode } : {})
                             });
                             clearReferral(eventId);
@@ -231,7 +250,7 @@ const EventRegistration = () => {
                 return; // Early return, the success handler will finish registration
             }
 
-            if (eventData?.isPaid && eventData?.paymentType === 'MANUAL_UPI') {
+            if (isPaidForUser && eventData?.paymentType === 'MANUAL_UPI') {
                 // ── Manual UPI Payment Flow ──
                 if (!paymentProofFile) {
                     throw new Error('Please upload your payment screenshot before registering.');
@@ -240,6 +259,9 @@ const EventRegistration = () => {
                 fd.append('paymentProof', paymentProofFile);
                 fd.append('formData', JSON.stringify(formDataBase));
                 if (referralCode) fd.append('referralCode', referralCode);
+                fd.append('isMember', isMember ? 'true' : 'false');
+                if (ieeeMemberId) fd.append('ieeeMemberId', ieeeMemberId);
+                
                 await eventsApi.registerForEvent(eventId, fd);
                 clearReferral(eventId);
                 trackEvent('event_register', { event_id: eventId, payment_type: 'MANUAL_UPI', is_paid: true });
@@ -250,9 +272,11 @@ const EventRegistration = () => {
                 return;
             }
 
-            // Free Event Flow
+            // Free Event Flow (either it's a free event or effective price is 0 for this tier)
             await eventsApi.registerForEvent(eventId, {
                 formData: formDataBase,
+                isMember,
+                ieeeMemberId,
                 ...(referralCode ? { referralCode } : {})
             });
             clearReferral(eventId);
@@ -285,13 +309,16 @@ const EventRegistration = () => {
         );
     }
 
-    const isPaid = eventData.isPaid;
+    const ticketPrice = eventData.isIeeeEvent
+        ? (isMember ? (eventData.ieeeMemberPrice ?? 0) : (eventData.nonIeeeMemberPrice ?? 0))
+        : (eventData.ticketPrice ?? 0);
+    const isPaid = eventData.isPaid && ticketPrice > 0;
     const paymentType = eventData.paymentType || 'FREE';
-    const ticketPrice = eventData.ticketPrice || 0;
     const totalPrice = ticketPrice * (1 + teamMembers.length);
 
     const isFormValid = (() => {
         if (!eventData) return false;
+        if (eventData.isIeeeEvent && isMember && eventData.requiresIeeeId && !ieeeMemberId.trim()) return false;
         for (const f of formFields) {
             if (f.required && (!form[f.label] || !form[f.label].trim())) return false;
         }
@@ -562,6 +589,72 @@ const EventRegistration = () => {
                                 ))}
                             </div>
                         </div>
+
+                        {/* IEEE Member Declaration Card */}
+                        {eventData.isIeeeEvent && (
+                            <div className="bg-[#0a1f1f] border-2 border-[#1a4d4d] rounded-3xl p-6 space-y-4 mb-8">
+                                <h3 className="text-white font-bold text-lg border-b border-[#1a4d4d] pb-2">IEEE Membership Verification</h3>
+                                <p className="text-gray-400 text-sm">This event has discount pricing for IEEE members. Please select your membership status below.</p>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <label
+                                        onClick={() => setIsMember(true)}
+                                        className={`flex items-center gap-3 px-5 py-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
+                                            isMember
+                                                ? 'border-[#00ff88] bg-[#00ff88]/10'
+                                                : 'border-[#1a4d4d] hover:border-[#00ff88]/50'
+                                        }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="ieeeStatus"
+                                            checked={isMember}
+                                            onChange={() => setIsMember(true)}
+                                            className="w-5 h-5 accent-[#00ff88]"
+                                        />
+                                        <div className="text-left">
+                                            <p className="text-white text-sm font-semibold">I am an IEEE Member</p>
+                                            <p className="text-gray-500 text-xs mt-0.5">Ticket Price: ₹{eventData.ieeeMemberPrice ?? 0}</p>
+                                        </div>
+                                    </label>
+
+                                    <label
+                                        onClick={() => setIsMember(false)}
+                                        className={`flex items-center gap-3 px-5 py-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
+                                            !isMember
+                                                ? 'border-[#00ff88] bg-[#00ff88]/10'
+                                                : 'border-[#1a4d4d] hover:border-[#00ff88]/50'
+                                        }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="ieeeStatus"
+                                            checked={!isMember}
+                                            onChange={() => setIsMember(false)}
+                                            className="w-5 h-5 accent-[#00ff88]"
+                                        />
+                                        <div className="text-left">
+                                            <p className="text-white text-sm font-semibold">I am NOT an IEEE Member</p>
+                                            <p className="text-gray-500 text-xs mt-0.5">Ticket Price: ₹{eventData.nonIeeeMemberPrice ?? 0}</p>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                {isMember && eventData.requiresIeeeId && (
+                                    <div className="mt-4 animate-fadeIn">
+                                        <label className="text-gray-400 text-sm mb-2 block font-semibold">IEEE Member ID *</label>
+                                        <input
+                                            type="text"
+                                            value={ieeeMemberId}
+                                            onChange={e => setIeeeMemberId(e.target.value)}
+                                            placeholder="Enter your 8-digit or 9-digit IEEE Member ID"
+                                            className="w-full bg-[#061414] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
+                                            required
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Team Registration — only shown for Group events */}
                         {(eventData?.registrationType === 'Group' || (eventData?.maxTeamSize && parseInt(eventData.maxTeamSize) > 1)) && (

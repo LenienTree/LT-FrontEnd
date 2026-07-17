@@ -32,6 +32,10 @@ const OrganizeEvent = () => {
         prizeType: 'No prize',
         prizeDetails: '',
         ticketPrice: '',
+        isIeeeEvent: false,
+        ieeeMemberPrice: '',
+        nonIeeeMemberPrice: '',
+        requiresIeeeId: true,
         eventPoster: null,
         // FAQs
         faqs: [{ question: '', answer: '' }],
@@ -429,7 +433,11 @@ const OrganizeEvent = () => {
                     prizeType: eventData.prizeType === 'No prize' ? 'NONE' : eventData.prizeType === 'Cash prize' ? 'CASH' : eventData.prizeType === 'Merchandise' ? 'MERCH' : 'POINTS',
                     prizeAmount: eventData.prizeDetails ? parseFloat(eventData.prizeDetails.split('/')[0].replace(/[^0-9.]/g, '')) || 0 : 0,
                     isPaid: eventData.eventAccess === 'Paid',
-                    ticketPrice: eventData.eventAccess === 'Paid' ? parseFloat(eventData.ticketPrice) || 0 : undefined,
+                    ticketPrice: (eventData.eventAccess === 'Paid' && !eventData.isIeeeEvent) ? parseFloat(eventData.ticketPrice) || 0 : undefined,
+                    isIeeeEvent: eventData.eventAccess === 'Paid' && eventData.isIeeeEvent,
+                    ieeeMemberPrice: (eventData.eventAccess === 'Paid' && eventData.isIeeeEvent) ? parseFloat(eventData.ieeeMemberPrice) || 0 : undefined,
+                    nonIeeeMemberPrice: (eventData.eventAccess === 'Paid' && eventData.isIeeeEvent) ? parseFloat(eventData.nonIeeeMemberPrice) || 0 : undefined,
+                    requiresIeeeId: (eventData.eventAccess === 'Paid' && eventData.isIeeeEvent) ? eventData.requiresIeeeId : undefined,
                     faqs: eventData.faqs
                         .filter(f => f.question.trim() && f.answer.trim())
                         .map((f, i) => ({ question: f.question, answer: f.answer, order: i + 1 })),
@@ -900,26 +908,100 @@ const OrganizeEvent = () => {
 
                             {/* Ticket Price (conditional) */}
                             {eventData.eventAccess === 'Paid' && (
-                                <div className="grid lg:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="text-white text-sm mb-3 block">
-                                            Ticket Price (₹) <span className="text-red-400">*</span>
+                                <div className="space-y-6">
+                                    {/* IEEE Affiliation Toggle */}
+                                    <div className="flex items-center gap-3">
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                name="isIeeeEvent"
+                                                checked={eventData.isIeeeEvent}
+                                                onChange={e => setEventData(prev => ({ ...prev, isIeeeEvent: e.target.checked }))}
+                                                className="w-5 h-5 rounded border-2 border-[#1a4d4d] bg-transparent checked:bg-[#00ff88] checked:border-[#00ff88] focus:ring-0 cursor-pointer accent-[#00ff88]"
+                                            />
+                                            <span className="text-white text-sm font-semibold">This is an IEEE-affiliated event with tier pricing</span>
                                         </label>
-                                        <input
-                                            type="number"
-                                            name="ticketPrice"
-                                            value={eventData.ticketPrice}
-                                            onChange={handleInputChange}
-                                            placeholder="499"
-                                            min="0"
-                                            className={getInputClass('ticketPrice')}
-                                            required
-                                        />
-                                        <p className="text-gray-500 text-xs mt-2">Enter the price per participant in INR</p>
-                                        {getFieldError('ticketPrice') && (
-                                            <p className="text-red-400 text-xs mt-1.5">{getFieldError('ticketPrice')}</p>
-                                        )}
                                     </div>
+
+                                    {eventData.isIeeeEvent ? (
+                                        <div className="space-y-6">
+                                            <div className="grid lg:grid-cols-2 gap-6">
+                                                <div>
+                                                    <label className="text-white text-sm mb-3 block">
+                                                        IEEE Member Price (₹) <span className="text-red-400">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        name="ieeeMemberPrice"
+                                                        value={eventData.ieeeMemberPrice}
+                                                        onChange={handleInputChange}
+                                                        placeholder="e.g. 199 (enter 0 for free)"
+                                                        min="0"
+                                                        className={getInputClass('ieeeMemberPrice')}
+                                                        required
+                                                    />
+                                                    <p className="text-gray-500 text-xs mt-2">Ticket cost for IEEE members (INR)</p>
+                                                    {getFieldError('ieeeMemberPrice') && (
+                                                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('ieeeMemberPrice')}</p>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <label className="text-white text-sm mb-3 block">
+                                                        Non-IEEE Member Price (₹) <span className="text-red-400">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        name="nonIeeeMemberPrice"
+                                                        value={eventData.nonIeeeMemberPrice}
+                                                        onChange={handleInputChange}
+                                                        placeholder="e.g. 499 (enter 0 for free)"
+                                                        min="0"
+                                                        className={getInputClass('nonIeeeMemberPrice')}
+                                                        required
+                                                    />
+                                                    <p className="text-gray-500 text-xs mt-2">Ticket cost for general/non-IEEE members (INR)</p>
+                                                    {getFieldError('nonIeeeMemberPrice') && (
+                                                        <p className="text-red-400 text-xs mt-1.5">{getFieldError('nonIeeeMemberPrice')}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-3">
+                                                <label className="flex items-center gap-3 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="requiresIeeeId"
+                                                        checked={eventData.requiresIeeeId}
+                                                        onChange={e => setEventData(prev => ({ ...prev, requiresIeeeId: e.target.checked }))}
+                                                        className="w-5 h-5 rounded border-2 border-[#1a4d4d] bg-transparent checked:bg-[#00ff88] checked:border-[#00ff88] focus:ring-0 cursor-pointer accent-[#00ff88]"
+                                                    />
+                                                    <span className="text-white text-sm font-semibold">Require IEEE Member ID on Registration</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="grid lg:grid-cols-2 gap-6">
+                                            <div>
+                                                <label className="text-white text-sm mb-3 block">
+                                                    Ticket Price (₹) <span className="text-red-400">*</span>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    name="ticketPrice"
+                                                    value={eventData.ticketPrice}
+                                                    onChange={handleInputChange}
+                                                    placeholder="499"
+                                                    min="0"
+                                                    className={getInputClass('ticketPrice')}
+                                                    required
+                                                />
+                                                <p className="text-gray-500 text-xs mt-2">Enter the price per participant in INR</p>
+                                                {getFieldError('ticketPrice') && (
+                                                    <p className="text-red-400 text-xs mt-1.5">{getFieldError('ticketPrice')}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

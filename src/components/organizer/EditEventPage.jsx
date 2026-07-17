@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Loader2, Upload, Trash2, Plus, X, Check, Save, 
   Users, CreditCard, Clipboard, Info, AlertTriangle, CheckCircle, 
-  XCircle, QrCode, Search, ExternalLink, Calendar, MapPin, Award
+  XCircle, QrCode, Search, ExternalLink, Calendar, MapPin, Award,
+  GripVertical, Type, AlignLeft, Hash, AtSign, Phone, ChevronDown, ToggleLeft, Link2
 } from 'lucide-react';
 import Header from '../layout/Header';
 import Footer from '../layout/Footer';
@@ -116,6 +117,8 @@ const EditEventPage = () => {
   const [newFieldRequired, setNewFieldRequired] = useState(false);
   const [newFieldOptions, setNewFieldOptions] = useState([]);
   const [newOptionInput, setNewOptionInput] = useState('');
+  const [fieldBuilderError, setFieldBuilderError] = useState(''); // inline error for builder card only
+  const [optionDuplicateError, setOptionDuplicateError] = useState(false);
 
   // Tab 3: Payment Configuration
   const [paymentConfig, setPaymentConfig] = useState({
@@ -123,7 +126,11 @@ const EditEventPage = () => {
     paymentType: 'FREE',
     ticketPrice: 0,
     upiId: '',
-    upiQrCode: ''
+    upiQrCode: '',
+    isIeeeEvent: false,
+    ieeeMemberPrice: 0,
+    nonIeeeMemberPrice: 0,
+    requiresIeeeId: true
   });
 
   // Premium Event Configuration
@@ -205,7 +212,11 @@ const EditEventPage = () => {
         paymentType: e.paymentType || 'FREE',
         ticketPrice: e.ticketPrice ?? 0,
         upiId: e.upiId || '',
-        upiQrCode: e.upiQrCode || ''
+        upiQrCode: e.upiQrCode || '',
+        isIeeeEvent: e.isIeeeEvent ?? false,
+        ieeeMemberPrice: e.ieeeMemberPrice ?? 0,
+        nonIeeeMemberPrice: e.nonIeeeMemberPrice ?? 0,
+        requiresIeeeId: e.requiresIeeeId ?? true
       });
 
       // Populate Premium Event Configuration
@@ -349,8 +360,12 @@ const EditEventPage = () => {
       const payload = {
         isPaid: paymentConfig.isPaid,
         paymentType: paymentConfig.isPaid ? paymentConfig.paymentType : 'FREE',
-        ticketPrice: paymentConfig.isPaid ? parseFloat(paymentConfig.ticketPrice) || 0 : 0,
-        upiId: (paymentConfig.isPaid && paymentConfig.paymentType === 'MANUAL_UPI') ? paymentConfig.upiId : null
+        ticketPrice: (paymentConfig.isPaid && !paymentConfig.isIeeeEvent) ? parseFloat(paymentConfig.ticketPrice) || 0 : 0,
+        upiId: (paymentConfig.isPaid && paymentConfig.paymentType === 'MANUAL_UPI') ? paymentConfig.upiId : null,
+        isIeeeEvent: paymentConfig.isPaid && paymentConfig.isIeeeEvent,
+        ieeeMemberPrice: (paymentConfig.isPaid && paymentConfig.isIeeeEvent) ? parseFloat(paymentConfig.ieeeMemberPrice) || 0 : 0,
+        nonIeeeMemberPrice: (paymentConfig.isPaid && paymentConfig.isIeeeEvent) ? parseFloat(paymentConfig.nonIeeeMemberPrice) || 0 : 0,
+        requiresIeeeId: (paymentConfig.isPaid && paymentConfig.isIeeeEvent) ? paymentConfig.requiresIeeeId : true
       };
       
       await eventsApi.update(id, payload);
@@ -487,68 +502,96 @@ const EditEventPage = () => {
   };
 
   // ─── Form Builder Helpers ──────────────────────────────────────────────────
-  
+
+  const FIELD_TYPES = [
+    { value: 'text',     label: 'Short Text',     desc: 'Single-line text answer',       Icon: Type,         color: '#60a5fa' },
+    { value: 'textarea', label: 'Long Text',       desc: 'Multi-line paragraph answer',   Icon: AlignLeft,    color: '#a78bfa' },
+    { value: 'number',   label: 'Number',          desc: 'Numeric value only',            Icon: Hash,         color: '#fb923c' },
+    { value: 'email',    label: 'Email',           desc: 'Validated email address',       Icon: AtSign,       color: '#f472b6' },
+    { value: 'tel',      label: 'Phone / Contact', desc: 'Phone number input',            Icon: Phone,        color: '#34d399' },
+    { value: 'select',   label: 'Dropdown',        desc: 'Pick one from a list',          Icon: ChevronDown,  color: '#fbbf24' },
+    { value: 'checkbox', label: 'Checkbox',        desc: 'Yes / No toggle',               Icon: ToggleLeft,   color: '#00ff88' },
+    { value: 'url',      label: 'URL / Link',      desc: 'Website or portfolio link',     Icon: Link2,        color: '#38bdf8' },
+  ];
+
   const addField = () => {
-    if (!newFieldName.trim()) return;
-    
-    // Check for duplicate labels (case insensitive)
-    if (formFields.some(f => f.label.toLowerCase() === newFieldName.trim().toLowerCase())) {
-      setError('A field with this name already exists.');
+    const trimmed = newFieldName.trim();
+    if (!trimmed) {
+      setFieldBuilderError('Field label is required.');
       return;
     }
-    
-    const newField = {
-      label: newFieldName.trim(),
-      type: newFieldType,
-      required: newFieldRequired
-    };
-    
-    if (newFieldType === 'select') {
-      if (newFieldOptions.length === 0) {
-        setError('Please add at least one option for select field type.');
-        return;
-      }
-      newField.options = [...newFieldOptions];
+    if (trimmed.length > 60) {
+      setFieldBuilderError('Field label must be 60 characters or less.');
+      return;
     }
-    
+
+    // Check for duplicate labels (case insensitive)
+    if (formFields.some(f => f.label.toLowerCase() === trimmed.toLowerCase())) {
+      setFieldBuilderError('A field with this name already exists.');
+      return;
+    }
+
+    if (newFieldType === 'select' && newFieldOptions.length === 0) {
+      setFieldBuilderError('Please add at least one option for the Dropdown field.');
+      return;
+    }
+
+    if (newFieldType === 'select' && newFieldOptions.length < 2) {
+      setFieldBuilderError('Dropdown fields should have at least 2 options.');
+      return;
+    }
+
+    const newField = {
+      label: trimmed,
+      type: newFieldType,
+      required: newFieldRequired,
+      ...(newFieldType === 'select' ? { options: [...newFieldOptions] } : {}),
+    };
+
     setFormFields(prev => [...prev, newField]);
-    
+
     // Reset inputs
     setNewFieldName('');
     setNewFieldType('text');
     setNewFieldRequired(false);
     setNewFieldOptions([]);
     setNewOptionInput('');
-    setError('');
+    setFieldBuilderError('');
   };
   
   const deleteField = (idx) => {
     const field = formFields[idx];
     // Block deleting Name and Email
     if (field.label.toLowerCase() === 'name' || field.label.toLowerCase() === 'email') {
-      setError('Default "Name" and "Email" fields are required and cannot be deleted.');
-      setTimeout(() => setError(''), 3000);
+      setFieldBuilderError('Default "Name" and "Email" fields are required and cannot be deleted.');
+      setTimeout(() => setFieldBuilderError(''), 3000);
       return;
     }
     setFormFields(prev => prev.filter((_, i) => i !== idx));
   };
-  
+
   const toggleRequired = (idx) => {
     const field = formFields[idx];
     // Block toggling Name and Email
     if (field.label.toLowerCase() === 'name' || field.label.toLowerCase() === 'email') {
-      setError('Default "Name" and "Email" fields are permanently required.');
-      setTimeout(() => setError(''), 3000);
+      setFieldBuilderError('Default "Name" and "Email" fields are permanently required.');
+      setTimeout(() => setFieldBuilderError(''), 3000);
       return;
     }
     setFormFields(prev => prev.map((f, i) => i === idx ? { ...f, required: !f.required } : f));
   };
 
   const addOptionToNewField = () => {
-    if (!newOptionInput.trim()) return;
-    if (newFieldOptions.includes(newOptionInput.trim())) return;
-    setNewFieldOptions(prev => [...prev, newOptionInput.trim()]);
+    const val = newOptionInput.trim();
+    if (!val) return;
+    if (newFieldOptions.map(o => o.toLowerCase()).includes(val.toLowerCase())) {
+      setOptionDuplicateError(true);
+      setTimeout(() => setOptionDuplicateError(false), 2000);
+      return;
+    }
+    setNewFieldOptions(prev => [...prev, val]);
     setNewOptionInput('');
+    setOptionDuplicateError(false);
   };
 
   const removeOptionFromNewField = (val) => {
@@ -1235,50 +1278,106 @@ const EditEventPage = () => {
             {/* Tab 2: Custom Registration Fields Builder */}
             {activeTab === 'fields' && (
               <div className="space-y-6">
-                <div className="bg-[#0d2f2f] border-2 border-[#1a4d4d] rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
-                  <h3 className="text-lg font-bold text-white border-b border-[#1a4d4d] pb-3">Active Registration Fields</h3>
-                  
-                  <div className="space-y-3">
+
+                {/* Existing Fields list */}
+                <div className="bg-[#0d2f2f] border-2 border-[#1a4d4d] rounded-3xl p-6 sm:p-8 shadow-xl">
+                  <div className="flex items-center justify-between border-b border-[#1a4d4d] pb-3 mb-5">
+                    <h3 className="text-lg font-bold text-white">Active Registration Fields</h3>
+                    <span className="text-xs text-gray-500 bg-[#0a1f1f] px-3 py-1 rounded-full border border-[#1a4d4d]">
+                      {formFields.length} field{formFields.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  {/* Builder-level inline error */}
+                  {fieldBuilderError && (
+                    <div className="mb-4 flex items-center gap-2 px-4 py-3 bg-red-950/40 border border-red-500/40 rounded-xl text-red-400 text-sm">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                      <span>{fieldBuilderError}</span>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
                     {formFields.map((field, idx) => {
                       const isDefaultLocked = field.label.toLowerCase() === 'name' || field.label.toLowerCase() === 'email';
-                      
+                      const typeInfo = FIELD_TYPES.find(t => t.value === field.type);
+                      const TypeIcon = typeInfo?.Icon ?? Type;
+                      const typeColor = typeInfo?.color ?? '#00ff88';
+
                       return (
-                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0a1f1f]/60 border border-[#1a4d4d] rounded-2xl p-4 transition-all duration-300">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
+                        <div
+                          key={idx}
+                          className="flex items-start sm:items-center justify-between gap-3 bg-[#0a1f1f]/60 border border-[#1a4d4d] hover:border-[#2d7d7d] rounded-2xl p-4 transition-all duration-200"
+                        >
+                          {/* Drag hint */}
+                          <GripVertical className="w-4 h-4 text-gray-700 flex-shrink-0 mt-0.5 sm:mt-0" />
+
+                          {/* Type icon */}
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: `${typeColor}18`, color: typeColor }}
+                          >
+                            <TypeIcon className="w-4 h-4" />
+                          </div>
+
+                          {/* Field info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-bold text-white text-sm capitalize">{field.label}</span>
                               {isDefaultLocked && (
-                                <span className="bg-[#1a4d4d] text-gray-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                                  Default Locked
+                                <span className="bg-[#1a4d4d] text-gray-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
+                                  Locked
+                                </span>
+                              )}
+                              {field.required && (
+                                <span className="text-[10px] font-bold text-red-400 bg-red-950/30 px-2 py-0.5 rounded-full border border-red-900/40">
+                                  Required
                                 </span>
                               )}
                             </div>
-                            <p className="text-gray-400 text-xs">
-                              Type: <span className="font-mono text-[#00ff88]">{field.type}</span>
-                              {field.type === 'select' && ` [Options: ${field.options?.join(', ')}]`}
-                            </p>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <span
+                                className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md"
+                                style={{ color: typeColor, backgroundColor: `${typeColor}18` }}
+                              >
+                                {typeInfo?.label ?? field.type}
+                              </span>
+                              {field.type === 'select' && field.options?.map((opt, oi) => (
+                                <span key={oi} className="text-[10px] text-gray-500 bg-[#1a4d4d]/50 px-2 py-0.5 rounded-full border border-[#1a4d4d]">
+                                  {opt}
+                                </span>
+                              ))}
+                            </div>
                           </div>
 
-                          <div className="flex items-center gap-4 sm:self-center self-end">
-                            <label className={`flex items-center gap-2 cursor-pointer ${isDefaultLocked ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                              <input
-                                type="checkbox"
-                                checked={field.required}
-                                onChange={() => toggleRequired(idx)}
-                                disabled={isDefaultLocked}
-                                className="w-4 h-4 rounded border-2 border-[#1a4d4d] bg-transparent checked:bg-[#00ff88] checked:border-[#00ff88] focus:ring-0 cursor-pointer accent-[#00ff88]"
-                              />
-                              <span className="text-gray-400 text-xs">Required</span>
-                            </label>
-                            
+                          {/* Controls */}
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {/* Required toggle */}
+                            <button
+                              type="button"
+                              onClick={() => toggleRequired(idx)}
+                              disabled={isDefaultLocked}
+                              title={field.required ? 'Mark optional' : 'Mark required'}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-200 ${
+                                isDefaultLocked
+                                  ? 'opacity-40 cursor-not-allowed border-[#1a4d4d] text-gray-600'
+                                  : field.required
+                                    ? 'bg-red-950/30 border-red-800/50 text-red-400 hover:bg-red-950/50'
+                                    : 'bg-[#0a1f1f] border-[#1a4d4d] text-gray-500 hover:text-white hover:border-[#2d7d7d]'
+                              }`}
+                            >
+                              {field.required ? '✓ Req.' : 'Optional'}
+                            </button>
+
+                            {/* Delete */}
                             <button
                               type="button"
                               onClick={() => deleteField(idx)}
                               disabled={isDefaultLocked}
+                              title="Remove field"
                               className={`p-2 rounded-xl transition-colors ${
                                 isDefaultLocked
-                                  ? 'text-gray-600 cursor-not-allowed bg-transparent'
-                                  : 'text-red-400 hover:bg-red-950/20 hover:text-red-300'
+                                  ? 'text-gray-700 cursor-not-allowed'
+                                  : 'text-gray-600 hover:text-red-400 hover:bg-red-950/20'
                               }`}
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1291,83 +1390,125 @@ const EditEventPage = () => {
                 </div>
 
                 {/* Field Creator Card */}
-                <div className="bg-[#0d2f2f] border-2 border-[#1a4d4d] rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+                <div className="bg-[#0d2f2f] border-2 border-[#1a4d4d] rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
                   <h3 className="text-lg font-bold text-white border-b border-[#1a4d4d] pb-3">Add Custom Registration Field</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <label className="text-gray-400 text-sm mb-2 block">Field Label *</label>
-                      <input
-                        type="text"
-                        value={newFieldName}
-                        onChange={e => setNewFieldName(e.target.value)}
-                        className="w-full bg-transparent border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
-                        placeholder="e.g. GitHub Handle, T-Shirt Size"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-gray-400 text-sm mb-2 block">Field Format / Type</label>
-                      <select
-                        value={newFieldType}
-                        onChange={e => {
-                          setNewFieldType(e.target.value);
-                          setNewFieldOptions([]);
-                        }}
-                        className="w-full bg-[#0a1f1f] border-2 border-[#1a4d4d] text-white py-3 px-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
-                      >
-                        <option value="text">Short Text</option>
-                        <option value="textarea">Paragraph / Long Text</option>
-                        <option value="number">Numeric Input</option>
-                        <option value="email">Email</option>
-                        <option value="tel">Phone / Contact</option>
-                        <option value="select">Dropdown / Select</option>
-                        <option value="checkbox">Checkbox (Yes/No)</option>
-                      </select>
-                    </div>
-                    <div className="flex items-end pb-3.5">
-                      <label className="flex items-center gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={newFieldRequired}
-                          onChange={e => setNewFieldRequired(e.target.checked)}
-                          className="w-5 h-5 rounded border-2 border-[#1a4d4d] bg-transparent checked:bg-[#00ff88] checked:border-[#00ff88] focus:ring-0 cursor-pointer accent-[#00ff88]"
-                        />
-                        <span className="text-white text-sm font-semibold">Make this field mandatory</span>
+
+                  {/* Step 1 — Field Label */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-gray-400 text-sm font-semibold">
+                        Field Label <span className="text-red-400">*</span>
                       </label>
+                      <span className={`text-xs font-mono ${newFieldName.length > 50 ? 'text-red-400' : 'text-gray-600'}`}>
+                        {newFieldName.length}/60
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={newFieldName}
+                      onChange={e => {
+                        setNewFieldName(e.target.value);
+                        if (fieldBuilderError) setFieldBuilderError('');
+                      }}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addField(); } }}
+                      maxLength={60}
+                      className={`w-full bg-transparent border-2 ${fieldBuilderError && !newFieldName.trim() ? 'border-red-500/70 focus:border-red-400' : 'border-[#1a4d4d] focus:border-[#00ff88]'} text-white py-3 px-4 rounded-xl focus:outline-none transition-all duration-300 text-sm`}
+                      placeholder="e.g. GitHub Handle, T-Shirt Size, LinkedIn URL"
+                    />
+                  </div>
+
+                  {/* Step 2 — Field Type visual cards */}
+                  <div>
+                    <label className="text-gray-400 text-sm font-semibold mb-3 block">Field Type</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {FIELD_TYPES.map(({ value, label, desc, Icon, color }) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => {
+                            setNewFieldType(value);
+                            setNewFieldOptions([]);
+                            setNewOptionInput('');
+                            setFieldBuilderError('');
+                            setOptionDuplicateError(false);
+                          }}
+                          className={`flex items-start gap-2.5 p-3 rounded-xl border-2 text-left transition-all duration-200 ${
+                            newFieldType === value
+                              ? 'border-transparent shadow-lg scale-[1.02]'
+                              : 'border-[#1a4d4d] hover:border-[#2d7d7d] bg-[#0a1f1f]/40 hover:bg-[#0a1f1f]/80'
+                          }`}
+                          style={newFieldType === value ? { backgroundColor: `${color}14`, borderColor: color } : {}}
+                        >
+                          <div
+                            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                            style={{ backgroundColor: `${color}22`, color }}
+                          >
+                            <Icon className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-white text-xs font-bold leading-tight">{label}</p>
+                            <p className="text-gray-500 text-[10px] leading-tight mt-0.5 line-clamp-2">{desc}</p>
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   </div>
 
+                  {/* Step 3 — Dropdown options (only for select type) */}
                   {newFieldType === 'select' && (
-                    <div className="bg-[#0a1f1f]/50 border border-[#1a4d4d] rounded-2xl p-5 space-y-4">
-                      <label className="text-gray-400 text-xs font-semibold block">Dropdown Choices / Options *</label>
+                    <div className="bg-[#0a1f1f]/60 border border-[#fbbf24]/30 rounded-2xl p-5 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <ChevronDown className="w-4 h-4 text-[#fbbf24]" />
+                        <label className="text-[#fbbf24] text-sm font-bold">Dropdown Options</label>
+                        <span className="text-gray-600 text-xs">— add at least 2</span>
+                      </div>
+
+                      {/* Option input row */}
                       <div className="flex gap-2">
                         <input
                           type="text"
                           value={newOptionInput}
-                          onChange={e => setNewOptionInput(e.target.value)}
-                          className="flex-1 bg-transparent border-2 border-[#1a4d4d] text-white py-2 px-3 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all duration-300 text-sm"
-                          placeholder="e.g. Veg, Non-veg, S, M, XL"
+                          onChange={e => {
+                            setNewOptionInput(e.target.value);
+                            setOptionDuplicateError(false);
+                          }}
+                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOptionToNewField(); } }}
+                          className={`flex-1 bg-transparent border-2 ${optionDuplicateError ? 'border-red-500/70 focus:border-red-400' : 'border-[#1a4d4d] focus:border-[#fbbf24]'} text-white py-2.5 px-3 rounded-xl focus:outline-none transition-all duration-300 text-sm`}
+                          placeholder="Type an option and press Enter or click Add"
                         />
                         <button
                           type="button"
                           onClick={addOptionToNewField}
-                          className="bg-[#1a4d4d] hover:bg-[#256868] text-white font-bold px-5 rounded-xl transition-all text-sm"
+                          className="flex items-center gap-1.5 bg-[#fbbf24]/10 hover:bg-[#fbbf24]/20 border border-[#fbbf24]/40 text-[#fbbf24] font-bold px-4 py-2.5 rounded-xl transition-all text-sm whitespace-nowrap"
                         >
-                          Add Option
+                          <Plus className="w-3.5 h-3.5" />
+                          Add
                         </button>
                       </div>
 
+                      {optionDuplicateError && (
+                        <p className="text-red-400 text-xs flex items-center gap-1.5">
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          This option already exists (case-insensitive match).
+                        </p>
+                      )}
+
+                      {/* Options pills */}
                       {newFieldOptions.length === 0 ? (
-                        <p className="text-gray-500 text-xs italic">No choices added yet. Add options before creating the select input.</p>
+                        <p className="text-gray-600 text-xs italic">No options added yet.</p>
                       ) : (
-                        <div className="flex flex-wrap gap-2 pt-2">
+                        <div className="flex flex-wrap gap-2">
                           {newFieldOptions.map((opt, i) => (
-                            <span key={i} className="flex items-center gap-1.5 bg-[#1a4d4d] text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-[#2d7d7d]">
+                            <span
+                              key={i}
+                              className="flex items-center gap-1.5 bg-[#fbbf24]/10 text-[#fbbf24] text-xs font-semibold px-3 py-1.5 rounded-full border border-[#fbbf24]/30"
+                            >
+                              <span>{i + 1}.</span>
                               <span>{opt}</span>
                               <button
                                 type="button"
                                 onClick={() => removeOptionFromNewField(opt)}
-                                className="text-gray-400 hover:text-red-400"
+                                className="text-[#fbbf24]/60 hover:text-red-400 ml-0.5 transition-colors"
                               >
                                 <X className="w-3 h-3" />
                               </button>
@@ -1378,17 +1519,64 @@ const EditEventPage = () => {
                     </div>
                   )}
 
+                  {/* Step 4 — Required toggle + live preview row */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    {/* Required toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setNewFieldRequired(p => !p)}
+                      className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 text-sm font-bold ${
+                        newFieldRequired
+                          ? 'bg-red-950/30 border-red-700/60 text-red-400'
+                          : 'bg-[#0a1f1f]/60 border-[#1a4d4d] text-gray-400 hover:border-[#2d7d7d] hover:text-gray-300'
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${newFieldRequired ? 'bg-red-500 border-red-500' : 'border-gray-600'}`}>
+                        {newFieldRequired && <Check className="w-2.5 h-2.5 text-white" />}
+                      </div>
+                      {newFieldRequired ? 'Mandatory field' : 'Optional field'}
+                    </button>
+
+                    {/* Live preview chip */}
+                    {newFieldName.trim() && (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-[#0a1f1f] border border-[#1a4d4d] rounded-xl text-xs text-gray-400">
+                        <span className="text-gray-600">Preview:</span>
+                        <span className="text-white font-semibold">{newFieldName.trim()}</span>
+                        <span
+                          className="font-mono px-1.5 py-0.5 rounded text-[10px] font-bold"
+                          style={{ color: FIELD_TYPES.find(t => t.value === newFieldType)?.color ?? '#00ff88', backgroundColor: `${FIELD_TYPES.find(t => t.value === newFieldType)?.color ?? '#00ff88'}18` }}
+                        >
+                          {FIELD_TYPES.find(t => t.value === newFieldType)?.label ?? newFieldType}
+                        </span>
+                        {newFieldRequired && <span className="text-red-400 text-[10px] font-bold">*</span>}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Inline error */}
+                  {fieldBuilderError && (
+                    <div className="flex items-center gap-2 px-4 py-3 bg-red-950/40 border border-red-500/40 rounded-xl text-red-400 text-sm">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                      <span>{fieldBuilderError}</span>
+                    </div>
+                  )}
+
+                  {/* Add Field button */}
                   <button
                     type="button"
                     onClick={addField}
-                    className="w-full flex items-center justify-center gap-2 bg-[#00ff88]/10 hover:bg-[#00ff88]/20 border border-[#00ff88]/30 text-[#00ff88] font-bold py-3.5 rounded-xl transition-all duration-300"
+                    className="w-full flex items-center justify-center gap-2 bg-[#00ff88]/10 hover:bg-[#00ff88]/20 active:scale-[0.98] border-2 border-[#00ff88]/30 hover:border-[#00ff88]/60 text-[#00ff88] font-extrabold py-4 rounded-2xl transition-all duration-200"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-5 h-5" />
                     <span>Append Field to Form</span>
                   </button>
                 </div>
 
-                <div className="flex justify-end">
+                {/* Save row */}
+                <div className="flex items-center justify-between">
+                  <p className="text-gray-600 text-xs">
+                    {formFields.length} field{formFields.length !== 1 ? 's' : ''} · click <span className="text-[#00ff88]">Save</span> to persist changes
+                  </p>
                   <button
                     type="button"
                     onClick={handleSaveFieldsBuilder}
@@ -1434,31 +1622,108 @@ const EditEventPage = () => {
                   </div>
 
                   {paymentConfig.isPaid && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 animate-fadeIn">
-                      <div>
-                        <label className="text-gray-400 text-sm mb-2 block">Ticket Cost / Admission Fee (INR ₹) *</label>
-                        <input
-                          type="number"
-                          value={paymentConfig.ticketPrice}
-                          onChange={e => updatePaymentField('ticketPrice', e.target.value)}
-                          className={getInputClass('ticketPrice', 'text-sm font-semibold')}
-                          min="0"
-                          placeholder="e.g. 299"
-                        />
-                        {getFieldError('ticketPrice') && (
-                          <p className="text-red-400 text-xs mt-1.5">{getFieldError('ticketPrice')}</p>
-                        )}
+                    <div className="space-y-6 pt-2 animate-fadeIn">
+                      {/* IEEE Event Toggle */}
+                      <div className="flex items-center pb-3">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={paymentConfig.isIeeeEvent}
+                            onChange={e => {
+                              const checked = e.target.checked;
+                              setPaymentConfig(prev => ({
+                                ...prev,
+                                isIeeeEvent: checked
+                              }));
+                            }}
+                            className="w-6 h-6 rounded border-2 border-[#1a4d4d] bg-transparent checked:bg-[#00ff88] checked:border-[#00ff88] focus:ring-0 cursor-pointer accent-[#00ff88]"
+                          />
+                          <span className="text-white text-base font-bold">This is an IEEE-affiliated event with tier pricing</span>
+                        </label>
                       </div>
-                      <div>
-                        <label className="text-gray-400 text-sm mb-2 block">Payment Aggregator / Type *</label>
-                        <select
-                          value={paymentConfig.paymentType}
-                          onChange={e => updatePaymentField('paymentType', e.target.value)}
-                          className={getInputClass('paymentType', 'bg-[#0a1f1f] text-sm')}
-                        >
-                          <option value="MANUAL_UPI">Manual UPI QR & Receipt Verification</option>
-                          <option value="RAZORPAY">Razorpay Automated Gateway integration</option>
-                        </select>
+
+                      {paymentConfig.isIeeeEvent ? (
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <label className="text-gray-400 text-sm mb-2 block">IEEE Member Ticket Price (₹) *</label>
+                              <input
+                                type="number"
+                                value={paymentConfig.ieeeMemberPrice}
+                                onChange={e => updatePaymentField('ieeeMemberPrice', e.target.value)}
+                                className={getInputClass('ieeeMemberPrice', 'text-sm font-semibold')}
+                                min="0"
+                                placeholder="e.g. 199 (enter 0 for free)"
+                              />
+                              {getFieldError('ieeeMemberPrice') && (
+                                <p className="text-red-400 text-xs mt-1.5">{getFieldError('ieeeMemberPrice')}</p>
+                              )}
+                            </div>
+                            <div>
+                              <label className="text-gray-400 text-sm mb-2 block">Non-IEEE Member Ticket Price (₹) *</label>
+                              <input
+                                type="number"
+                                value={paymentConfig.nonIeeeMemberPrice}
+                                onChange={e => updatePaymentField('nonIeeeMemberPrice', e.target.value)}
+                                className={getInputClass('nonIeeeMemberPrice', 'text-sm font-semibold')}
+                                min="0"
+                                placeholder="e.g. 499 (enter 0 for free)"
+                              />
+                              {getFieldError('nonIeeeMemberPrice') && (
+                                <p className="text-red-400 text-xs mt-1.5">{getFieldError('nonIeeeMemberPrice')}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={paymentConfig.requiresIeeeId}
+                                onChange={e => {
+                                  const checked = e.target.checked;
+                                  setPaymentConfig(prev => ({
+                                    ...prev,
+                                    requiresIeeeId: checked
+                                  }));
+                                }}
+                                className="w-5 h-5 rounded border-2 border-[#1a4d4d] bg-transparent checked:bg-[#00ff88] checked:border-[#00ff88] focus:ring-0 cursor-pointer accent-[#00ff88]"
+                              />
+                              <span className="text-white text-sm font-semibold">Require IEEE Member ID on Registration</span>
+                            </label>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <label className="text-gray-400 text-sm mb-2 block">Ticket Cost / Admission Fee (INR ₹) *</label>
+                            <input
+                              type="number"
+                              value={paymentConfig.ticketPrice}
+                              onChange={e => updatePaymentField('ticketPrice', e.target.value)}
+                              className={getInputClass('ticketPrice', 'text-sm font-semibold')}
+                              min="0"
+                              placeholder="e.g. 299"
+                            />
+                            {getFieldError('ticketPrice') && (
+                              <p className="text-red-400 text-xs mt-1.5">{getFieldError('ticketPrice')}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="text-gray-400 text-sm mb-2 block">Payment Aggregator / Type *</label>
+                          <select
+                            value={paymentConfig.paymentType}
+                            onChange={e => updatePaymentField('paymentType', e.target.value)}
+                            className={getInputClass('paymentType', 'bg-[#0a1f1f] text-sm')}
+                          >
+                            <option value="MANUAL_UPI">Manual UPI QR & Receipt Verification</option>
+                            <option value="RAZORPAY">Razorpay Automated Gateway integration</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1709,6 +1974,7 @@ const EditEventPage = () => {
                           <tr className="border-b border-[#1a4d4d] text-gray-400 text-xs font-bold uppercase tracking-wider">
                             <th className="py-4 px-3">Registrant</th>
                             <th className="py-4 px-3">Contact</th>
+                            <th className="py-4 px-3">IEEE Status</th>
                             <th className="py-4 px-3">Status</th>
                             <th className="py-4 px-3">Registered At</th>
                             <th className="py-4 px-3 text-right">Actions</th>
@@ -1736,6 +2002,20 @@ const EditEventPage = () => {
                                 <td className="py-4 px-3">
                                   <div className="text-white text-xs">{reg.formData?.email || reg.user?.email}</div>
                                   <div className="text-xs text-gray-500 mt-0.5">{reg.formData?.phone || reg.user?.phone || 'No phone'}</div>
+                                </td>
+                                <td className="py-4 px-3">
+                                  {reg.isMember === true ? (
+                                    <div className="flex flex-col">
+                                      <span className="inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-blue-500/20 bg-blue-500/10 text-blue-400 w-max">
+                                        Member
+                                      </span>
+                                      <span className="text-xs text-gray-500 mt-1 font-mono">{reg.ieeeMemberId || 'N/A'}</span>
+                                    </div>
+                                  ) : reg.isMember === false ? (
+                                    <span className="text-gray-500 text-xs font-semibold">Non-Member</span>
+                                  ) : (
+                                    <span className="text-gray-600 text-xs italic">—</span>
+                                  )}
                                 </td>
                                 <td className="py-4 px-3">
                                   <span className={`inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${badgeStyle}`}>
@@ -1842,6 +2122,22 @@ const EditEventPage = () => {
                       <span className="text-gray-500 text-xs block font-bold uppercase tracking-wider">Transaction Reference ID / UPI Ref</span>
                       <span className="text-yellow-400 font-mono font-bold mt-0.5 block bg-yellow-500/10 border border-yellow-500/20 px-3 py-1.5 rounded-lg text-xs">
                         {selectedAttendee.paymentRef}
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedAttendee.isMember !== null && selectedAttendee.isMember !== undefined && (
+                    <div>
+                      <span className="text-gray-500 text-xs block font-bold uppercase tracking-wider">IEEE Member Status</span>
+                      <span className="text-white font-semibold mt-0.5 block">
+                        {selectedAttendee.isMember ? (
+                          <span className="text-blue-400 font-extrabold flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                            IEEE Member {selectedAttendee.ieeeMemberId ? `(ID: ${selectedAttendee.ieeeMemberId})` : ''}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">Not an IEEE Member</span>
+                        )}
                       </span>
                     </div>
                   )}
