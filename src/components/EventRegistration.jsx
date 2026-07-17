@@ -108,8 +108,8 @@ const EventRegistration = () => {
     }, [eventId, isAuthenticated, user, navigate]);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setForm(prev => ({ ...prev, [name]: value }));
+        const { name, value, type, checked } = e.target;
+        setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     };
 
     const handleTeamMemberChange = (index, field, value) => {
@@ -556,10 +556,12 @@ const EventRegistration = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {formFields.map((field, idx) => (
-                                    <div key={idx}>
-                                        <label className="text-gray-400 text-sm mb-2 block capitalize">
-                                            {field.label} {field.required && '*'}
-                                        </label>
+                                    <div key={idx} className={field.type === 'checkbox' ? 'col-span-1 md:col-span-2' : ''}>
+                                        {field.type !== 'checkbox' && (
+                                            <label className="text-gray-400 text-sm mb-2 block capitalize">
+                                                {field.label} {field.required && '*'}
+                                            </label>
+                                        )}
                                         {field.type === 'select' ? (
                                             <select
                                                 name={field.label}
@@ -573,6 +575,18 @@ const EventRegistration = () => {
                                                     <option key={i} value={opt}>{opt}</option>
                                                 ))}
                                             </select>
+                                        ) : field.type === 'checkbox' ? (
+                                            <label className="flex items-center gap-3 py-2 cursor-pointer select-none">
+                                                <input
+                                                    type="checkbox"
+                                                    name={field.label}
+                                                    checked={!!form[field.label]}
+                                                    onChange={handleChange}
+                                                    required={field.required}
+                                                    className="w-5 h-5 rounded border-2 border-[#1a4d4d] bg-transparent checked:bg-[#00ff88] checked:border-[#00ff88] focus:ring-0 cursor-pointer accent-[#00ff88]"
+                                                />
+                                                <span className="text-white text-sm font-semibold">{field.label} {field.required && '*'}</span>
+                                            </label>
                                         ) : field.type === 'textarea' ? (
                                             <textarea
                                                 name={field.label}
@@ -706,10 +720,12 @@ const EventRegistration = () => {
                                             <h3 className="text-[#00ff88] font-medium mb-4">Team Member {index + 1}</h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 {formFields.map((field, fIdx) => (
-                                                    <div key={fIdx}>
-                                                        <label className="text-gray-400 text-xs mb-1 block capitalize">
-                                                            {field.label} {field.required && '*'}
-                                                        </label>
+                                                    <div key={fIdx} className={field.type === 'checkbox' ? 'col-span-1 md:col-span-2' : ''}>
+                                                        {field.type !== 'checkbox' && (
+                                                            <label className="text-gray-400 text-xs mb-1 block capitalize">
+                                                                {field.label} {field.required && '*'}
+                                                            </label>
+                                                        )}
                                                         {field.type === 'select' ? (
                                                             <select
                                                                 value={member[field.label] || ''}
@@ -722,6 +738,17 @@ const EventRegistration = () => {
                                                                     <option key={i} value={opt}>{opt}</option>
                                                                 ))}
                                                             </select>
+                                                        ) : field.type === 'checkbox' ? (
+                                                            <label className="flex items-center gap-3 py-1 cursor-pointer select-none">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={!!member[field.label]}
+                                                                    onChange={(e) => handleTeamMemberChange(index, field.label, e.target.checked)}
+                                                                    required={field.required}
+                                                                    className="w-4 h-4 rounded border-2 border-[#1a4d4d] bg-transparent checked:bg-[#00ff88] checked:border-[#00ff88] focus:ring-0 cursor-pointer accent-[#00ff88]"
+                                                                />
+                                                                <span className="text-white text-xs font-semibold">{field.label} {field.required && '*'}</span>
+                                                            </label>
                                                         ) : field.type === 'textarea' ? (
                                                             <textarea
                                                                 value={member[field.label] || ''}
