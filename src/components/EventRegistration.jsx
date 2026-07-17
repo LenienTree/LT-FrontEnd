@@ -71,8 +71,17 @@ const EventRegistration = () => {
                     { label: 'college', type: 'text', required: true }
                 ];
                 
-                let fields = e.customFormFields && Array.isArray(e.customFormFields) && e.customFormFields.length > 0 
-                    ? e.customFormFields 
+                let parsedFields = e.customFormFields;
+                if (typeof parsedFields === 'string') {
+                    try {
+                        parsedFields = JSON.parse(parsedFields);
+                    } catch (_) {
+                        parsedFields = null;
+                    }
+                }
+                
+                let fields = parsedFields && Array.isArray(parsedFields) && parsedFields.length > 0 
+                    ? parsedFields 
                     : defaultFields;
 
                 setFormFields(fields);
