@@ -39,8 +39,23 @@ const Login = ({ switchToSignup, onSuccess }) => {
         setForgotSuccess('');
         setLoading(true);
         try {
-            await forgotPassword(forgotEmail);
-            setForgotSuccess('Reset link sent! Check your inbox.');
+            const res = await forgotPassword(forgotEmail);
+            const devLink = res?.data?.resetLink || res?.resetLink;
+            if (devLink) {
+                setForgotSuccess(
+                    <div className="space-y-2 text-left">
+                        <p className="text-[#00ff88]">Reset link sent! Check your inbox.</p>
+                        <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 p-3 rounded-xl text-xs space-y-1">
+                            <span className="font-bold block uppercase tracking-wider text-[10px]">Dev / Test Bypass:</span>
+                            <a href={devLink} className="underline break-all block font-mono hover:text-yellow-300">
+                                {devLink}
+                            </a>
+                        </div>
+                    </div>
+                );
+            } else {
+                setForgotSuccess(<span className="text-[#00ff88]">Reset link sent! Check your inbox.</span>);
+            }
         } catch (err) {
             setError(err.message || 'Failed to send reset email.');
         } finally {
@@ -72,7 +87,7 @@ const Login = ({ switchToSignup, onSuccess }) => {
                         <div>
                             <h3 className="text-white text-xl font-semibold mb-4">Reset Password</h3>
                             {forgotSuccess ? (
-                                <p className="text-[#00ff88] text-sm mb-4">{forgotSuccess}</p>
+                                <div className="text-sm mb-4">{forgotSuccess}</div>
                             ) : (
                                 <form onSubmit={handleForgotPassword} className="space-y-4">
                                     <input
