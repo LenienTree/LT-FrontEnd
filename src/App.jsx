@@ -26,6 +26,7 @@ const OrganizerDashboard = lazy(() => import("./components/organizer/OrganizerDa
 const PrivacyPolicy    = lazy(() => import("./pages/LntPrivacy"));
 const TermsConditions  = lazy(() => import("./pages/TermsConditions"));
 const ReferralRedirect = lazy(() => import("./components/ReferralRedirect"));
+const ResetPassword    = lazy(() => import("./components/user/auth/ResetPassword"));
 
 // Minimal spinner shown while a lazy chunk is loading
 function PageLoader() {
@@ -89,6 +90,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<AuthRedirect view="login" />} />
           <Route path="/signup" element={<AuthRedirect view="signup" />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/about" element={<AboutNew />} />
           <Route path="/test" element={<AboutNew />} />
           <Route path="/test1" element={<TeamHalfCircle />} />
