@@ -37,10 +37,10 @@ export default function OrganizerDashboard() {
     try {
       const data = await organizerApi.getDashboard();
       // data: { stats: { totalEvents, totalRegistrations, activeEvents, attendedCount }, events }
-      setStats(data.stats || {
-        totalEvents: data.events?.length || 0,
-        totalRegistrations: data.events?.reduce((acc, curr) => acc + (curr._count?.registrations || 0), 0) || 0,
-        activeEvents: data.events?.filter(e => e.status === "APPROVED").length || 0,
+      setStats({
+        totalEvents: data.totals?.totalEvents || data.events?.length || 0,
+        totalRegistrations: data.totals?.totalParticipants || data.events?.reduce((acc, curr) => acc + (curr.total || 0), 0) || 0,
+        activeEvents: data.totals?.approvedParticipants || data.events?.filter(e => e.status === "APPROVED").length || 0,
         attendedCount: 0
       });
       setEventsList(data.events || []);
@@ -483,7 +483,7 @@ export default function OrganizerDashboard() {
                           Registrations
                         </span>
                         <span className="font-bold text-[#9AE600]">
-                          {event._count?.registrations ?? 0} {event.maxParticipants ? `/ ${event.maxParticipants}` : ""}
+                          {event.total ?? 0} {event.maxParticipants ? `/ ${event.maxParticipants}` : ""}
                         </span>
                       </div>
                     </div>
