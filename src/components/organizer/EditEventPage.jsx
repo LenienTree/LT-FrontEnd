@@ -143,6 +143,9 @@ const EditEventPage = () => {
   
   // Tab 4: Attendees list & manual validation
   const [attendees, setAttendees] = useState([]);
+  const [attendeesPage, setAttendeesPage] = useState(1);
+  const [attendeesMeta, setAttendeesMeta] = useState(null);
+  const [eventStats, setEventStats] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedAttendee, setSelectedAttendee] = useState(null); // for screenshot verification modal
@@ -235,6 +238,10 @@ const EditEventPage = () => {
         linkedinSharePoster: e.linkedinSharePoster || ''
       });
       
+      // Fetch stats for all event registrations
+      const statsRes = await eventsApi.getStats(id).catch(() => null);
+      setEventStats(statsRes);
+      
       // Fetch attendees immediately in background or if tab is active
       fetchAttendees();
       
@@ -245,10 +252,19 @@ const EditEventPage = () => {
     }
   };
 
-  const fetchAttendees = async () => {
+  const refreshStats = async () => {
+    try {
+      const statsRes = await eventsApi.getStats(id);
+      setEventStats(statsRes);
+    } catch (err) {
+      console.error('Failed to refresh event stats:', err);
+    }
+  };
+
+  const fetchAttendees = async (pageNum = 1) => {
     try {
       setLoadingAttendees(true);
-      const res = await eventsApi.getParticipants(id);
+      const res = await eventsApi.getParticipants(id, { page: pageNum, limit: 10 });
       // Map participants list: FastAPI/Express/Prisma outputs paginated or raw data
       const list = Array.isArray(res) 
         ? res 
@@ -258,6 +274,8 @@ const EditEventPage = () => {
                 ? res.registrations 
                 : []));
       setAttendees(list);
+      setAttendeesMeta(res?.meta || null);
+      setAttendeesPage(pageNum);
     } catch (err) {
       console.error('Failed to load attendees:', err);
     } finally {
@@ -684,7 +702,8 @@ const EditEventPage = () => {
       }
       setTimeout(() => setSuccess(''), 3000);
       setSelectedAttendee(null); // close verification modal
-      fetchAttendees(); // refresh list
+      fetchAttendees(attendeesPage); // refresh list
+      refreshStats(); // refresh statistics
     } catch (err) {
       setError(err.message || `Failed to ${action.toLowerCase()} registration.`);
       setTimeout(() => setError(''), 4000);
@@ -722,13 +741,11 @@ const EditEventPage = () => {
     return matchesSearch && reg.status === statusFilter;
   });
 
-  const totalRegistrations = attendees.length;
-  const pendingApprovals = attendees.filter(r => r.status === 'PAYMENT_PENDING' || r.status === 'PENDING').length;
-  const approvedCount = attendees.filter(r => r.status === 'APPROVED' || r.status === 'ATTENDED').length;
+  const totalRegistrations = eventStats?.registrations?.total ?? attendeesMeta?.total ?? attendees.length;
+  const pendingApprovals = eventStats ? (totalRegistrations - (eventStats?.registrations?.approved ?? 0) - (eventStats?.registrations?.attended ?? 0) - (eventStats?.registrations?.rejected ?? 0)) : attendees.filter(r => r.status === 'PAYMENT_PENDING' || r.status === 'PENDING').length;
+  const approvedCount = eventStats ? ((eventStats?.registrations?.approved ?? 0) + (eventStats?.registrations?.attended ?? 0)) : attendees.filter(r => r.status === 'APPROVED' || r.status === 'ATTENDED').length;
   
-  const estimatedRevenue = paymentConfig.isPaid 
-    ? approvedCount * (paymentConfig.ticketPrice || 0) 
-    : 0;
+  const estimatedRevenue = eventStats ? (eventStats?.payments?.revenue ?? 0) : (paymentConfig.isPaid ? approvedCount * (paymentConfig.ticketPrice || 0) : 0);
 
   if (loading) {
     return (
@@ -2010,7 +2027,7 @@ const EditEventPage = () => {
                                 </td>
                                 <td className="py-4 px-3">
                                   <div className="text-white text-xs">{reg.formData?.email || reg.user?.email}</div>
-                                  <div className="text-xs text-gray-500 mt-0.5">{reg.formData?.phone || reg.user?.phone || 'No phone'}</div>
+                                  <div className="text-xs text-gray-500 mt-0.5">{reg.formData?.phone || reg.formData?.Phone || reg.formData?.['Phone Number'] || reg.user?.phone || 'No phone'}</div>
                                 </td>
                                 <td className="py-4 px-3">
                                   {reg.isMember === true ? (
@@ -2062,6 +2079,42 @@ const EditEventPage = () => {
                           })}
                         </tbody>
                       </table>
+                    </div>
+                  )}
+                  {attendeesMeta && attendeesMeta.totalPages > 1 && (
+                    <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[#1a4d4d]/60">
+                      <p className="text-xs text-gray-400">
+                        Showing page <span className="text-white font-bold">{attendeesPage}</span> of <span className="text-white font-bold">{attendeesMeta.totalPages}</span> ({attendeesMeta.total} total registrants)
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          disabled={attendeesPage === 1}
+                          onClick={() => fetchAttendees(attendeesPage - 1)}
+                          className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5 transition-all"
+                        >
+                          Prev
+                        </button>
+                        {[...Array(attendeesMeta.totalPages)].map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => fetchAttendees(i + 1)}
+                            className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
+                              attendeesPage === i + 1
+                                ? "bg-[#00ff88] text-[#0a1f1f]"
+                                : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                            }`}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                        <button
+                          disabled={attendeesPage === attendeesMeta.totalPages}
+                          onClick={() => fetchAttendees(attendeesPage + 1)}
+                          className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5 transition-all"
+                        >
+                          Next
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -2123,6 +2176,13 @@ const EditEventPage = () => {
                     <span className="text-gray-500 text-xs block font-bold uppercase tracking-wider">Email Address</span>
                     <span className="text-white font-semibold mt-0.5 block truncate">
                       {selectedAttendee.formData?.email || selectedAttendee.user?.email}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-gray-500 text-xs block font-bold uppercase tracking-wider">Phone Number</span>
+                    <span className="text-white font-semibold mt-0.5 block">
+                      {selectedAttendee.formData?.phone || selectedAttendee.formData?.Phone || selectedAttendee.formData?.['Phone Number'] || selectedAttendee.user?.phone || 'No phone'}
                     </span>
                   </div>
 

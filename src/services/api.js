@@ -492,8 +492,14 @@ export const events = {
   /**
    * Get registered participants for an event (organizer).
    * @param {string} eventId
+   * @param {object} params
    */
-  getParticipants: (eventId) => get(`/api/events/${eventId}/participants`),
+  getParticipants: (eventId, params = {}) => {
+    const query = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))
+    ).toString();
+    return get(`/api/events/${eventId}/participants${query ? `?${query}` : ""}`);
+  },
 
   // ── Management: Announcements ──
 

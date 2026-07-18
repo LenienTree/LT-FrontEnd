@@ -21,6 +21,8 @@ export default function OrganizerDashboard() {
   // Management modal states
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [participants, setParticipants] = useState([]);
+  const [participantsMeta, setParticipantsMeta] = useState(null);
+  const [participantsPage, setParticipantsPage] = useState(1);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [globalCertUrl, setGlobalCertUrl] = useState("");
   const [bulkIssuing, setBulkIssuing] = useState(false);
@@ -49,19 +51,20 @@ export default function OrganizerDashboard() {
     }
   };
 
-  const handleOpenEventManage = async (event) => {
+  const handleOpenEventManage = async (event, pageNum = 1) => {
     setSelectedEvent(event);
-    setParticipants([]);
     setLoadingParticipants(true);
     setBulkMessage("");
     try {
-      const res = await eventsApi.getParticipants(event.id);
+      const res = await eventsApi.getParticipants(event.id, { page: pageNum, limit: 10 });
       // getParticipants returns a paginated result ({ data, meta }); unwrap the
       // array so participants.map/.filter/.length work (raw arrays also handled).
       const list = Array.isArray(res)
         ? res
         : (Array.isArray(res?.data) ? res.data : []);
       setParticipants(list);
+      setParticipantsMeta(res?.meta || null);
+      setParticipantsPage(pageNum);
     } catch (err) {
       console.error("Failed to load participants:", err);
     } finally {
@@ -199,7 +202,7 @@ export default function OrganizerDashboard() {
             {/* Participants list */}
             <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
               <div className="px-6 py-4 border-b border-white/10">
-                <h3 className="text-sm font-bold">Registration Funnel ({participants.length} total)</h3>
+                <h3 className="text-sm font-bold">Registration Funnel ({participantsMeta?.total ?? selectedEvent?._count?.registrations ?? participants.length} total)</h3>
               </div>
 
               {loadingParticipants ? (
@@ -212,12 +215,14 @@ export default function OrganizerDashboard() {
                   No registrations recorded yet.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <>
+                  <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-white/5 text-[10px] text-gray-400 uppercase font-bold tracking-wider border-b border-white/10">
                         <th className="px-6 py-3">Participant</th>
                         <th className="px-6 py-3">Email</th>
+                        <th className="px-6 py-3">Phone</th>
                         <th className="px-6 py-3">College</th>
                         <th className="px-6 py-3">Status</th>
                         <th className="px-6 py-3 text-right">Actions</th>
@@ -228,6 +233,7 @@ export default function OrganizerDashboard() {
                         <tr key={reg.id} className="hover:bg-white/[0.02] transition-colors">
                           <td className="px-6 py-4 font-semibold">{reg.user?.name || "Anonymous"}</td>
                           <td className="px-6 py-4 text-gray-300">{reg.user?.email || "-"}</td>
+                          <td className="px-6 py-4 text-gray-300">{reg.formData?.phone || reg.formData?.Phone || reg.formData?.['Phone Number'] || reg.user?.phone || "-"}</td>
                           <td className="px-6 py-4 text-gray-400">{reg.user?.college || "-"}</td>
                           <td className="px-6 py-4">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -282,6 +288,43 @@ export default function OrganizerDashboard() {
                     </tbody>
                   </table>
                 </div>
+                {participantsMeta && participantsMeta.totalPages > 1 && (
+                  <div className="px-6 py-4 bg-white/[0.02] border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p className="text-[10px] text-gray-400 font-semibold">
+                      Showing page <span className="text-white font-bold">{participantsPage}</span> of <span className="text-white font-bold">{participantsMeta.totalPages}</span> ({participantsMeta.total} total registrants)
+                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        disabled={participantsPage === 1}
+                        onClick={() => handleOpenEventManage(selectedEvent, participantsPage - 1)}
+                        className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5 transition-all"
+                      >
+                        Prev
+                      </button>
+                      {[...Array(participantsMeta.totalPages)].map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleOpenEventManage(selectedEvent, i + 1)}
+                          className={`w-6 h-6 rounded-lg text-[10px] font-bold transition-all ${
+                            participantsPage === i + 1
+                              ? "bg-[#9AE600] text-black"
+                              : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                          }`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                      <button
+                        disabled={participantsPage === participantsMeta.totalPages}
+                        onClick={() => handleOpenEventManage(selectedEvent, participantsPage + 1)}
+                        className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5 transition-all"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+                </>
               )}
             </div>
           </div>
