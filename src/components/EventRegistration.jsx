@@ -144,6 +144,16 @@ const EventRegistration = () => {
         });
     };
 
+    // Returns true when a required field has no acceptable answer.
+    // Handles every field type produced by the form builder: `checkbox` stores a
+    // boolean (a required checkbox must be ticked), everything else stores a string.
+    // Guards against calling string methods like .trim() on non-string values.
+    const isFieldMissing = (field, value) => {
+        if (field?.type === 'checkbox') return value !== true;
+        if (value === undefined || value === null) return true;
+        return String(value).trim() === '';
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -151,7 +161,7 @@ const EventRegistration = () => {
         try {
             // Validate
             for (const f of formFields) {
-                if (f.required && (!form[f.label] || !form[f.label].trim())) {
+                if (f.required && isFieldMissing(f, form[f.label])) {
                     throw new Error(`Please fill in ${f.label} for the primary member.`);
                 }
             }
@@ -159,7 +169,7 @@ const EventRegistration = () => {
             for (let i = 0; i < teamMembers.length; i++) {
                 const m = teamMembers[i];
                 for (const f of formFields) {
-                    if (f.required && (!m[f.label] || !m[f.label].trim())) {
+                    if (f.required && isFieldMissing(f, m[f.label])) {
                         throw new Error(`Please fill in ${f.label} for Team Member ${i + 1}`);
                     }
                 }
@@ -329,11 +339,11 @@ const EventRegistration = () => {
         if (!eventData) return false;
         if (eventData.isIeeeEvent && isMember && eventData.requiresIeeeId && !ieeeMemberId.trim()) return false;
         for (const f of formFields) {
-            if (f.required && (!form[f.label] || !form[f.label].trim())) return false;
+            if (f.required && isFieldMissing(f, form[f.label])) return false;
         }
         for (const m of teamMembers) {
             for (const f of formFields) {
-                if (f.required && (!m[f.label] || !m[f.label].trim())) return false;
+                if (f.required && isFieldMissing(f, m[f.label])) return false;
             }
         }
         // LinkedIn post link required for special event

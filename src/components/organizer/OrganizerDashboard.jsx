@@ -28,6 +28,26 @@ export default function OrganizerDashboard() {
   const [bulkIssuing, setBulkIssuing] = useState(false);
   const [bulkMessage, setBulkMessage] = useState("");
 
+  // Keys already rendered as dedicated columns (or used internally) — everything
+  // else in formData is a custom/extra field added via the form builder and must
+  // be shown so organizers can actually see those answers.
+  const RESERVED_FORMDATA_KEYS = new Set([
+    "name", "email", "phone", "phone number", "college", "teammembers", "linkedinpostlink",
+  ]);
+
+  // Extract custom field answers from a registration's formData, coercing every
+  // field type (checkbox booleans → Yes/No, numbers → string) into displayable text.
+  const getExtraAnswers = (formData) => {
+    if (!formData || typeof formData !== "object") return [];
+    return Object.entries(formData)
+      .filter(([k, v]) =>
+        !RESERVED_FORMDATA_KEYS.has(String(k).toLowerCase()) &&
+        v !== null && v !== undefined && v !== "" &&
+        typeof v !== "object"
+      )
+      .map(([k, v]) => [k, typeof v === "boolean" ? (v ? "Yes" : "No") : String(v)]);
+  };
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -231,7 +251,23 @@ export default function OrganizerDashboard() {
                     <tbody className="divide-y divide-white/5 text-xs">
                       {participants.map((reg) => (
                         <tr key={reg.id} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="px-6 py-4 font-semibold">{reg.user?.name || "Anonymous"}</td>
+                          <td className="px-6 py-4 font-semibold">
+                            {reg.user?.name || reg.formData?.name || "Anonymous"}
+                            {getExtraAnswers(reg.formData).length > 0 && (
+                              <div className="mt-1.5 flex flex-wrap gap-1">
+                                {getExtraAnswers(reg.formData).map(([k, v]) => (
+                                  <span
+                                    key={k}
+                                    className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 font-normal"
+                                    title={`${k}: ${v}`}
+                                  >
+                                    <span className="text-gray-500 capitalize">{k}:</span>
+                                    <span className="text-gray-300">{v}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </td>
                           <td className="px-6 py-4 text-gray-300">{reg.user?.email || "-"}</td>
                           <td className="px-6 py-4 text-gray-300">{reg.formData?.phone || reg.formData?.Phone || reg.formData?.['Phone Number'] || reg.user?.phone || "-"}</td>
                           <td className="px-6 py-4 text-gray-400">{reg.user?.college || "-"}</td>
