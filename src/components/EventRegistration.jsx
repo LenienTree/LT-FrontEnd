@@ -210,7 +210,9 @@ const EventRegistration = () => {
             const effectivePrice = eventData?.isIeeeEvent
                 ? (isMember ? (eventData?.ieeeMemberPrice ?? 0) : (eventData?.nonIeeeMemberPrice ?? 0))
                 : (eventData?.ticketPrice ?? 0);
-            const isPaidForUser = eventData?.isPaid && effectivePrice > 0;
+            // Derive paid status from the payment method + price, not the isPaid flag,
+            // which can be stale (see note near the render-time isPaid computation).
+            const isPaidForUser = (eventData?.paymentType && eventData.paymentType !== 'FREE') && effectivePrice > 0;
 
             if (isPaidForUser && eventData?.paymentType === 'RAZORPAY') {
                 // ── Razorpay Payment Flow ──
@@ -331,8 +333,12 @@ const EventRegistration = () => {
     const ticketPrice = eventData.isIeeeEvent
         ? (isMember ? (eventData.ieeeMemberPrice ?? 0) : (eventData.nonIeeeMemberPrice ?? 0))
         : (eventData.ticketPrice ?? 0);
-    const isPaid = eventData.isPaid && ticketPrice > 0;
     const paymentType = eventData.paymentType || 'FREE';
+    // Source of truth for "is this a paid event" is the payment method + price, not the
+    // isPaid flag alone: some events have isPaid out of sync with paymentType/ticketPrice
+    // (e.g. a MANUAL_UPI event with a price but isPaid=false), which used to hide the QR
+    // and let people register for free.
+    const isPaid = paymentType !== 'FREE' && ticketPrice > 0;
     const totalPrice = ticketPrice * (1 + teamMembers.length);
 
     const isFormValid = (() => {

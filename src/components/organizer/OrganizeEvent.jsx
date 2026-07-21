@@ -299,6 +299,23 @@ const OrganizeEvent = () => {
             }
         }
 
+        // Paid events must have a real price, otherwise `isPaid` and the payment
+        // method end up describing an event that never actually charges anyone.
+        if (eventData.eventAccess === 'Paid') {
+            if (eventData.isIeeeEvent) {
+                const ieeeMember = parseFloat(eventData.ieeeMemberPrice);
+                const nonMember = parseFloat(eventData.nonIeeeMemberPrice);
+                if ((!ieeeMember || ieeeMember <= 0) && (!nonMember || nonMember <= 0)) {
+                    errors.ieeeMemberPrice = 'Enter an IEEE member or non-member price greater than 0 for a Paid event.';
+                }
+            } else {
+                const price = parseFloat(eventData.ticketPrice);
+                if (!price || price <= 0) {
+                    errors.ticketPrice = 'Enter a ticket price greater than 0 for a Paid event.';
+                }
+            }
+        }
+
         // Description
         if (!eventData.eventDescription || eventData.eventDescription.trim().length < 10) {
             errors.eventDescription = 'Description is required and must be at least 10 characters.';
@@ -348,6 +365,14 @@ const OrganizeEvent = () => {
             if (isNaN(limit) || limit < 1) {
                 errors.participantLimit = 'Participant limit must be a positive integer.';
             }
+        }
+
+        // Access (Step 1) and payment method (Step 2) must agree, so the event can't
+        // be saved as paid-but-free or free-but-charging (the state that hid the QR).
+        if (eventData.eventAccess === 'Paid' && eventData.paymentType === 'FREE') {
+            errors.paymentType = 'This is a Paid event — choose a payment method (Manual UPI or Razorpay).';
+        } else if (eventData.eventAccess === 'Free' && eventData.paymentType !== 'FREE') {
+            errors.paymentType = 'This is a Free event — set the payment method to Free, or go back and mark the event as Paid.';
         }
 
         if (eventData.paymentType === 'MANUAL_UPI') {
@@ -896,7 +921,18 @@ const OrganizeEvent = () => {
                                                     name="eventAccess"
                                                     value={access}
                                                     checked={eventData.eventAccess === access}
-                                                    onChange={handleInputChange}
+                                                    onChange={(e) => {
+                                                        const nextAccess = e.target.value;
+                                                        setEventData(prev => ({
+                                                            ...prev,
+                                                            eventAccess: nextAccess,
+                                                            // Keep Step-1 access and Step-2 payment method in lock-step:
+                                                            // a Free event never has a paid method, so the saved event
+                                                            // can't end up "free but charging" or "paid but free".
+                                                            ...(nextAccess === 'Free' ? { paymentType: 'FREE' } : {}),
+                                                        }));
+                                                        setFieldErrors(prev => ({ ...prev, paymentType: undefined, ticketPrice: undefined }));
+                                                    }}
                                                     className="w-5 h-5 accent-[#00ff88]"
                                                 />
                                                 <span className="text-white">{access}</span>
@@ -1751,6 +1787,10 @@ const OrganizeEvent = () => {
                                         </label>
                                     ))}
                                 </div>
+
+                                {getFieldError('paymentType') && (
+                                    <p className="text-red-400 text-xs mb-4 -mt-2">{getFieldError('paymentType')}</p>
+                                )}
 
                                 {eventData.paymentType === 'MANUAL_UPI' && (
                                     <div className="grid lg:grid-cols-2 gap-6 border-2 border-[#1a4d4d] p-6 rounded-xl">
