@@ -35,17 +35,27 @@ export default function OrganizerDashboard() {
     "name", "email", "phone", "phone number", "college", "teammembers", "linkedinpostlink",
   ]);
 
-  // Extract custom field answers from a registration's formData, coercing every
-  // field type (checkbox booleans → Yes/No, numbers → string) into displayable text.
+  // Coerce any field value (checkbox booleans → Yes/No, numbers → string) to text.
+  const displayValue = (v) => (typeof v === "boolean" ? (v ? "Yes" : "No") : String(v));
+
+  const hasValue = (v) => v !== null && v !== undefined && v !== "" && typeof v !== "object";
+
+  // Extract custom field answers from the primary registrant's formData (skips the
+  // keys already shown as dedicated columns and the internal teamMembers array).
   const getExtraAnswers = (formData) => {
     if (!formData || typeof formData !== "object") return [];
     return Object.entries(formData)
-      .filter(([k, v]) =>
-        !RESERVED_FORMDATA_KEYS.has(String(k).toLowerCase()) &&
-        v !== null && v !== undefined && v !== "" &&
-        typeof v !== "object"
-      )
-      .map(([k, v]) => [k, typeof v === "boolean" ? (v ? "Yes" : "No") : String(v)]);
+      .filter(([k, v]) => !RESERVED_FORMDATA_KEYS.has(String(k).toLowerCase()) && hasValue(v))
+      .map(([k, v]) => [k, displayValue(v)]);
+  };
+
+  // Every answered field for a team member (name is rendered separately as the label),
+  // so phone/email/college and any custom fields collected per member are all visible.
+  const getMemberFields = (member) => {
+    if (!member || typeof member !== "object") return [];
+    return Object.entries(member)
+      .filter(([k, v]) => String(k).toLowerCase() !== "name" && hasValue(v))
+      .map(([k, v]) => [k, displayValue(v)]);
   };
 
   useEffect(() => {
@@ -264,6 +274,31 @@ export default function OrganizerDashboard() {
                                     <span className="text-gray-500 capitalize">{k}:</span>
                                     <span className="text-gray-300">{v}</span>
                                   </span>
+                                ))}
+                              </div>
+                            )}
+                            {Array.isArray(reg.formData?.teamMembers) && reg.formData.teamMembers.length > 0 && (
+                              <div className="mt-2 space-y-1.5 border-l-2 border-white/10 pl-2.5">
+                                {reg.formData.teamMembers.map((m, mi) => (
+                                  <div key={mi}>
+                                    <p className="text-[11px] text-gray-400 font-medium">
+                                      Member {mi + 1}: <span className="text-gray-300">{m?.name || "Unnamed"}</span>
+                                    </p>
+                                    {getMemberFields(m).length > 0 && (
+                                      <div className="mt-0.5 flex flex-wrap gap-1">
+                                        {getMemberFields(m).map(([k, v]) => (
+                                          <span
+                                            key={k}
+                                            className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 font-normal"
+                                            title={`${k}: ${v}`}
+                                          >
+                                            <span className="text-gray-500 capitalize">{k}:</span>
+                                            <span className="text-gray-300">{v}</span>
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
                                 ))}
                               </div>
                             )}

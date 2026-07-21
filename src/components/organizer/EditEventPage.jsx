@@ -384,6 +384,25 @@ const EditEventPage = () => {
     setSuccess('');
     setFieldErrors({});
     try {
+      // For a paid Manual-UPI event the QR code is what registrants scan to pay —
+      // block the save until one is uploaded (matches the create-flow requirement).
+      if (paymentConfig.isPaid && paymentConfig.paymentType === 'MANUAL_UPI') {
+        if (!paymentConfig.upiId || !paymentConfig.upiId.trim()) {
+          setFieldErrors({ upiId: 'UPI ID is required for Manual UPI payments.' });
+          setError('Please enter your UPI ID before saving.');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          setSaving(false);
+          return;
+        }
+        if (!paymentConfig.upiQrCode) {
+          setFieldErrors({ upiQrCode: 'A UPI QR code is required for Manual UPI payments.' });
+          setError('Please upload a UPI QR code before saving.');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          setSaving(false);
+          return;
+        }
+      }
+
       const payload = {
         isPaid: paymentConfig.isPaid,
         paymentType: paymentConfig.isPaid ? paymentConfig.paymentType : 'FREE',
