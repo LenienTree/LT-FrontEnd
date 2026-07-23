@@ -578,6 +578,23 @@ export const events = {
    */
   markAttendance: (eventId, registrationId) =>
     put(`/api/events/${eventId}/registrations/${registrationId}/attend`, {}),
+
+  /**
+   * Set a registration's payment status (admin/organizer).
+   * @param {string} eventId
+   * @param {string} registrationId
+   * @param {'PAID'|'UNPAID'|'REFUNDED'} paymentStatus
+   */
+  setPaymentStatus: (eventId, registrationId, paymentStatus) =>
+    put(`/api/events/${eventId}/registrations/${registrationId}/payment-status`, { paymentStatus }),
+
+  /**
+   * Permanently delete a registration (admin/organizer).
+   * @param {string} eventId
+   * @param {string} registrationId
+   */
+  deleteRegistration: (eventId, registrationId) =>
+    del(`/api/events/${eventId}/registrations/${registrationId}`),
 };
 
 // ─── Bookmarks ────────────────────────────────────────────────────────────────
@@ -678,9 +695,18 @@ export const admin = {
   /** DELETE /api/admin/users/:id */
   deleteUser: (id) => del(`/api/admin/users/${id}`),
 
-  /** GET /api/admin/audit-logs */
-  getAuditLogs: (page = 1, limit = 20) =>
-    get(`/api/admin/audit-logs?page=${page}&limit=${limit}`),
+  /**
+   * GET /api/admin/audit-logs
+   * @param {{ page?, limit?, action?, entity?, userId?, search?, startDate?, endDate? }} params
+   */
+  getAuditLogs: (params = {}) => {
+    const { page = 1, limit = 20, ...rest } = params;
+    const q = new URLSearchParams({ page: String(page), limit: String(limit) });
+    for (const [k, v] of Object.entries(rest)) {
+      if (v != null && v !== "") q.set(k, v);
+    }
+    return get(`/api/admin/audit-logs?${q.toString()}`);
+  },
 
   /** GET /api/admin/analytics */
   getAnalytics: () => get("/api/admin/analytics"),

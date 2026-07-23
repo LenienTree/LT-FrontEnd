@@ -7,7 +7,7 @@ import {
   UserCheck, AlertTriangle, Pencil, Trash2, SlidersHorizontal,
   Upload, Plus, ArrowUp, ArrowDown, Image, Settings, Home, Link2,
   Linkedin, Github, Instagram, Twitter, Globe, Phone, GraduationCap,
-  Mail, Calendar, BookOpen, Heart, User, Check, X
+  Mail, Calendar, BookOpen, Heart, User, Check, X, ScrollText
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { admin, homepage as homepageApi } from '../../services/api';
@@ -18,6 +18,8 @@ import { fmtNum, fmtDate, fmtDateTime } from './AdminHelpers';
 import { Badge, RoleBadge } from './Badges';
 import StatCard from './StatCard';
 import SectionHeader from './SectionHeader';
+import AttendeesTab from './AttendeesTab';
+import ActivityLogsTab from './ActivityLogsTab';
 import Header from '../layout/Header';
 import ReferralManager from '../shared/ReferralManager';
 
@@ -569,9 +571,11 @@ const Admin = () => {
     { key: 'analytics', label: 'Admin Analytics', icon: TrendingUp },
     { key: 'events', label: 'Pending Events', icon: CalendarDays },
     { key: 'allEvents', label: 'All Events', icon: CalendarDays },
+    { key: 'attendees', label: 'Attendees', icon: Users },
     { key: 'organizer', label: 'Organizer Requests', icon: UserCheck },
     { key: 'recentUsers', label: 'Recent Users', icon: Users },
     { key: 'users', label: 'All Users', icon: SlidersHorizontal },
+    { key: 'activity', label: 'Activity Logs', icon: ScrollText },
     { key: 'referrals', label: 'Referrals', icon: Link2 },
     { key: 'homepage', label: 'Homepage Config', icon: Settings },
   ];
@@ -1090,6 +1094,16 @@ const Admin = () => {
               )}
             </div>
           )}
+          {/* ── ATTENDEES TAB ── */}
+          {activeTab === 'attendees' && (
+            <AttendeesTab showToast={showToast} />
+          )}
+
+          {/* ── ACTIVITY LOGS TAB ── */}
+          {activeTab === 'activity' && (
+            <ActivityLogsTab showToast={showToast} />
+          )}
+
           {/* ── ORGANIZER REQUESTS TAB ── */}
           {activeTab === 'organizer' && (
             <div>
