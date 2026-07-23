@@ -747,6 +747,33 @@ export const admin = {
   /** GET /api/admin/interest-users?interest=<label> */
   getInterestUsers: (interest) =>
     get(`/api/admin/interest-users?interest=${encodeURIComponent(interest)}`),
+
+  // ── Email Automation ──
+  email: {
+    /** GET /api/admin/email/templates */
+    listTemplates: () => get("/api/admin/email/templates"),
+    /** GET /api/admin/email/templates/:name */
+    getTemplate: (name) => get(`/api/admin/email/templates/${encodeURIComponent(name)}`),
+    /** PUT /api/admin/email/templates/:name — { subject?, bodyHtml?, enabled? } */
+    updateTemplate: (name, data) => put(`/api/admin/email/templates/${encodeURIComponent(name)}`, data),
+    /** POST /api/admin/email/templates/:name/reset */
+    resetTemplate: (name) => post(`/api/admin/email/templates/${encodeURIComponent(name)}/reset`, {}),
+    /** POST /api/admin/email/templates/:name/preview — { subject?, bodyHtml?, context? } → { subject, html } */
+    previewTemplate: (name, data) => post(`/api/admin/email/templates/${encodeURIComponent(name)}/preview`, data),
+    /** POST /api/admin/email/templates/:name/test — { to, subject?, bodyHtml? } */
+    testTemplate: (name, data) => post(`/api/admin/email/templates/${encodeURIComponent(name)}/test`, data),
+    /** GET /api/admin/email/recipient-count?mode=&eventId=&status=&interest= → { count } */
+    recipientCount: (params = {}) => {
+      const q = new URLSearchParams(
+        Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ""))
+      ).toString();
+      return get(`/api/admin/email/recipient-count${q ? `?${q}` : ""}`);
+    },
+    /** POST /api/admin/email/send — { mode, emails?, eventId?, status?, interest?, subject, html } */
+    sendCustom: (data) => post("/api/admin/email/send", data),
+    /** GET /api/admin/email/logs */
+    getLogs: (page = 1, limit = 20) => get(`/api/admin/email/logs?page=${page}&limit=${limit}`),
+  },
 };
 
 // ─── Public Homepage ───────────────────────────────────────────────────────────

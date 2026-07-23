@@ -20,6 +20,7 @@ import StatCard from './StatCard';
 import SectionHeader from './SectionHeader';
 import AttendeesTab from './AttendeesTab';
 import ActivityLogsTab from './ActivityLogsTab';
+import EmailAutomationTab from './EmailAutomationTab';
 import Header from '../layout/Header';
 import ReferralManager from '../shared/ReferralManager';
 
@@ -576,6 +577,7 @@ const Admin = () => {
     { key: 'recentUsers', label: 'Recent Users', icon: Users },
     { key: 'users', label: 'All Users', icon: SlidersHorizontal },
     { key: 'activity', label: 'Activity Logs', icon: ScrollText },
+    { key: 'email', label: 'Email Automation', icon: Mail },
     { key: 'referrals', label: 'Referrals', icon: Link2 },
     { key: 'homepage', label: 'Homepage Config', icon: Settings },
   ];
@@ -1102,6 +1104,11 @@ const Admin = () => {
           {/* ── ACTIVITY LOGS TAB ── */}
           {activeTab === 'activity' && (
             <ActivityLogsTab showToast={showToast} />
+          )}
+
+          {/* ── EMAIL AUTOMATION TAB ── */}
+          {activeTab === 'email' && (
+            <EmailAutomationTab showToast={showToast} adminEmail={authUser?.email} />
           )}
 
           {/* ── ORGANIZER REQUESTS TAB ── */}
