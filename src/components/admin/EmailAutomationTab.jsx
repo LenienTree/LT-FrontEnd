@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Mail, Send, Eye, Save, RotateCcw, Lock, Loader2, X, Pencil,
   RefreshCw, ChevronLeft, ChevronRight, Users, Tag, FileText, FlaskConical,
+  Search, Download, UserPlus, MailX,
 } from 'lucide-react';
 import { admin, events as eventsApi } from '../../services/api';
-import { fmtDateTime } from './AdminHelpers';
+import { fmtDateTime, downloadCsv } from './AdminHelpers';
 
 const CATEGORY_ORDER = ['Auth', 'Events', 'Gamification', 'Reports', 'Admin'];
 
@@ -515,6 +516,139 @@ const LogsView = ({ showToast }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Unsubscribed people
+// ─────────────────────────────────────────────────────────────────────────────
+const UnsubscribedView = ({ showToast }) => {
+  const [rows, setRows] = useState([]);
+  const [meta, setMeta] = useState(null);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const debounceRef = useRef(null);
+
+  const load = useCallback(async (p, s) => {
+    setLoading(true);
+    try {
+      const res = await admin.email.listUnsubscribes({ page: p, limit: 50, search: s || undefined });
+      setRows(res?.data || []);
+      setMeta(res?.meta || null);
+    } catch (e) {
+      showToast?.(e.message || 'Failed to load unsubscribes', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => load(page, search), 300);
+    return () => clearTimeout(debounceRef.current);
+  }, [page, search, load]);
+
+  const resub = async (email) => {
+    if (!window.confirm(`Resubscribe ${email}? They will start receiving emails again.`)) return;
+    setBusy(email);
+    try {
+      await admin.email.resubscribe(email);
+      showToast?.(`${email} resubscribed.`);
+      setRows((prev) => prev.filter((r) => r.email !== email));
+    } catch (e) {
+      showToast?.(e.message || 'Failed to resubscribe', 'error');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const res = await admin.email.listUnsubscribes({ page: 1, limit: 100000, search: search || undefined });
+      const data = res?.data || [];
+      downloadCsv(
+        `unsubscribed-${new Date().toISOString().slice(0, 10)}.csv`,
+        ['Email', 'Reason', 'Source', 'Date'],
+        data.map((r) => [r.email, r.reason || '', r.source || '', fmtDateTime(r.createdAt)]),
+      );
+      showToast?.(`Exported ${data.length}.`);
+    } catch (e) {
+      showToast?.(e.message || 'Export failed', 'error');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const totalPages = meta?.totalPages || 1;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            placeholder="Search email"
+            className="w-full bg-[#061818] border border-[#1a4d4d] rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00ff88]/50" />
+        </div>
+        <span className="text-gray-500 text-xs">{meta?.total ?? 0} unsubscribed</span>
+        <button onClick={exportCsv} disabled={exporting}
+          className="ml-auto flex items-center gap-1.5 border border-[#1a4d4d] hover:border-[#00ff88]/50 text-gray-300 hover:text-[#00ff88] text-sm px-3 py-2 rounded-xl disabled:opacity-50">
+          {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Export CSV
+        </button>
+      </div>
+
+      {loading && rows.length === 0 ? (
+        <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-[#00ff88] animate-spin" /></div>
+      ) : rows.length === 0 ? (
+        <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-12 text-center">
+          <MailX className="w-12 h-12 text-[#00ff88] mx-auto mb-3 opacity-50" />
+          <p className="text-gray-400">No one has unsubscribed{search ? ' matching that search' : ''}.</p>
+        </div>
+      ) : (
+        <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-400 border-b border-[#1a4d4d]">
+                  <th className="px-4 py-3 font-medium">Email</th>
+                  <th className="px-4 py-3 font-medium">Source</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">Date</th>
+                  <th className="px-4 py-3 font-medium text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.email} className="border-b border-[#1a4d4d]/50 hover:bg-[#061818]/40">
+                    <td className="px-4 py-3 text-white break-all">{r.email}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">{r.source || '—'}</td>
+                    <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{fmtDateTime(r.createdAt)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => resub(r.email)} disabled={busy === r.email}
+                        className="inline-flex items-center gap-1.5 text-xs border border-[#1a4d4d] hover:border-[#00ff88]/50 text-gray-300 hover:text-[#00ff88] rounded-lg px-2.5 py-1 disabled:opacity-50">
+                        {busy === r.email ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />} Resubscribe
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex items-center justify-between px-4 py-3 border-t border-[#1a4d4d]">
+            <span className="text-gray-500 text-xs">Page {meta?.page || page} of {totalPages}</span>
+            <div className="flex gap-2">
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={(meta?.page || page) <= 1}
+                className="p-1.5 rounded-lg border border-[#1a4d4d] text-gray-400 hover:text-[#00ff88] disabled:opacity-40"><ChevronLeft className="w-4 h-4" /></button>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={(meta?.page || page) >= totalPages}
+                className="p-1.5 rounded-lg border border-[#1a4d4d] text-gray-400 hover:text-[#00ff88] disabled:opacity-40"><ChevronRight className="w-4 h-4" /></button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Tab shell
 // ─────────────────────────────────────────────────────────────────────────────
 const EmailAutomationTab = ({ showToast, adminEmail }) => {
@@ -522,6 +656,7 @@ const EmailAutomationTab = ({ showToast, adminEmail }) => {
   const tabs = [
     { id: 'templates', label: 'Templates', icon: FileText },
     { id: 'compose', label: 'Compose', icon: Send },
+    { id: 'unsubscribed', label: 'Unsubscribed', icon: MailX },
     { id: 'logs', label: 'Logs', icon: Mail },
   ];
   return (
@@ -539,6 +674,7 @@ const EmailAutomationTab = ({ showToast, adminEmail }) => {
       </div>
       {view === 'templates' && <TemplatesView showToast={showToast} adminEmail={adminEmail} />}
       {view === 'compose' && <ComposeView showToast={showToast} />}
+      {view === 'unsubscribed' && <UnsubscribedView showToast={showToast} />}
       {view === 'logs' && <LogsView showToast={showToast} />}
     </div>
   );

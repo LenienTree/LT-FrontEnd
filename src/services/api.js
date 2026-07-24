@@ -773,7 +773,27 @@ export const admin = {
     sendCustom: (data) => post("/api/admin/email/send", data),
     /** GET /api/admin/email/logs */
     getLogs: (page = 1, limit = 20) => get(`/api/admin/email/logs?page=${page}&limit=${limit}`),
+    /** GET /api/admin/email/unsubscribes?page=&limit=&search= */
+    listUnsubscribes: (params = {}) => {
+      const q = new URLSearchParams(
+        Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ""))
+      ).toString();
+      return get(`/api/admin/email/unsubscribes${q ? `?${q}` : ""}`);
+    },
+    /** POST /api/admin/email/resubscribe — { email } */
+    resubscribe: (email) => post("/api/admin/email/resubscribe", { email }),
   },
+};
+
+// ─── Public email preferences (unsubscribe links) ───────────────────────────────
+
+export const emailPrefs = {
+  /** POST /api/email/unsubscribe — { token, reason? } */
+  unsubscribe: (token, reason) => post("/api/email/unsubscribe", { token, reason }),
+  /** POST /api/email/resubscribe — { token } */
+  resubscribe: (token) => post("/api/email/resubscribe", { token }),
+  /** GET /api/email/unsubscribe-status?token= → { email, unsubscribed } */
+  status: (token) => get(`/api/email/unsubscribe-status?token=${encodeURIComponent(token)}`),
 };
 
 // ─── Public Homepage ───────────────────────────────────────────────────────────
