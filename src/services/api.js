@@ -711,6 +711,17 @@ export const admin = {
   /** GET /api/admin/analytics */
   getAnalytics: () => get("/api/admin/analytics"),
 
+  /** GET /api/admin/lead-analytics — funnel, internship demand, colleges, referrals, segments */
+  getLeadAnalytics: () => get("/api/admin/lead-analytics"),
+
+  /** GET /api/admin/leads/internship?domain=&college= — exportable internship lead list */
+  getInternshipLeads: (params = {}) => {
+    const q = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ""))
+    ).toString();
+    return get(`/api/admin/leads/internship${q ? `?${q}` : ""}`);
+  },
+
   /** GET /api/admin/organizer-requests — only pending (isOrganizer=false) */
   getOrganizerRequests: () => get("/api/admin/organizer-requests"),
 

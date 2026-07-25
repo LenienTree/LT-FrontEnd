@@ -7,7 +7,7 @@ import {
   UserCheck, AlertTriangle, Pencil, Trash2, SlidersHorizontal,
   Upload, Plus, ArrowUp, ArrowDown, Image, Settings, Home, Link2,
   Linkedin, Github, Instagram, Twitter, Globe, Phone, GraduationCap,
-  Mail, Calendar, BookOpen, Heart, User, Check, X, ScrollText
+  Mail, Calendar, BookOpen, Heart, User, Check, X, ScrollText, Target
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { admin, homepage as homepageApi } from '../../services/api';
@@ -21,6 +21,7 @@ import SectionHeader from './SectionHeader';
 import AttendeesTab from './AttendeesTab';
 import ActivityLogsTab from './ActivityLogsTab';
 import EmailAutomationTab from './EmailAutomationTab';
+import LeadAnalyticsTab from './LeadAnalyticsTab';
 import Header from '../layout/Header';
 import ReferralManager from '../shared/ReferralManager';
 
@@ -570,6 +571,7 @@ const Admin = () => {
   const navItems = [
     { key: 'dashboard', label: 'Dashboard', icon: BarChart2 },
     { key: 'analytics', label: 'Admin Analytics', icon: TrendingUp },
+    { key: 'leads', label: 'Lead Analytics', icon: Target },
     { key: 'events', label: 'Pending Events', icon: CalendarDays },
     { key: 'allEvents', label: 'All Events', icon: CalendarDays },
     { key: 'attendees', label: 'Attendees', icon: Users },
@@ -1828,6 +1830,11 @@ const Admin = () => {
           )}
 
           {/* ── ANALYTICS TAB ── */}
+          {/* ── LEAD ANALYTICS TAB ── */}
+          {activeTab === 'leads' && (
+            <LeadAnalyticsTab showToast={showToast} />
+          )}
+
           {activeTab === 'analytics' && (
             <div>
               <div className='h-15'></div>
