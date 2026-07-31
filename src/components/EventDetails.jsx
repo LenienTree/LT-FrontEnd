@@ -336,12 +336,24 @@ const EventDetails = () => {
                             )}
 
                             {isRegistered ? (
-                                <div className={`w-full font-bold text-lg py-4 px-6 rounded-xl text-center border-2 ${
-                                    eventData.isPremium
-                                        ? "bg-[#181105] border-amber-400 text-amber-400"
-                                        : "bg-[#0d2f2f] border-2 border-[#00ff88] text-[#00ff88]"
-                                }`}>
-                                    ✓ Registered — Status: {registrationStatus?.status || 'PENDING'}
+                                <div className="space-y-3">
+                                    <div className={`w-full font-bold text-lg py-4 px-6 rounded-xl text-center border-2 ${
+                                        eventData.isPremium
+                                            ? "bg-[#181105] border-amber-400 text-amber-400"
+                                            : "bg-[#0d2f2f] border-2 border-[#00ff88] text-[#00ff88]"
+                                    }`}>
+                                        ✓ Registered — Status: {registrationStatus?.status || 'PENDING'}
+                                    </div>
+                                    {(eventData.id === 'da24b455-b896-4711-b249-367b02a4385b' || eventId === 'da24b455-b896-4711-b249-367b02a4385b') && (
+                                        <a
+                                            href="https://chat.whatsapp.com/GPxZW2ZSx5s7iE8QzynHxM?s=sw&p=a&ilr=0&amv=0"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-full font-bold text-[#0c2222] bg-[#25D366] hover:bg-[#20ba5a] py-3.5 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-base"
+                                        >
+                                            <span className="text-xl">💬</span> Join Official WhatsApp Group
+                                        </a>
+                                    )}
                                 </div>
                             ) : (
                                 <button

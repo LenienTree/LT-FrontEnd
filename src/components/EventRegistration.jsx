@@ -394,9 +394,30 @@ const EventRegistration = () => {
     if (success) {
         return (
             <div className="min-h-screen bg-[#0a1f1f] flex flex-col items-center justify-center text-center p-4">
-                <CheckCircle2 className="w-20 h-20 text-[#00ff88] mb-6" />
+                <CheckCircle2 className="w-20 h-20 text-[#00ff88] mb-6 animate-bounce" />
                 <h1 className="text-3xl text-white font-bold mb-4">Registration Complete!</h1>
                 <p className="text-gray-400 mb-8">{success}</p>
+
+                {(eventId === 'da24b455-b896-4711-b249-367b02a4385b' || eventData?.id === 'da24b455-b896-4711-b249-367b02a4385b') && (
+                    <div className="bg-[#0d2f2f] border-2 border-[#25D366] rounded-3xl p-6 sm:p-8 mb-8 max-w-md w-full shadow-2xl relative overflow-hidden">
+                        <div className="w-12 h-12 rounded-full bg-[#25D366]/20 border border-[#25D366] flex items-center justify-center text-[#25D366] text-2xl mx-auto mb-4">
+                            💬
+                        </div>
+                        <h3 className="text-white font-bold text-xl mb-2">Join Official WhatsApp Group</h3>
+                        <p className="text-gray-300 text-sm mb-6 leading-relaxed">
+                            Join the official WhatsApp group now for live updates, schedule details, and session links.
+                        </p>
+                        <a
+                            href="https://chat.whatsapp.com/GPxZW2ZSx5s7iE8QzynHxM?s=sw&p=a&ilr=0&amv=0"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba5a] text-black font-extrabold text-base py-3.5 px-6 rounded-xl transition-all duration-300 shadow-lg hover:scale-105"
+                        >
+                            Join WhatsApp Group
+                        </a>
+                    </div>
+                )}
+
                 <p className="text-gray-500 text-sm">Redirecting you back to the event page...</p>
             </div>
         );
@@ -425,6 +446,30 @@ const EventRegistration = () => {
                     <p className="text-gray-400 mb-8 relative z-10">
                         Complete the form below to secure your spot.
                     </p>
+
+                    {(eventId === 'da24b455-b896-4711-b249-367b02a4385b' || eventData?.id === 'da24b455-b896-4711-b249-367b02a4385b') && (
+                        <div className="bg-gradient-to-r from-[#0a1f1f] to-[#0d2f2f] border-2 border-[#25D366] rounded-2xl p-5 mb-8 relative z-10 shadow-lg">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-[#25D366]/20 border border-[#25D366] flex items-center justify-center text-[#25D366] font-bold text-xl shrink-0">
+                                        💬
+                                    </div>
+                                    <div>
+                                        <h3 className="text-white font-bold text-base">Official WhatsApp Group</h3>
+                                        <p className="text-gray-300 text-xs mt-0.5">Click to join the official WhatsApp group for event updates & speaker session links.</p>
+                                    </div>
+                                </div>
+                                <a
+                                    href="https://chat.whatsapp.com/GPxZW2ZSx5s7iE8QzynHxM?s=sw&p=a&ilr=0&amv=0"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba5a] text-black font-extrabold text-sm py-2.5 px-5 rounded-xl transition-all duration-300 shadow-md hover:scale-105"
+                                >
+                                    Join WhatsApp Group
+                                </a>
+                            </div>
+                        </div>
+                    )}
 
                     {error && (
                         <div className="mb-6 px-4 py-4 bg-red-900/40 border-l-4 border-red-500 rounded-lg flex items-center gap-3">
