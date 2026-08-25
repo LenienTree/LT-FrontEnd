@@ -138,8 +138,7 @@ const AttendeesTab = ({ showToast }) => {
     setExporting(true);
     try {
       const res = await eventsApi.getParticipants(selectedEventId, {
-        page: 1,
-        limit: 100000,
+        all: true,
         status: statusFilter === 'ALL' ? undefined : statusFilter,
         search: search || undefined,
       });
