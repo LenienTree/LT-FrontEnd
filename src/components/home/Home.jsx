@@ -708,84 +708,96 @@ const Home = () => {
       <main className="relative bg-[#022F2E]">
         <Header />
 {heroSlides.length > 0 && (
-          <section className="container mt-20 mx-auto px-3 sm:px-6 pt-4 sm:pt-8 max-w-[1500px] bg-[#022F2E]">
-            <div className="relative w-full aspect-[2/1] sm:aspect-[3.4/1] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl group">
-              <div
-                ref={slidesContainerRef}
-                className="relative w-full h-full inset-0 rounded-2xl sm:rounded-3xl overflow-hidden"
-              >
-                {heroSlides.map((src, index) => (
-                  <div
-                    key={index}
-                    className="absolute w-full h-full inset-0 rounded-2xl sm:rounded-3xl overflow-hidden"
-                  >
-                    <img
-                      src={src}
-                      alt={`Slide ${index + 1}`}
-                      className="absolute inset-0 w-full h-full object-cover sm:object-contain rounded-2xl sm:rounded-3xl"
-                      draggable={false}
-                    />
-                  </div>
-                ))}
-              </div>
+  <section className="container mt-20 mx-auto px-3 sm:px-6 pt-4 sm:pt-8 max-w-[1500px] bg-[#022F2E]">
+    {/* Taller aspect ratio on mobile (16/9), scaling up to wide (3.4/1) on desktop */}
+    <div className="relative w-full aspect-[16/9] sm:aspect-[2.4/1] lg:aspect-[3.4/1] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl group bg-[#011F1E]">
+      <div
+        ref={slidesContainerRef}
+        className="relative w-full h-full inset-0 rounded-2xl sm:rounded-3xl overflow-hidden"
+      >
+        {heroSlides.map((src, index) => (
+          <div
+            key={index}
+            className="absolute w-full h-full inset-0 rounded-2xl sm:rounded-3xl overflow-hidden flex items-center justify-center"
+          >
+            {/* 1. Blurred Background Image (Fills container & eliminates empty edges) */}
+            <img
+              src={src}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-40 select-none"
+              draggable={false}
+            />
 
-              {/* Responsive Left Chevron */}
-              <button
-                onClick={prevHeroSlide}
-                className="absolute left-2 sm:left-4 md:left-6 top-1/2 transform -translate-y-1/2 z-30 bg-black/40 hover:bg-black/70 text-white p-1.5 sm:p-2 md:p-3 rounded-full backdrop-blur-sm transition-all duration-300 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 hover:scale-110 pointer-events-auto shadow-lg border border-white/10"
-                aria-label="Previous slide"
-              >
-                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" />
-              </button>
+            {/* 2. Main Banner Image (Guarantees 100% of the banner is visible on all screens) */}
+            <img
+              src={src}
+              alt={`Slide ${index + 1}`}
+              className="relative z-10 max-w-full max-h-full object-contain rounded-2xl sm:rounded-3xl"
+              draggable={false}
+            />
+          </div>
+        ))}
+      </div>
 
-              {/* Responsive Right Chevron */}
-              <button
-                onClick={nextHeroSlide}
-                className="absolute right-2 sm:right-4 md:right-6 top-1/2 transform -translate-y-1/2 z-30 bg-black/40 hover:bg-black/70 text-white p-1.5 sm:p-2 md:p-3 rounded-full backdrop-blur-sm transition-all duration-300 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 hover:scale-110 pointer-events-auto shadow-lg border border-white/10"
-                aria-label="Next slide"
-              >
-                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" />
-              </button>
+      {/* Responsive Left Chevron */}
+      <button
+        onClick={prevHeroSlide}
+        className="absolute left-2 sm:left-4 md:left-6 top-1/2 transform -translate-y-1/2 z-30 bg-black/40 hover:bg-black/70 text-white p-1.5 sm:p-2 md:p-3 rounded-full backdrop-blur-sm transition-all duration-300 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 hover:scale-110 pointer-events-auto shadow-lg border border-white/10"
+        aria-label="Previous slide"
+      >
+        <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" />
+      </button>
 
-              <div className="relative h-full flex flex-col items-center justify-center text-center px-4 sm:px-8 pointer-events-none">
-                <div className="mb-4 sm:mb-6">
-                  <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 mx-auto mb-2 sm:mb-4 relative"></div>
-                </div>
-              </div>
+      {/* Responsive Right Chevron */}
+      <button
+        onClick={nextHeroSlide}
+        className="absolute right-2 sm:right-4 md:right-6 top-1/2 transform -translate-y-1/2 z-30 bg-black/40 hover:bg-black/70 text-white p-1.5 sm:p-2 md:p-3 rounded-full backdrop-blur-sm transition-all duration-300 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 hover:scale-110 pointer-events-auto shadow-lg border border-white/10"
+        aria-label="Next slide"
+      >
+        <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" />
+      </button>
 
-              <div className="absolute bottom-3 sm:bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-2 sm:space-x-3 z-20 pointer-events-auto">
-                {heroSlides.map((_, index) => (
-                  <button
-                    key={index}
-                    className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 hover:scale-125 ${
-                      index === currentSlide
-                        ? "bg-emerald-400 shadow-lg shadow-emerald-400/50"
-                        : "bg-white/50 hover:bg-white/70"
-                    }`}
-                    onClick={() => goToSlide(index)}
-                    aria-label={`Go to slide ${index + 1}`}
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
+      <div className="relative h-full flex flex-col items-center justify-center text-center px-4 sm:px-8 pointer-events-none">
+        <div className="mb-4 sm:mb-6">
+          <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 mx-auto mb-2 sm:mb-4 relative"></div>
+        </div>
+      </div>
+
+      <div className="absolute bottom-3 sm:bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-2 sm:space-x-3 z-20 pointer-events-auto">
+        {heroSlides.map((_, index) => (
+          <button
+            key={index}
+            className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 hover:scale-125 ${
+              index === currentSlide
+                ? "bg-emerald-400 shadow-lg shadow-emerald-400/50"
+                : "bg-white/50 hover:bg-white/70"
+            }`}
+            onClick={() => goToSlide(index)}
+            aria-label={`Go to slide ${index + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  </section>
+)}
 
         <section
           ref={eventsRef}
-          className="container mt-10 sm:mt-10 md:mt-10 mx-auto px-3 sm:px-6 py-4 sm:py-12 md:py-12 bg-[#022F2E]"
+          className="container mt-12 sm:mt-20 mx-auto px-4 sm:px-6 py-8 sm:py-16 max-w-[1500px] bg-[#022F2E]"
         >
           {/* Section Header */}
-          <div className="mb-8 px-2 sm:px-3 text-center">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+          <div className="mb-6 sm:mb-10 px-2 text-center">
+            <h2 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
               Explore Dynamic <span className="text-[#64F422]">Blueprints</span>
             </h2>
-            <p className="text-gray-400 mt-2 text-sm max-w-lg mx-auto">
+            <p className="text-gray-400 mt-2 sm:mt-3 text-xs sm:text-sm md:text-base max-w-lg mx-auto leading-relaxed">
               Discover upcoming hackathons, ideathons, webinars, techfests and more.
             </p>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-2.5 mb-10 px-2">
+          {/* Filter Category Tabs */}
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-8 sm:mb-12 px-2">
             {[
               { id: "ALL",       label: "All"        },
               { id: "HACKATHON", label: "Hackathons" },
@@ -797,9 +809,9 @@ const Home = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveCategoryTab(tab.id)}
-                className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 border ${
+                className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 border ${
                   activeCategoryTab === tab.id
-                    ? "bg-[#64F422] border-[#64F422] text-slate-900 shadow-xl shadow-[#64F422]/20"
+                    ? "bg-[#64F422] border-[#64F422] text-slate-900 shadow-xl shadow-[#64F422]/20 scale-105"
                     : "bg-white/5 border-white/10 text-gray-300 hover:border-white/20 hover:bg-white/10"
                 }`}
               >
@@ -808,12 +820,13 @@ const Home = () => {
             ))}
           </div>
 
+          {/* Event Cards Grid */}
           {isLoadingEvents ? (
             // Render loading skeletons
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 min-h-[300px]">
+            <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 min-h-[300px]">
               {Array(4).fill(0).map((_, i) => (
-                <div key={i} className="p-2 animate-pulse">
-                  <div className="w-full h-[280px] sm:h-[400px] bg-slate-800/50 rounded-3xl border border-white/5"></div>
+                <div key={i} className="animate-pulse">
+                  <div className="w-full h-[320px] sm:h-[380px] bg-slate-800/50 rounded-3xl border border-white/5"></div>
                 </div>
               ))}
             </div>
@@ -833,20 +846,22 @@ const Home = () => {
                 });
 
                 return (
-                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 min-h-[300px]">
+                  <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 min-h-[300px]">
                     {filteredEvents.length > 0 ? (
                       filteredEvents.slice(0, 8).map((event) => {
                         const mappedEvent = mapDbEventToCard(event);
                         return (
-                          <Link key={event.id} to={`/event/${event.slug || event.id}`}>
+                          <Link key={event.id} to={`/event/${event.slug || event.id}`} className="block h-full">
                             <CollaborationEventCard event={mappedEvent} />
                           </Link>
                         );
                       })
                     ) : (
-                      <div className="col-span-full py-16 text-center text-white/50 bg-[#041a1a]/40 border border-[#143d3d] rounded-3xl p-8 flex flex-col items-center justify-center gap-3">
-                        <CalendarDays className="w-12 h-12 text-[#64F422]/60" />
-                        <p className="text-base font-bold text-white/80">{activeCategoryTab === "ALL" ? "No upcoming events yet." : "No upcoming events in this category."}</p>
+                      <div className="col-span-full py-12 sm:py-16 text-center text-white/50 bg-[#041a1a]/40 border border-[#143d3d] rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-center gap-3">
+                        <CalendarDays className="w-10 h-10 sm:w-12 sm:h-12 text-[#64F422]/60" />
+                        <p className="text-sm sm:text-base font-bold text-white/80">
+                          {activeCategoryTab === "ALL" ? "No upcoming events yet." : "No upcoming events in this category."}
+                        </p>
                         <p className="text-xs text-gray-400">Stay tuned! We are planning exciting events for you.</p>
                       </div>
                     )}
@@ -856,7 +871,8 @@ const Home = () => {
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mt-10 sm:mt-14 px-2">
             <Link
               to="/explore"
               className="w-full sm:w-60 text-center bg-[#64F422] text-slate-900 py-3.5 rounded-[12px] text-sm sm:text-base font-bold transition-all hover:scale-105 hover:shadow-lg hover:shadow-green-400/40"
