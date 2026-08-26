@@ -2,6 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 export default defineConfig({
     root: __dirname,
     // Use absolute asset URLs (/assets/...) so deep links like /e/<slug> load
@@ -10,7 +12,7 @@ export default defineConfig({
     // SPA fallback returns index.html — breaking module/MIME loading on shared
     // referral links. The app is served from the domain root, so '/' is correct.
     base: '/',
-    plugins: [react()],
+    plugins: [react(), cloudflare()],
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
