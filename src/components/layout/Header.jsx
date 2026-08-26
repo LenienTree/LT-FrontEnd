@@ -53,7 +53,7 @@ export default function Header() {
     ]
 
     return (
-        <header className="fixed top-4 left-0 right-0 z-50 px-4 sm:px-6 lg:px-10">
+        <header className="fixed top-1 left-0 right-0 z-50 px-4 sm:px-6 lg:px-10">
             {/* Unified floating pill navbar */}
             <div className="mx-auto max-w-7xl rounded-2xl bg-[#022F2E]/90 backdrop-blur-md border border-white/10 shadow-xl px-4 py-2.5">
                 <div className="flex items-center gap-3">

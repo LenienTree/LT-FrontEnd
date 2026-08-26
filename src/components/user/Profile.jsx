@@ -288,7 +288,7 @@ const Profile = () => {
         {/* Left Sidebar */}
         <div className="w-60 lg:mt-24 p-6 hidden lg:block">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/")}
             className="flex items-center gap-2 text-white mb-8 hover:text-[#00ff88] transition-colors duration-300"
           >
             <ArrowLeft className="w-5 h-5" />

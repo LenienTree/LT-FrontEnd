@@ -1079,7 +1079,7 @@ const OrganizeEvent = () => {
                                                         name="eventStartDate"
                                                         value={eventData.eventStartDate}
                                                         onChange={handleInputChange}
-                                                        className={`flex-1 bg-transparent border-2 ${getFieldError('eventStartDate') ? 'border-red-500' : 'border-[#1a4d4d]'} text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 min-w-0`}
+                                                        className={`flex-1 bg-transparent border-2 ${getFieldError('eventStartDate') ? 'border-red-500' : 'border-[#1a4d4d]'} text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 min-w-0 [color-scheme:dark]`}
                                                         required
                                                     />
                                                 </div>
@@ -1092,7 +1092,7 @@ const OrganizeEvent = () => {
                                                         name="eventEndDate"
                                                         value={eventData.eventEndDate}
                                                         onChange={handleInputChange}
-                                                        className={`flex-1 bg-transparent border-2 ${getFieldError('eventEndDate') ? 'border-red-500' : 'border-[#1a4d4d]'} text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 min-w-0`}
+                                                        className={`flex-1 bg-transparent border-2 ${getFieldError('eventEndDate') ? 'border-red-500' : 'border-[#1a4d4d]'} text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2 rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 min-w-0 [color-scheme:dark]`}
                                                         required
                                                     />
                                                 </div>
@@ -1117,7 +1117,7 @@ const OrganizeEvent = () => {
                                                     name="eventTime"
                                                     value={eventData.eventTime}
                                                     onChange={handleInputChange}
-                                                    className={`flex-1 bg-transparent border-2 ${getFieldError('eventTime') ? 'border-red-500' : 'border-[#1a4d4d]'} text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2  rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300`}
+                                                    className={`flex-1 bg-transparent border-2 ${getFieldError('eventTime') ? 'border-red-500' : 'border-[#1a4d4d]'} text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2  rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 [color-scheme:dark] `}
                                                     required
                                                 />
                                             </div>
@@ -1138,7 +1138,7 @@ const OrganizeEvent = () => {
                                                     name="registrationDeadline"
                                                     value={eventData.registrationDeadline}
                                                     onChange={handleInputChange}
-                                                    className={`flex-1 bg-transparent border-2 ${getFieldError('registrationDeadline') ? 'border-red-500' : 'border-[#1a4d4d]'} text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2  rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300`}
+                                                    className={`flex-1 bg-transparent border-2 ${getFieldError('registrationDeadline') ? 'border-red-500' : 'border-[#1a4d4d]'} text-white placeholder-gray-500 lg:py-3 py-2 lg:px-4 px-2  rounded-lg focus:outline-none focus:border-[#00ff88] transition-all duration-300 [color-scheme:dark] `}
                                                     required
                                                 />
                                             </div>

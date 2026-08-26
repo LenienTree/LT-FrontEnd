@@ -137,26 +137,11 @@ const AttendeesTab = ({ showToast }) => {
     if (!selectedEventId) return;
     setExporting(true);
     try {
-      const res = await eventsApi.getParticipants(selectedEventId, {
-        all: true,
+      const res = await eventsApi.getParticipantsExport(selectedEventId, {
         status: statusFilter === 'ALL' ? undefined : statusFilter,
         search: search || undefined,
-      };
-
-      const firstPage = await eventsApi.getParticipants(selectedEventId, {
-        ...baseParams,
-        page: 1,
       });
-      const regs = [...(firstPage?.data || [])];
-      const totalPages = firstPage?.meta?.totalPages || 1;
-
-      for (let currentPage = 2; currentPage <= totalPages; currentPage += 1) {
-        const pageRes = await eventsApi.getParticipants(selectedEventId, {
-          ...baseParams,
-          page: currentPage,
-        });
-        regs.push(...(pageRes?.data || []));
-      }
+      const regs = res?.data || [];
 
       const customKeys = new Set();
       regs.forEach((r) => getExtraAnswers(r.formData).forEach(([k]) => customKeys.add(k)));

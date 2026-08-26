@@ -8,7 +8,7 @@ import Header from "../layout/Header";
 import Footer from "../layout/Footer";
 import { events as eventsApi, homepage as homepageApi } from "../../services/api";
 import { Link } from "react-router-dom";
-import { CalendarDays, X } from "lucide-react";
+import { CalendarDays, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { Helmet } from "react-helmet-async";
 
@@ -307,11 +307,6 @@ const Home = () => {
     fetchHomepageConfig();
   }, []);
 
-  useEffect(() => {
-    console.log("allDbEvents", allDbEvents);
-    console.log("isLoadingEvents", isLoadingEvents);
-  }, [allDbEvents, isLoadingEvents]);
-
   const slidesContainerRef = useRef(null);
   const ctaTextRef = useRef(null);
   const ctaSubtitleRef = useRef(null);
@@ -350,14 +345,16 @@ const Home = () => {
     return new Date(year, month, 1).getDay();
   };
 
-  if (marqueeRef.current) {
-    gsap.to(marqueeRef.current, {
+  useEffect(() => {
+    if (!marqueeRef.current) return;
+    const tween = gsap.to(marqueeRef.current, {
       x: "-50%",
       duration: 30,
       ease: "none",
       repeat: -1,
     });
-  }
+    return () => tween.kill();
+  }, []);
 
   const logos = [
     "/muLearn.png",
@@ -512,36 +509,69 @@ const Home = () => {
   };
   // --- END: Calendar data and functions ---
 
+
+// 1. Setup initial slide positions ONCE when images load
   useEffect(() => {
-    if (!slidesContainerRef.current) return;
-    const slides = slidesContainerRef.current.children;
-    const slideCount = slides.length;
-    if (slideCount === 0) return;
-
-    gsap.set(slides, { autoAlpha: 0, scale: 1.05 });
-    gsap.set(slides[0], { autoAlpha: 1, scale: 1 });
-
-    const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.5 });
-    for (let i = 0; i < slideCount; i++) {
-      const nextIndex = (i + 1) % slideCount;
-      tl.to(
-        slides[i],
-        { autoAlpha: 0, scale: 1.05, duration: 1.2, ease: "power2.inOut" },
-        "+=3.3"
-      )
-        .to(
-          slides[nextIndex],
-          { autoAlpha: 1, scale: 1, duration: 1.2, ease: "power2.inOut" },
-          "-=1.1"
-        )
-        .addLabel(`slide${nextIndex}`)
-        .call(() => setCurrentSlide(nextIndex), null, ">-1.1");
-    }
-    timelineRef.current = tl;
-    return () => tl.kill();
+    if (!slidesContainerRef.current || heroSlides.length === 0) return;
+    const slides = Array.from(slidesContainerRef.current.children);
+    
+    // Move all slides off-screen to the right by default
+    gsap.set(slides, { xPercent: 100, autoAlpha: 1 });
+    // Bring the very first slide into the center
+    gsap.set(slides[0], { xPercent: 0 });
   }, [heroSlides]);
 
+  // 2. Unified Navigation Functions
+  const goToSlide = (index) => {
+    if (index === currentSlide || !slidesContainerRef.current) return;
+    const slides = Array.from(slidesContainerRef.current.children);
+
+    // Determine direction (so jumping from last to first flows forward)
+    const movingForward = 
+      index > currentSlide || 
+      (currentSlide === heroSlides.length - 1 && index === 0);
+    
+    // Animate current slide out
+    gsap.to(slides[currentSlide], { 
+      xPercent: movingForward ? -100 : 100, 
+      duration: 0.8, 
+      ease: "power2.inOut" 
+    });
+    
+    // Animate new slide in
+    gsap.fromTo(slides[index], 
+      { xPercent: movingForward ? 100 : -100 }, 
+      { xPercent: 0, duration: 0.8, ease: "power2.inOut" }
+    );
+
+    setCurrentSlide(index);
+  };
+
+  const prevHeroSlide = () => {
+    if (heroSlides.length <= 1) return;
+    goToSlide(currentSlide === 0 ? heroSlides.length - 1 : currentSlide - 1);
+  };
+
+  const nextHeroSlide = () => {
+    if (heroSlides.length <= 1) return;
+    goToSlide((currentSlide + 1) % heroSlides.length);
+  };
+
+  // 3. New Autoplay Effect
+  useEffect(() => {
+    if (heroSlides.length <= 1) return;
+    
+    // Automatically slide every 4 seconds
+    const timer = setInterval(() => {
+      nextHeroSlide();
+    }, 4000); 
+
+    // Clear the timer if the user manually interacts or when unmounting
+    return () => clearInterval(timer);
+  }, [currentSlide, heroSlides.length]);
+
   const words = ["Techfests", "Ideathon", "Hackathon", "Webinar", "Workshops"];
+
 
   // Rotating words effect
   useEffect(() => {
@@ -625,27 +655,7 @@ const Home = () => {
     };
   }, []);
 
-  const goToSlide = (index) => {
-    if (!timelineRef.current || !slidesContainerRef.current) return;
-    const slides = slidesContainerRef.current.children;
-    const slideCount = slides.length;
-    timelineRef.current.pause();
 
-    const targetTime = index === 0 ? 0 : timelineRef.current.labels[`slide${index}`];
-
-    for (let i = 0; i < slideCount; i++) {
-      gsap.to(slides[i], {
-        autoAlpha: i === index ? 1 : 0,
-        scale: i === index ? 1 : 1.05,
-        duration: 0.6,
-        ease: "power2.inOut",
-        onComplete: i === index ? () => {
-          setCurrentSlide(index);
-          if (targetTime !== undefined) timelineRef.current.play(targetTime);
-        } : undefined,
-      });
-    }
-  };
 
   useEffect(() => {
     if (!isLoadingEvents && !isLoadingSections) {
@@ -697,9 +707,9 @@ const Home = () => {
 
       <main className="relative bg-[#022F2E]">
         <Header />
-        {heroSlides.length > 0 && (
-          <section className="container mt-20 mx-auto px-3 sm:px-6 pt-4 sm:pt-8 max-w-[1360px] bg-[#022F2E]">
-            <div className="relative w-full aspect-[2/1] sm:aspect-[3.4/1] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
+{heroSlides.length > 0 && (
+          <section className="container mt-20 mx-auto px-3 sm:px-6 pt-4 sm:pt-8 max-w-[1500px] bg-[#022F2E]">
+            <div className="relative w-full aspect-[2/1] sm:aspect-[3.4/1] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl group">
               <div
                 ref={slidesContainerRef}
                 className="relative w-full h-full inset-0 rounded-2xl sm:rounded-3xl overflow-hidden"
@@ -718,19 +728,40 @@ const Home = () => {
                   </div>
                 ))}
               </div>
+
+              {/* Responsive Left Chevron */}
+              <button
+                onClick={prevHeroSlide}
+                className="absolute left-2 sm:left-4 md:left-6 top-1/2 transform -translate-y-1/2 z-30 bg-black/40 hover:bg-black/70 text-white p-1.5 sm:p-2 md:p-3 rounded-full backdrop-blur-sm transition-all duration-300 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 hover:scale-110 pointer-events-auto shadow-lg border border-white/10"
+                aria-label="Previous slide"
+              >
+                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" />
+              </button>
+
+              {/* Responsive Right Chevron */}
+              <button
+                onClick={nextHeroSlide}
+                className="absolute right-2 sm:right-4 md:right-6 top-1/2 transform -translate-y-1/2 z-30 bg-black/40 hover:bg-black/70 text-white p-1.5 sm:p-2 md:p-3 rounded-full backdrop-blur-sm transition-all duration-300 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 hover:scale-110 pointer-events-auto shadow-lg border border-white/10"
+                aria-label="Next slide"
+              >
+                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" />
+              </button>
+
               <div className="relative h-full flex flex-col items-center justify-center text-center px-4 sm:px-8 pointer-events-none">
                 <div className="mb-4 sm:mb-6">
                   <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 mx-auto mb-2 sm:mb-4 relative"></div>
                 </div>
               </div>
+
               <div className="absolute bottom-3 sm:bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-2 sm:space-x-3 z-20 pointer-events-auto">
                 {heroSlides.map((_, index) => (
                   <button
                     key={index}
-                    className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 hover:scale-125 ${index === currentSlide
-                      ? "bg-emerald-400 shadow-lg shadow-emerald-400/50"
-                      : "bg-white/50 hover:bg-white/70"
-                      }`}
+                    className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 hover:scale-125 ${
+                      index === currentSlide
+                        ? "bg-emerald-400 shadow-lg shadow-emerald-400/50"
+                        : "bg-white/50 hover:bg-white/70"
+                    }`}
                     onClick={() => goToSlide(index)}
                     aria-label={`Go to slide ${index + 1}`}
                   />
@@ -742,7 +773,7 @@ const Home = () => {
 
         <section
           ref={eventsRef}
-          className="container mt-10 sm:mt-16 md:mt-24 mx-auto px-3 sm:px-6 py-4 sm:py-12 md:py-12 bg-[#022F2E]"
+          className="container mt-10 sm:mt-10 md:mt-10 mx-auto px-3 sm:px-6 py-4 sm:py-12 md:py-12 bg-[#022F2E]"
         >
           {/* Section Header */}
           <div className="mb-8 px-2 sm:px-3 text-center">
@@ -754,9 +785,6 @@ const Home = () => {
             </p>
           </div>
 
-          {/* Category Filter Tabs — all categories are showcased inline.
-               Hackathons & Ideathons appear once approved; every other category
-               appears only when an admin enables "Show on Landing" for that event. */}
           <div className="flex flex-wrap justify-center gap-2.5 mb-10 px-2">
             {[
               { id: "ALL",       label: "All"        },
@@ -793,21 +821,13 @@ const Home = () => {
             <div>
               {(() => {
                 const now = Date.now();
-                // Hackathons & Ideathons appear on the landing page once approved.
-                // Every other category is gated behind the admin "Show on Landing" toggle.
                 const approvalCategories = ["HACKATHON", "IDEATHON"];
-                // An event belongs on the landing page if it's an approval category
-                // (visible once approved) or an admin flagged it via "Show on Landing".
                 const isLandingEligible = (event) =>
                   approvalCategories.includes((event.category || "").toUpperCase()) ||
                   event.showOnLanding === true;
                 const filteredEvents = allDbEvents.filter((event) => {
-                  // Landing page only lists events that haven't fully ended yet —
-                  // they stay visible through the event itself (even once
-                  // registration closes) and drop off only after endDate passes.
                   const notEnded = !event.endDate || new Date(event.endDate).getTime() >= now;
                   if (!notEnded || !isLandingEligible(event)) return false;
-                  // "All" shows every landing-eligible event; the rest filter by category.
                   if (activeCategoryTab === "ALL") return true;
                   return event.category?.toUpperCase() === activeCategoryTab;
                 });
@@ -844,7 +864,7 @@ const Home = () => {
               Explore All Blueprints
             </Link>
             <Link
-              to="/calender"
+              to="/calendar"
               className="w-full sm:w-60 text-center bg-white/5 border border-white/10 text-white py-3.5 rounded-[12px] text-sm sm:text-base font-bold transition-all hover:bg-white/10 hover:border-white/20"
             >
               View Calendar
@@ -854,9 +874,12 @@ const Home = () => {
 
 
 
+
+        
+ {/* Community Section */}
         <section
-          ref={ctaRef}
-          className="w-full relative py-20 sm:py-32 md:py-40 lg:py-48 bg-[#042029] text-center overflow-hidden"
+          ref={communityRef}
+          className="py-12 sm:py-32 relative bg-[#042029] w-full overflow-hidden flex flex-col items-center"
           style={{
             backgroundImage: `url("/vectorhome2.png")`,
             backgroundSize: "cover",
@@ -864,175 +887,147 @@ const Home = () => {
           }}
         >
           {/* Glowing Top Light Strip */}
-          <div className="absolute top-0 inset-x-0 h-[2px] sm:h-[4px] bg-[#9AE600] shadow-[0_0_8px_#9AE600,0_0_15px_rgba(154,230,0,0.8)] z-10" />
+          <div className="absolute top-0  w-[45vw] sm:w-[45vw] md:w-[66vw] lg:w-[47vw] h-[1vw] md:h-[10px] bg-[#ffffffcc] rounded-full blur-[3px] md:blur-[8px]" />
 
           {/* Spotlight Lighting UI */}
-          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-            {/* Volumetric glow coming down from the entire top light strip */}
-            <div
-              className="absolute top-0 inset-x-0 h-[300px] opacity-30 blur-[40px]"
+          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex justify-center">
+            {/* Central Volumetric Spotlight */}
+            <div 
+              className="absolute top-0 w-[150vw] sm:w-[150vw] md:w-[217vw] lg:w-[150vw] h-[600px] sm:h-[800px] opacity-40 blur-[30px]"
               style={{
-                background: 'linear-gradient(to bottom, #9AE600 0%, rgba(154,230,0,0.2) 40%, transparent 100%)',
+                background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.63) 0%, rgba(200,230,255,0.1) 60%, transparent 100%)',
+                clipPath: 'polygon(35% 0%, 65% 0%, 90% 100%, 0% 135%)'
               }}
             />
 
-            {/* Ambient neon-green glow at the top center */}
+            {/* Intense ambient glow right at the top center */}
             <div
-              className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[350px] opacity-40 blur-[100px]"
+              className="absolute top-0 w-[200px] sm:w-[300px] md:w-[700px] lg:w-[940px]
+              h-[50px] sm:h-[100px] md:h-[200px]
+              opacity-80 sm:opacity-70 md:opacity-60
+              blur-[30px] sm:blur-[60px] md:blur-[70px] rounded-full"
               style={{
-                background: 'radial-gradient(ellipse at top, #9AE600 0%, transparent 80%)',
+                background: 'radial-gradient(ellipse at top, rgba(255,255,255,0.9) 0%, transparent 100%)',
               }}
             />
-
-            {/* Volumetric Spotlight 1 (Left-ish, pointing right-down) */}
-            <div 
-              className="absolute top-0 left-[30%] sm:left-[35%] -translate-x-1/2 w-[250px] sm:w-[350px] md:w-[450px] h-[350px] sm:h-[500px] md:h-[600px] opacity-40 blur-[40px] sm:blur-[60px] md:blur-[80px]"
-              style={{
-                transformOrigin: 'top center',
-                transform: 'rotate(12deg)',
-              }}
-            >
-              <div 
-                className="w-full h-full bg-gradient-to-b from-white via-[#9AE600]/10 via-white/5 to-transparent"
-                style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }}
-              />
-            </div>
-
-            {/* Volumetric Spotlight 2 (Right-ish, pointing left-down) */}
-            <div 
-              className="absolute top-0 left-[70%] sm:left-[65%] -translate-x-1/2 w-[250px] sm:w-[350px] md:w-[450px] h-[350px] sm:h-[500px] md:h-[600px] opacity-40 blur-[40px] sm:blur-[60px] md:blur-[80px]"
-              style={{
-                transformOrigin: 'top center',
-                transform: 'rotate(-12deg)',
-              }}
-            >
-              <div 
-                className="w-full h-full bg-gradient-to-b from-white via-[#9AE600]/10 via-white/5 to-transparent"
-                style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }}
-              />
-            </div>
-
-            {/* Bright Source Flares on the top border strip */}
-            <div className="absolute top-0 left-[30%] sm:left-[35%] -translate-x-1/2 w-[60px] sm:w-[90px] h-[6px] sm:h-[8px] bg-white rounded-full blur-[2px] opacity-90" />
-            <div className="absolute top-0 left-[70%] sm:left-[65%] -translate-x-1/2 w-[60px] sm:w-[90px] h-[6px] sm:h-[8px] bg-white rounded-full blur-[2px] opacity-90" />
           </div>
 
-          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6">
-            <h2 ref={ctaTextRef} className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-4 mt-8 px-2 ">
+          {/* TEXT & BUTTON CONTAINER */}
+          {/* Fix: Removed md:left-[17rem] and added flex flex-col items-center text-center */}
+          <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 flex flex-col items-center text-center">
+            <h2 ref={ctaTextRef} className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-2 mt-8 text-white w-full">
               Your Gateway to
-              <div className="mt-4 sm:mt-6 h-24 sm:h-40 md:h-48 lg:h-56 xl:h-64 overflow-hidden relative">
-                <span className="rotating-words block text-6xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[12rem]  italic font-bold text-white/90">
+              {/* Fix: Added flex justify-center to keep the animated words centered */}
+              <div className="mt-4 sm:mt-6 h-24 sm:h-40 md:h-48 lg:h-56 xl:h-64 overflow-hidden relative flex justify-center w-full">
+                <span className="rotating-words block text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[12rem] italic font-bold text-white/90">
                   <span className="inline-block font-['Fitzgerald-Italic'] animate-scroll-up bg-gradient-to-b from-[#FFFFFF] to-[#999999] bg-clip-text text-transparent pb-2">
                     {words[currentWordIndex]}
                   </span>
                 </span>
               </div>
             </h2>
-            <p ref={ctaSubtitleRef} className="italic text-lg sm:text-xl md:text-2xl text-white/70 mb-8 sm:mb-12">
+
+            <p ref={ctaSubtitleRef} className="italic text-lg sm:text-xl md:text-2xl text-white/90 mb-4">
               & much more....
             </p>
+
+            {/* Fix: Restored the internal div lines and the 'x' for the divider */}
+            <div className="flex items-center justify-center gap-2 mb-8 w-full max-w-[300px] mx-auto opacity-70" />
+
             <button
               ref={ctaButtonRef}
-              className="inline-block bg-[#64F422] text-black font-bold min-w-[250px] sm:min-w-[300px] md:min-w-[350px] px-10 sm:px-12 md:px-16 py-4 sm:py-5 text-base sm:text-lg rounded-[20px] sm:rounded-[28px] transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-green-400/50"
+              className="inline-block bg-[#64F422] text-black font-bold min-w-[250px] sm:min-w-[300px] md:min-w-[350px] px-10 sm:px-12 md:px-16 py-4 sm:py-4 text-base sm:text-lg rounded-full transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-green-400/50 mb-16"
+              onClick={() => {
+                window.location.href = "/explore";
+              }}
+              
             >
               Know More
             </button>
           </div>
-        </section>
-        {/* Community Section */}
-        <section
-          ref={communityRef}
-          className="py-12 sm:py-32 relative bg-[#042029]"
-          style={{
-            backgroundImage: `url("/vectorhome2.png")`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        >
-          {/* Floating Elements */}
-          <div className="hidden lg:block absolute top-1/4 left-6 lg:left-24 w-40 sm:w-48 lg:w-80 transform -rotate-12 rounded-lg z-20">
 
-            <AnimatedBadge />
-            {/* <img src="/8.png" alt="Ticket" className="w-full" /> */}
-          </div>
-          <div className="hidden lg:block absolute bottom-80 right-12 lg:right-24 w-32 sm:w-40 lg:w-80 transform rotate-12 z-20">
-            <GrowthChart />
-            {/* <img src="/7.png" alt="Envelope" className="w-full" /> */}
-          </div>
-          <div className="hidden lg:block absolute bottom-1/4 left-12 lg:left-24 w-16 h-16 lg:w-24 lg:h-24 bg-yellow-500 transform rotate-45"></div>
-          <div className="hidden lg:block absolute top-12 lg:top-24 right-16 lg:right-32 w-16 h-16 lg:w-24 lg:h-24 bg-red-600 transform rotate-12"></div>
-          <div className="hidden lg:block absolute bottom-1/5 right-1/4 w-16 h-16 lg:w-24 lg:h-24 bg-blue-500 transform -rotate-45"></div>
-
-          <div className="flex flex-col items-center gap-6 sm:gap-8">
-            <div className="w-full sm:w-4/5 md:w-3/5 bg-slate-800/70 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-3 sm:p-4 border-t-2 sm:border-t-4 border-green-400 relative z-10">
-              <img
-                src="/img1.png"
-                alt="About Us Graphic"
-                className="w-full rounded-xl sm:rounded-2xl"
-              />
+          {/* BOTTOM SECTION (Floating Elements, Image, and Calendar) */}
+          <div className="relative w-full">
+            {/* Floating Elements */}
+            <div className="hidden lg:block absolute top-1/4 left-6 lg:left-24 w-40 sm:w-48 lg:w-80 transform -rotate-12 rounded-lg z-20">
+              <AnimatedBadge />
+              {/* <img src="/8.png" alt="Ticket" className="w-full" /> */}
             </div>
+            <div className="hidden lg:block absolute bottom-80 right-12 lg:right-24 w-32 sm:w-40 lg:w-80 transform rotate-12 z-20">
+              <GrowthChart />
+              {/* <img src="/7.png" alt="Envelope" className="w-full" /> */}
+            </div>
+            <div className="hidden lg:block absolute bottom-1/4 left-12 lg:left-24 w-16 h-16 lg:w-24 lg:h-24 bg-yellow-500 transform rotate-45"></div>
+            <div className="hidden lg:block absolute top-12 lg:top-24 right-16 lg:right-32 w-16 h-16 lg:w-24 lg:h-24 bg-red-600 transform rotate-12"></div>
+            <div className="hidden lg:block absolute bottom-1/5 right-1/4 w-16 h-16 lg:w-24 lg:h-24 bg-blue-500 transform -rotate-45"></div>
 
-            <div className="w-full -mt-12 sm:-mt-16 md:-mt-40 max-w-5xl bg-[#042029]/95 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 border-4 border-[#9AE600] shadow-2xl shadow-[#9AE600]/20 relative z-10">
-              <div className="flex justify-between items-center mb-6 sm:mb-8">
-                <h4 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
-                  {monthNames[selectedMonth]} {selectedYear}
-                </h4>
-                {/* Navigation Buttons - Left Side */}
-                <div className="flex items-center gap-2 sm:gap-3">
-                  {/* Previous Month Button */}
-                  <button
-                    onClick={() => {
-                      if (selectedMonth === 0) {
-                        setSelectedMonth(11);
-                        setSelectedYear(selectedYear - 1);
-                      } else {
-                        setSelectedMonth(selectedMonth - 1);
-                      }
-                    }}
-                    className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-700/50 hover:bg-slate-600/50 border-2 border-slate-600/50 transition-all"
-                    aria-label="Previous month"
-                  >
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
+            <div className="flex flex-col items-center gap-6 sm:gap-8 px-4">
+              <div className="w-full sm:w-4/5 md:w-3/5 bg-slate-800/70 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-3 sm:p-4 border-t-2 sm:border-t-4 border-green-400 relative z-10">
+                <img
+                  src="/img1.png"
+                  alt="About Us Graphic"
+                  className="w-full rounded-xl sm:rounded-2xl"
+                />
+              </div>
 
-                  {/* Next Month Button */}
-                  <button
-                    onClick={() => {
-                      if (selectedMonth === 11) {
-                        setSelectedMonth(0);
-                        setSelectedYear(selectedYear + 1);
-                      } else {
-                        setSelectedMonth(selectedMonth + 1);
-                      }
-                    }}
-                    className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-700/50 hover:bg-slate-600/50 border-2 border-slate-600/50 transition-all"
-                    aria-label="Next month"
-                  >
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
+              <div className="w-full -mt-12 sm:-mt-16 md:-mt-40 max-w-5xl bg-[#042029]/95 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 border-4 border-[#9AE600] shadow-2xl shadow-[#9AE600]/20 relative z-10">
+                <div className="flex justify-between items-center mb-6 sm:mb-8">
+                  <h4 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
+                    {monthNames[selectedMonth]} {selectedYear}
+                  </h4>
+                  {/* Navigation Buttons - Left Side */}
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    {/* Previous Month Button */}
+                    <button
+                      onClick={() => {
+                        if (selectedMonth === 0) {
+                          setSelectedMonth(11);
+                          setSelectedYear(selectedYear - 1);
+                        } else {
+                          setSelectedMonth(selectedMonth - 1);
+                        }
+                      }}
+                      className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-700/50 hover:bg-slate-600/50 border-2 border-slate-600/50 transition-all"
+                      aria-label="Previous month"
+                    >
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+
+                    {/* Next Month Button */}
+                    <button
+                      onClick={() => {
+                        if (selectedMonth === 11) {
+                          setSelectedMonth(0);
+                          setSelectedYear(selectedYear + 1);
+                        } else {
+                          setSelectedMonth(selectedMonth + 1);
+                        }
+                      }}
+                      className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-700/50 hover:bg-slate-600/50 border-2 border-slate-600/50 transition-all"
+                      aria-label="Next month"
+                    >
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Month and Year - Right Side */}
+                <div className="grid grid-cols-7 gap-2 sm:gap-3 text-center mb-4">
+                  {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map(
+                    (day) => (
+                      <div key={day} className="text-white/60 text-sm sm:text-base md:text-lg py-2 sm:py-3">
+                        {day}
+                      </div>
+                    )
+                  )}
+                </div>
 
+                <div className="grid grid-cols-7 gap-2 sm:gap-3">{renderCalendar()}</div>
               </div>
-
-              <div className="grid grid-cols-7 gap-2 sm:gap-3 text-center mb-4">
-                {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map(
-                  (day) => (
-                    <div key={day} className="text-white/60 text-sm sm:text-base md:text-lg py-2 sm:py-3">
-                      {day}
-                    </div>
-                  )
-                )}
-              </div>
-
-              <div className="grid grid-cols-7 gap-2 sm:gap-3">{renderCalendar()}</div>
             </div>
-
           </div>
         </section>
 
@@ -1050,7 +1045,7 @@ const Home = () => {
           >
             {/* Background Wavy Pattern */}
             <div className="absolute inset-0 opacity-30">
-              <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+              <svg className="w-full h-full">
                 <defs>
                   <pattern id="wave-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
                     <path d="M0 50 Q 25 25, 50 50 T 100 50" stroke="#9AE600" strokeWidth="0.5" fill="none" opacity="0.3" />
@@ -1185,7 +1180,7 @@ const Home = () => {
         }}>
           {/* Background Wavy Pattern */}
           <div className="absolute inset-0 opacity-20">
-            <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <svg className="w-full h-full" >
               <defs>
                 <pattern id="join-wave-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
                   <path d="M0 50 Q 25 25, 50 50 T 100 50" stroke="#9AE600" strokeWidth="0.5" fill="none" opacity="0.3" />
@@ -1239,7 +1234,7 @@ const Home = () => {
 
 
         {/* --- TESTIMONIALS SECTION --- */}
-        <section className="relative py-12 sm:py-16 md:py-20 overflow-hidden" style={{ background: "#f0f4ee" }}>
+        <section className="relative py-12 sm:py-16 md:py-20 overflow-hidden bg-[#f0f4ee]">
 
           {/* test-vector-1 — small, top-left of the section */}
           <img
