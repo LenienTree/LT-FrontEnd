@@ -94,7 +94,7 @@ const CollaborationEventCard = React.memo(({ event }) => {
     <div className="p-1 sm:p-3">
       <div
         ref={cardRef}
-        className={`relative w-full sm:w-80 h-[280px] sm:h-[400px] rounded-lg overflow-hidden cursor-pointer border-2 transition-all duration-300 ${colors.bgColor || ""} ${event.isPremium
+        className={`relative w-[95vw] h-[120vw] sm:h-[53vw] sm:w-[40vw] md:h-[40vw] md:w-[30vw] lg:h-[36vw] lg:w-[28vw] xl:w-[19vw] xl:h-[25vw]   rounded-lg overflow-hidden cursor-pointer border-2 transition-all duration-300 ${colors.bgColor || ""} ${event.isPremium
           ? isHovered
             ? "border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.85)] scale-[1.01]"
             : "border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]"
