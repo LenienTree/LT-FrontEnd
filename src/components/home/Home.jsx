@@ -846,7 +846,7 @@ const Home = () => {
                 });
 
                 return (
-                  <div className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 min-h-[300px]">
+                  <div className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6  min-h-[30vw]">
                     {filteredEvents.length > 0 ? (
                       filteredEvents.slice(0, 8).map((event) => {
                         const mappedEvent = mapDbEventToCard(event);

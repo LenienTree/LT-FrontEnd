@@ -91,10 +91,10 @@ const CollaborationEventCard = React.memo(({ event }) => {
   };
 
   return (
-    <div className="p-1 sm:p-3">
+    <div className="p-1 sm:p-3 flex justify-center items-center">
       <div
         ref={cardRef}
-        className={`relative w-[95vw] h-[120vw] sm:h-[53vw] sm:w-[40vw] md:h-[40vw] md:w-[30vw] lg:h-[36vw] lg:w-[28vw] xl:w-[19vw] xl:h-[25vw]   rounded-lg overflow-hidden cursor-pointer border-2 transition-all duration-300 ${colors.bgColor || ""} ${event.isPremium
+        className={`   relative w-[73vw] h-[vw] sm:h-[53vw] sm:w-[40vw] md:h-[40vw] md:w-[30vw] lg:h-[36vw] lg:w-[28vw] xl:w-[19vw] xl:h-[23vw] rounded-lg overflow-hidden cursor-pointer border-2 transition-all duration-300 ${colors.bgColor || ""} ${event.isPremium
           ? isHovered
             ? "border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.85)] scale-[1.01]"
             : "border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]"
@@ -107,7 +107,7 @@ const CollaborationEventCard = React.memo(({ event }) => {
       >
         <div className="relative h-full">
           {/* Front Card */}
-          <div className="front-card absolute inset-0 w-full h-full text-center bg-[#0d2f2f]">
+          <div className="  front-card flex justify-center items-center  inset-0 w-full h-full text-center bg-[#0d2f2f]">
             {event.isPremium && (
               <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 text-slate-950 text-[8px] sm:text-[10px] font-black tracking-wider shadow-lg shadow-amber-950/60 flex items-center gap-1 border border-yellow-300/30">
                 <span>👑</span>
