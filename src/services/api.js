@@ -48,8 +48,32 @@ async function request(endpoint, options = {}) {
     credentials: "include", // for refresh-token cookie if server uses one
   });
 
-  // Auto-refresh on 401
-  if (response.status === 401 && !options._retry && !endpoint.includes("/auth/refresh")) {
+  // Auto-refresh on 401.
+  //
+  // Endpoints where a 401 is a NORMAL business outcome rather than an expired
+  // session must be excluded. A wrong password is not a stale token: refreshing
+  // there fires a pointless second round trip (~330ms on the error path), and
+  // when that refresh fails we used to call logoutCallback() — running a logout
+  // for someone who was never logged in.
+  const authEndpoint401IsExpected = [
+    "/auth/login",
+    "/auth/register",
+    "/auth/refresh",
+    "/auth/google",
+    "/auth/forgot-password",
+    "/auth/reset-password",
+  ].some((p) => endpoint.includes(p));
+
+  // No refresh token stored means there is nothing to refresh with — skip the
+  // guaranteed-to-fail call rather than round-tripping to find that out.
+  const canRefresh = Boolean(getRefreshToken());
+
+  if (
+    response.status === 401 &&
+    !options._retry &&
+    !authEndpoint401IsExpected &&
+    canRefresh
+  ) {
     try {
       // Backend sets the new access token as an HTTP-only cookie, and now also
       // returns it in the response body. We store the new access token in localStorage
