@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "LenientTree",
+  "name": "LenientTree — Find Tech Events Near You",
   "icons": [
     {
       "src": "logo1.png",
@@ -20,6 +20,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#022F2E",
+  "background_color": "#022F2E"
 }
