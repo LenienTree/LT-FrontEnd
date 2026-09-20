@@ -7,7 +7,7 @@ import {
   UserCheck, AlertTriangle, Pencil, Trash2, SlidersHorizontal,
   Upload, Plus, ArrowUp, ArrowDown, Image, Settings, Home, Link2,
   Linkedin, Github, Instagram, Twitter, Globe, Phone, GraduationCap,
-  Mail, Calendar, BookOpen, Heart, User, Check, X, ScrollText, Target
+  Mail, Calendar, BookOpen, Heart, User, Check, X, ScrollText, Target, Megaphone
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { admin, homepage as homepageApi } from '../../services/api';
@@ -494,6 +494,33 @@ const Admin = () => {
       setRecentEvents(prev => prev.map(ev => ev.id === id ? { ...ev, isPremium: nextStatus } : ev));
     } catch (e) {
       showToast(e.message || 'Failed to toggle premium status', 'error');
+    }
+  };
+
+  const handleAnnounceEvent = async (id, announcedAt) => {
+    let force = false;
+    if (announcedAt) {
+      const confirmResend = window.confirm(
+        `This event was already announced at ${fmtDateTime(announcedAt)}. Are you sure you want to resend the broadcast to all platform users?`
+      );
+      if (!confirmResend) return;
+      force = true;
+    } else {
+      const confirmSend = window.confirm(
+        'Send flagship event announcement email to ALL platform users?'
+      );
+      if (!confirmSend) return;
+    }
+
+    try {
+      const res = await admin.announceEvent(id, force);
+      showToast(res?.message || 'Flagship announcement broadcast initiated!');
+
+      const updatedTime = res?.event?.premiumAnnouncedAt || new Date().toISOString();
+      setAllEvents(prev => prev.map(ev => ev.id === id ? { ...ev, premiumAnnouncedAt: updatedTime } : ev));
+      setRecentEvents(prev => prev.map(ev => ev.id === id ? { ...ev, premiumAnnouncedAt: updatedTime } : ev));
+    } catch (e) {
+      showToast(e.message || 'Failed to trigger announcement', 'error');
     }
   };
 
@@ -1041,6 +1068,15 @@ const Admin = () => {
                                 👑 Premium
                               </span>
                             )}
+                            {ev.isPremium && (
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                                ev.premiumAnnouncedAt
+                                  ? 'border-cyan-500/40 text-cyan-400 bg-cyan-900/20'
+                                  : 'border-gray-500/40 text-gray-400 bg-gray-900/20'
+                              }`}>
+                                📢 {ev.premiumAnnouncedAt ? `Announced at ${fmtDateTime(ev.premiumAnnouncedAt)}` : 'Not yet announced'}
+                              </span>
+                            )}
                             {ev.showOnLanding && (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#00ff88]/40 text-[#00ff88] bg-[#00ff88]/10 flex items-center gap-1">
                                 🌐 On Landing
@@ -1052,7 +1088,7 @@ const Admin = () => {
                             By {ev.organizer?.name || '—'} · {fmtDate(ev.startDate)}
                           </p>
                         </div>
-                        <div className="flex gap-2 flex-shrink-0 items-center">
+                        <div className="flex gap-2 flex-shrink-0 items-center flex-wrap sm:flex-nowrap">
                           {!['hackathon', 'ideathon'].includes((ev.category || '').toLowerCase()) && (
                             <button
                               onClick={(e) => { e.stopPropagation(); handleToggleLanding(ev.id, ev.showOnLanding); }}
@@ -1076,6 +1112,16 @@ const Admin = () => {
                           >
                             👑 {ev.isPremium ? 'Premium' : 'Make Premium'}
                           </button>
+                          {ev.isPremium && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleAnnounceEvent(ev.id, ev.premiumAnnouncedAt); }}
+                              title={ev.premiumAnnouncedAt ? `Announced at ${fmtDateTime(ev.premiumAnnouncedAt)} (Click to resend)` : 'Broadcast flagship announcement to all platform users'}
+                              className="flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-xl transition-all bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-900/30 hover:scale-[1.02]"
+                            >
+                              <Megaphone className="w-4 h-4" />
+                              {ev.premiumAnnouncedAt ? 'Resend Broadcast' : 'Announce Flagship'}
+                            </button>
+                          )}
                           <button
                             onClick={(e) => { e.stopPropagation(); navigate(`/organize/edit/${ev.id}`); }}
                             className="flex items-center gap-1.5 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all hover:scale-[1.02]"

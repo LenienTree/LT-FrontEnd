@@ -4,12 +4,16 @@ import {
   ArrowLeft, Loader2, Upload, Trash2, Plus, X, Check, Save, 
   Users, CreditCard, Clipboard, Info, AlertTriangle, CheckCircle, 
   XCircle, QrCode, Search, ExternalLink, Calendar, MapPin, Award,
-  GripVertical, Type, AlignLeft, Hash, AtSign, Phone, ChevronDown, ToggleLeft, Link2
+  GripVertical, Type, AlignLeft, Hash, AtSign, Phone, ChevronDown, ToggleLeft, Link2, Layers, Bell, Download
 } from 'lucide-react';
 import Header from '../layout/Header';
 import Footer from '../layout/Footer';
 import { events as eventsApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import ConfigBuilder from './ConfigBuilder';
+import SubmissionsList from './SubmissionsList';
+import ReminderConfigBuilder from './ReminderConfigBuilder';
+import { fmtDateTime, downloadCsv } from '../admin/AdminHelpers';
 
 const EditEventPage = () => {
   const { id } = useParams();
@@ -280,6 +284,39 @@ const EditEventPage = () => {
       console.error('Failed to load attendees:', err);
     } finally {
       setLoadingAttendees(false);
+    }
+  };
+
+  const [exportingAttendees, setExportingAttendees] = useState(false);
+
+  const handleExportAttendees = async () => {
+    if (!id) return;
+    setExportingAttendees(true);
+    try {
+      const res = await eventsApi.getParticipantsExport(id);
+      const regs = res?.data || [];
+
+      const headers = [
+        'Name', 'Email', 'Phone', 'College', 'Status', 'Payment', 'Registered At',
+        'IEEE Member', 'IEEE Member ID',
+      ];
+      const rows = regs.map((r) => [
+        r.user?.name || r.formData?.name || '',
+        r.user?.email || r.formData?.email || '',
+        r.user?.phone || r.formData?.phone || '',
+        r.user?.college || r.formData?.college || '',
+        r.status,
+        r.paymentStatus,
+        fmtDateTime(r.registeredAt),
+        r.isMember == null ? '' : (r.isMember ? 'Yes' : 'No'),
+        r.ieeeMemberId || '',
+      ]);
+      const slug = (eventData?.title || 'event').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+      downloadCsv(`attendees-${slug}-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+    } catch (err) {
+      alert(err.message || 'Failed to export participants.');
+    } finally {
+      setExportingAttendees(false);
     }
   };
 
@@ -807,6 +844,9 @@ const EditEventPage = () => {
                   ...(eventData?.isPremium
                     ? [{ key: 'premium', label: 'Premium Features', icon: Award }]
                     : []),
+                  { key: 'idea_submission', label: 'Idea Form Config', icon: Layers },
+                  { key: 'idea_review', label: 'Review Submissions', icon: Award },
+                  { key: 'reminders', label: 'Automated Reminders', icon: Bell },
                   { key: 'attendees', label: 'Attendees & Proofs', icon: Users, count: pendingApprovals }
                 ].map(({ key, label, icon: Icon, count }) => (
                   <button
@@ -849,6 +889,9 @@ const EditEventPage = () => {
                   {activeTab === 'fields' && 'Registration Form Builder'}
                   {activeTab === 'payment' && 'Payment Configuration'}
                   {activeTab === 'premium' && 'Premium Features'}
+                  {activeTab === 'idea_submission' && 'Idea Submission Builder'}
+                  {activeTab === 'idea_review' && 'Review & Score Idea Submissions'}
+                  {activeTab === 'reminders' && 'Automated Event Reminders'}
                   {activeTab === 'attendees' && 'Attendee Database & Verification'}
                 </h1>
                 <p className="text-gray-400 text-sm mt-1 sm:mt-2">
@@ -856,6 +899,9 @@ const EditEventPage = () => {
                   {activeTab === 'fields' && 'Visual designer for collected attendee registration fields'}
                   {activeTab === 'payment' && 'Setup pricing models, QR uploads, and UPI coordinates'}
                   {activeTab === 'premium' && 'Configure custom LinkedIn sharing settings for premium event verification'}
+                  {activeTab === 'idea_submission' && 'Customize submission forms, schedules, prize pools, and judging criteria'}
+                  {activeTab === 'idea_review' && 'Inspect participant idea submissions, calculate criteria scores, and update review statuses'}
+                  {activeTab === 'reminders' && 'Enable notification intervals and customize email content for registered participants'}
                   {activeTab === 'attendees' && 'Verify screenshot proofs, approve pending tickets, and view responses'}
                 </p>
               </div>
@@ -1933,6 +1979,27 @@ const EditEventPage = () => {
               </div>
             )}
 
+            {/* Tab Idea Submission Config Builder */}
+            {activeTab === 'idea_submission' && (
+              <div className="animate-fadeIn">
+                <ConfigBuilder eventId={id} />
+              </div>
+            )}
+
+            {/* Tab Idea Submissions Review & Scoring */}
+            {activeTab === 'idea_review' && (
+              <div className="animate-fadeIn">
+                <SubmissionsList eventId={id} />
+              </div>
+            )}
+
+            {/* Tab Event Reminders Builder */}
+            {activeTab === 'reminders' && (
+              <div className="animate-fadeIn">
+                <ReminderConfigBuilder eventId={id} />
+              </div>
+            )}
+
             {/* Tab 4: Attendees list & manual validation */}
             {activeTab === 'attendees' && (
               <div className="space-y-6">
@@ -1984,7 +2051,7 @@ const EditEventPage = () => {
                       />
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       {['ALL', 'PENDING', 'PAYMENT_PENDING', 'APPROVED', 'REJECTED'].map(filter => (
                         <button
                           key={filter}
@@ -1999,6 +2066,16 @@ const EditEventPage = () => {
                           {filter.replace('_', ' ')}
                         </button>
                       ))}
+
+                      <button
+                        type="button"
+                        onClick={handleExportAttendees}
+                        disabled={exportingAttendees}
+                        className="text-xs font-bold px-3 py-2 rounded-lg border border-[#1a4d4d] bg-white/5 hover:border-[#00ff88]/40 text-gray-300 hover:text-white transition-all flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        {exportingAttendees ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#00ff88]" /> : <Download className="w-3.5 h-3.5 text-[#00ff88]" />}
+                        Download Participants (Excel)
+                      </button>
                     </div>
                   </div>
 

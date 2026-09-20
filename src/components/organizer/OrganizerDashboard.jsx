@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { LayoutDashboard, Calendar, Users, Award, ExternalLink, ShieldCheck, ShieldAlert, Award as AwardIcon, Check, X, ClipboardCheck, ArrowLeft, Loader2, Send, Link2 } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, Award, ExternalLink, ShieldCheck, ShieldAlert, Award as AwardIcon, Check, X, ClipboardCheck, ArrowLeft, Loader2, Send, Link2, Download } from "lucide-react";
 import { organizer as organizerApi, events as eventsApi } from "../../services/api";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
 import ReferralManager from "../shared/ReferralManager";
+import { fmtDateTime, downloadCsv } from "../admin/AdminHelpers";
 
 export default function OrganizerDashboard() {
   const [stats, setStats] = useState({
@@ -27,6 +28,52 @@ export default function OrganizerDashboard() {
   const [globalCertUrl, setGlobalCertUrl] = useState("");
   const [bulkIssuing, setBulkIssuing] = useState(false);
   const [bulkMessage, setBulkMessage] = useState("");
+  const [exportingParticipants, setExportingParticipants] = useState(false);
+
+  const handleExportParticipants = async () => {
+    if (!selectedEvent?.id) return;
+    setExportingParticipants(true);
+    try {
+      const res = await eventsApi.getParticipantsExport(selectedEvent.id);
+      const regs = res?.data || [];
+
+      const customKeys = new Set();
+      regs.forEach((r) => getExtraAnswers(r.formData).forEach(([k]) => customKeys.add(k)));
+      const customCols = [...customKeys];
+      const headers = [
+        'Name', 'Email', 'Phone', 'College', 'Status', 'Payment', 'Registered At',
+        'IEEE Member', 'IEEE Member ID', ...customCols, 'Team Members',
+      ];
+      const rows = regs.map((r) => {
+        const answers = Object.fromEntries(getExtraAnswers(r.formData));
+        const team = Array.isArray(r.formData?.teamMembers)
+          ? r.formData.teamMembers.map((m, i) => {
+              const fields = getMemberFields(m).map(([k, v]) => `${k}: ${v}`).join('; ');
+              return `${m?.name || `Member ${i + 1}`}${fields ? ` (${fields})` : ''}`;
+            }).join(' | ')
+          : '';
+        return [
+          r.user?.name || r.formData?.name || '',
+          r.user?.email || r.formData?.email || '',
+          r.user?.phone || r.formData?.phone || '',
+          r.user?.college || r.formData?.college || '',
+          r.status,
+          r.paymentStatus,
+          fmtDateTime(r.registeredAt),
+          r.isMember == null ? '' : (r.isMember ? 'Yes' : 'No'),
+          r.ieeeMemberId || '',
+          ...customCols.map((k) => answers[k] ?? ''),
+          team,
+        ];
+      });
+      const slug = (selectedEvent?.title || 'event').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+      downloadCsv(`attendees-${slug}-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+    } catch (err) {
+      alert(err.message || 'Failed to export participants.');
+    } finally {
+      setExportingParticipants(false);
+    }
+  };
 
   // Keys already rendered as dedicated columns (or used internally) — everything
   // else in formData is a custom/extra field added via the form builder and must
@@ -182,16 +229,31 @@ export default function OrganizerDashboard() {
               Back to Dashboard
             </button>
 
-            <div className="mb-8">
-              <h1 className="text-2xl sm:text-3xl font-extrabold flex items-center gap-3">
-                Manage Registrations
-                <span className="text-xs uppercase font-bold px-3 py-1 rounded-full bg-[#9AE600]/20 text-[#9AE600] border border-[#9AE600]/20">
-                  {selectedEvent.title}
-                </span>
-              </h1>
-              <p className="text-gray-400 mt-2 text-sm">
-                Review registrations, mark attendance, and issue completion certificates.
-              </p>
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold flex items-center gap-3">
+                  Manage Registrations
+                  <span className="text-xs uppercase font-bold px-3 py-1 rounded-full bg-[#9AE600]/20 text-[#9AE600] border border-[#9AE600]/20">
+                    {selectedEvent.title}
+                  </span>
+                </h1>
+                <p className="text-gray-400 mt-2 text-sm">
+                  Review registrations, mark attendance, and issue completion certificates.
+                </p>
+              </div>
+
+              <button
+                onClick={handleExportParticipants}
+                disabled={exportingParticipants}
+                className="px-5 py-2.5 bg-white/5 border border-white/10 hover:border-[#9AE600]/50 text-gray-200 hover:text-white text-xs font-bold rounded-xl transition-all flex items-center gap-2 self-start sm:self-auto disabled:opacity-50"
+              >
+                {exportingParticipants ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-[#9AE600]" />
+                ) : (
+                  <Download className="w-4 h-4 text-[#9AE600]" />
+                )}
+                Download Participants (Excel)
+              </button>
             </div>
 
             {/* Certificate Bulk Issuing box */}

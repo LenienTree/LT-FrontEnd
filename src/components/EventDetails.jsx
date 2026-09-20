@@ -8,6 +8,7 @@ import CountdownTimer from './CountdownTimer';
 import { events as eventsApi, bookmarks as bookmarksApi } from '../services/api';
 import { captureReferral } from '../services/referralTracker';
 import { useAuth } from '../context/AuthContext';
+import SubmissionForm from './user/SubmissionForm';
 
 // ─── FAQ Accordion ────────────────────────────────────────────────────────────
 
@@ -533,6 +534,11 @@ const EventDetails = () => {
                             </div>
                         )}
                     </div>
+                </div>
+
+                {/* Idea Submission Section */}
+                <div className="mb-12">
+                    <SubmissionForm eventId={eventData.id} />
                 </div>
 
                 {/* FAQs */}

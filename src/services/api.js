@@ -147,6 +147,12 @@ const put = (url, body, opts) =>
     body: body instanceof FormData ? body : JSON.stringify(body),
     ...opts,
   });
+const patch = (url, body, opts) =>
+  request(url, {
+    method: "PATCH",
+    body: body instanceof FormData ? body : JSON.stringify(body),
+    ...opts,
+  });
 const del = (url, opts) => request(url, { method: "DELETE", ...opts });
 
 // ─── File Upload Helpers ──────────────────────────────────────────────────────
@@ -514,6 +520,157 @@ export const events = {
   deleteEvent: (eventId) => del(`/api/events/${eventId}`),
 
   /**
+   * Get Idea Submission Config for an event.
+   * @param {string} eventId
+   * @param {number} [roundNumber]
+   */
+  getIdeaSubmissionConfig: (eventId, roundNumber) =>
+    get(`/api/events/${eventId}/idea-submission/config${roundNumber ? `?roundNumber=${roundNumber}` : ""}`),
+
+  /**
+   * Save / Update Idea Submission Config for an event (organizer).
+   * @param {string} eventId
+   * @param {object} configData
+   */
+  saveIdeaSubmissionConfig: (eventId, configData) =>
+    post(`/api/events/${eventId}/idea-submission/config`, configData),
+
+  /**
+   * Manually transition idea submission status to open (organizer).
+   * @param {string} eventId
+   * @param {number} [roundNumber]
+   */
+  openIdeaSubmission: (eventId, roundNumber) =>
+    post(`/api/events/${eventId}/idea-submission/open${roundNumber ? `?roundNumber=${roundNumber}` : ""}`),
+
+  /**
+   * Manually transition idea submission status to closed (organizer).
+   * @param {string} eventId
+   * @param {number} [roundNumber]
+   */
+  closeIdeaSubmission: (eventId, roundNumber) =>
+    post(`/api/events/${eventId}/idea-submission/close${roundNumber ? `?roundNumber=${roundNumber}` : ""}`),
+
+  /**
+   * Get current user's idea submission for an event.
+   * @param {string} eventId
+   * @param {number} [roundNumber]
+   */
+  getUserIdeaSubmission: (eventId, roundNumber) =>
+    get(`/api/events/${eventId}/idea-submission/submissions/my${roundNumber ? `?roundNumber=${roundNumber}` : ""}`),
+
+  /**
+   * Submit or save draft idea submission for an event.
+   * @param {string} eventId
+   * @param {{ data: object, attachments?: array, status: 'draft'|'submitted', roundNumber?: number }} payload
+   */
+  submitIdea: (eventId, payload) =>
+    post(`/api/events/${eventId}/idea-submission/submissions`, payload),
+
+  /**
+   * Get presigned S3 upload URL for an idea submission attachment file.
+   * @param {string} eventId
+   * @param {string} fileName
+   * @param {string} [contentType]
+   */
+  getPresignedUploadUrl: (eventId, fileName, contentType) =>
+    get(`/api/events/${eventId}/idea-submission/presigned-url?fileName=${encodeURIComponent(fileName)}${contentType ? `&contentType=${encodeURIComponent(contentType)}` : ""}`),
+
+  /**
+   * Upload an idea submission attachment file directly to backend S3 upload endpoint.
+   * @param {string} eventId
+   * @param {File} file
+   */
+  uploadIdeaSubmissionFile: async (eventId, file) =>
+    post(`/api/events/${eventId}/idea-submission/upload`, await fileForm("file", file)),
+
+  /**
+   * Get all idea submissions for an event (organizer).
+   * @param {string} eventId
+   * @param {string} [status]
+   * @param {number} [roundNumber]
+   */
+  getEventIdeaSubmissions: (eventId, status, roundNumber) => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (roundNumber) params.append('roundNumber', roundNumber);
+    const q = params.toString();
+    return get(`/api/events/${eventId}/idea-submission/submissions${q ? `?${q}` : ""}`);
+  },
+
+  /**
+   * Score an idea submission (organizer/evaluator).
+   * @param {string} eventId
+   * @param {string} submissionId
+   * @param {{ criteriaScores: object, totalScore?: number, comments?: string }} payload
+   */
+  scoreIdeaSubmission: (eventId, submissionId, payload) =>
+    post(`/api/events/${eventId}/idea-submission/submissions/${submissionId}/score`, payload),
+
+  /**
+   * Update an idea submission status (organizer).
+   * @param {string} eventId
+   * @param {string} submissionId
+   * @param {string} status
+   */
+  updateIdeaSubmissionStatus: (eventId, submissionId, status) =>
+    patch(`/api/events/${eventId}/idea-submission/submissions/${submissionId}/status`, { status }),
+
+  /**
+   * Select winners and complete idea submission event (organizer).
+   * @param {string} eventId
+   * @param {string[]} winnerSubmissionIds
+   * @param {number} [roundNumber]
+   */
+  selectIdeaWinners: (eventId, winnerSubmissionIds, roundNumber) =>
+    post(`/api/events/${eventId}/idea-submission/winners`, { winnerSubmissionIds, roundNumber }),
+
+  /**
+   * Set submission decision (Shortlist/Waitlist) for a screening round.
+   * @param {string} eventId
+   * @param {string} roundId
+   * @param {string} submissionId
+   * @param {string} decision
+   */
+  setSubmissionDecision: (eventId, roundId, submissionId, decision) =>
+    post(`/api/events/${eventId}/idea-submission/rounds/${roundId}/submissions/${submissionId}/decision`, { decision }),
+
+  /**
+   * Auto-shortlist top N submissions by score for a screening round.
+   * @param {string} eventId
+   * @param {string} roundId
+   * @param {number} [count]
+   */
+  autoShortlistSubmissions: (eventId, roundId, count) =>
+    post(`/api/events/${eventId}/idea-submission/rounds/${roundId}/auto-shortlist`, count ? { count } : {}),
+
+  /**
+   * Promote a waitlisted submission to shortlisted.
+   * @param {string} eventId
+   * @param {string} roundId
+   * @param {string} submissionId
+   */
+  promoteSubmission: (eventId, roundId, submissionId) =>
+    post(`/api/events/${eventId}/idea-submission/rounds/${roundId}/submissions/${submissionId}/promote`),
+
+  /**
+   * Get Event Reminder Config (organizer).
+   * @param {string} eventId
+   */
+  getReminderConfig: (eventId) =>
+    get(`/api/events/${eventId}/reminder-config`),
+
+  /**
+   * Save / Update Event Reminder Config (organizer).
+   * @param {string} eventId
+   * @param {{ enabledIntervals: string[], templates?: object }} payload
+   */
+  saveReminderConfig: (eventId, payload) =>
+    post(`/api/events/${eventId}/reminder-config`, payload),
+
+
+
+  /**
    * Get registered participants for an event (organizer).
    * @param {string} eventId
    * @param {object} params
@@ -703,9 +860,13 @@ export const admin = {
   approveEvent: (id, isFeatured = false, isPremium = false) =>
     put(`/api/admin/events/${id}/approve`, { isFeatured, isPremium }),
 
-  /** PUT /api/admin/events/:id/premium */
+  /** PATCH /api/admin/events/:eventId/premium */
   togglePremium: (id, isPremium = false) =>
-    put(`/api/admin/events/${id}/premium`, { isPremium }),
+    patch(`/api/admin/events/${id}/premium`, { isPremium }),
+
+  /** POST /api/admin/events/:eventId/announce */
+  announceEvent: (id, force = false) =>
+    post(`/api/admin/events/${id}/announce`, { force }),
 
   /** PUT /api/admin/events/:id/landing — show/hide event on the landing page */
   toggleShowOnLanding: (id, showOnLanding = false) =>
