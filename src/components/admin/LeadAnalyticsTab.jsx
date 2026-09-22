@@ -7,7 +7,7 @@ import {
   Download, Loader2, RefreshCw, Wallet, UserX, Bookmark, Clock, Building2, Link2, Award,
 } from 'lucide-react';
 import { admin } from '../../services/api';
-import { fmtNum, fmtDate, downloadCsv } from './AdminHelpers';
+import { fmtNum, fmtINR, fmtDate, downloadCsv } from './AdminHelpers';
 
 const PALETTE = ['#00ff88', '#3b82f6', '#f59e0b', '#a855f7', '#ef4444', '#14b8a6', '#ec4899', '#84cc16', '#f97316', '#06b6d4'];
 const TOOLTIP = { backgroundColor: '#061818', border: '1px solid #1a4d4d', borderRadius: 12, color: '#fff' };
@@ -291,7 +291,7 @@ const LeadAnalyticsTab = ({ showToast }) => {
                   <Pie data={revenue.byCategory} dataKey="revenue" nameKey="category" cx="50%" cy="50%" outerRadius={80} innerRadius={45} paddingAngle={2}>
                     {revenue.byCategory.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
                   </Pie>
-                  <Tooltip contentStyle={TOOLTIP} formatter={(v) => `₹${Number(v).toLocaleString()}`} />
+                  <Tooltip contentStyle={TOOLTIP} formatter={(v) => fmtINR(v)} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -300,7 +300,7 @@ const LeadAnalyticsTab = ({ showToast }) => {
             {revenue.byCategory.map((c, i) => (
               <span key={c.category} className="flex items-center gap-1.5 text-[11px] text-gray-400">
                 <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: PALETTE[i % PALETTE.length] }} />
-                {c.category} · ₹{Number(c.revenue).toLocaleString()}
+                {c.category} · {fmtINR(c.revenue)}
               </span>
             ))}
           </div>
@@ -316,7 +316,7 @@ const LeadAnalyticsTab = ({ showToast }) => {
               <p className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">Free events</p>
             </div>
             <div className="bg-[#061818] rounded-xl p-4 text-center">
-              <p className="text-2xl font-extrabold text-[#f59e0b]">₹{fmtNum(revenue.avgTicketPrice)}</p>
+              <p className="text-2xl font-extrabold text-[#f59e0b]">{fmtINR(revenue.avgTicketPrice)}</p>
               <p className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">Avg ticket</p>
             </div>
           </div>

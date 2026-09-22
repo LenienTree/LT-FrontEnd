@@ -1,7 +1,20 @@
-export const fmtNum = (n) =>
-  n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M`
-    : n >= 1_000 ? `${(n / 1_000).toFixed(1)}K`
-      : String(n ?? 0);
+// Exact counts with Indian digit grouping (1,273 · 12,34,567) — admins need the
+// real number, not "1.3K".
+export const fmtNum = (n) => {
+  const v = Number(n ?? 0);
+  return Number.isFinite(v) ? v.toLocaleString('en-IN') : '0';
+};
+
+// Rupee amounts, exact, Indian grouping.
+export const fmtINR = (n) => `₹${fmtNum(Math.round(Number(n ?? 0)))}`;
+
+// The analytics API sends calendar days as "YYYY-MM-DD" (India time). Parsing
+// that with new Date(str) means UTC midnight, which renders as the PREVIOUS day
+// anywhere west of UTC — so read it as a local date instead.
+export const parseDay = (s) => {
+  const [y, m, d] = String(s).split('-').map(Number);
+  return y && m && d ? new Date(y, m - 1, d) : new Date(s);
+};
 
 export const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';

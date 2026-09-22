@@ -883,6 +883,21 @@ export const admin = {
   getUsers: (page = 1, limit = 10, search = "") =>
     get(`/api/admin/users?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`),
 
+  /**
+   * GET /api/admin/users with filters. Array values are sent comma-separated;
+   * empty values are dropped. See backend validators/userFilter.validator.
+   */
+  listUsers: (params = {}) => {
+    const entries = Object.entries(params)
+      .filter(([, v]) => v != null && v !== "" && !(Array.isArray(v) && v.length === 0))
+      .map(([k, v]) => [k, Array.isArray(v) ? v.join(",") : String(v)]);
+    const query = new URLSearchParams(entries).toString();
+    return get(`/api/admin/users${query ? `?${query}` : ""}`);
+  },
+
+  /** GET /api/admin/users/filters — every filter option with live counts. */
+  getUserFilters: (fresh = false) => get(`/api/admin/users/filters${fresh ? "?fresh=true" : ""}`),
+
   /** PUT /api/admin/users/:id/block */
   blockUser: (id) => put(`/api/admin/users/${id}/block`, {}),
 

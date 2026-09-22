@@ -14,11 +14,12 @@ import { admin, homepage as homepageApi } from '../../services/api';
 import { events as eventsApi } from '../../services/api';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
 
-import { fmtNum, fmtDate, fmtDateTime } from './AdminHelpers';
+import { fmtNum, fmtINR, fmtDate, fmtDateTime, parseDay } from './AdminHelpers';
 import { Badge, RoleBadge } from './Badges';
 import StatCard from './StatCard';
 import SectionHeader from './SectionHeader';
 import AttendeesTab from './AttendeesTab';
+import UsersTab from './UsersTab';
 import ActivityLogsTab from './ActivityLogsTab';
 import EmailAutomationTab from './EmailAutomationTab';
 import LeadAnalyticsTab from './LeadAnalyticsTab';
@@ -36,6 +37,8 @@ const Admin = () => {
 
   // Dashboard data
   const [stats, setStats] = useState(null);
+  const [trends, setTrends] = useState(null);
+  const [trendWindowDays, setTrendWindowDays] = useState(30);
   const [recentEvents, setRecentEvents] = useState([]);
   const [recentUsers, setRecentUsers] = useState([]);
   const [interestStats, setInterestStats] = useState([]);
@@ -62,12 +65,9 @@ const Admin = () => {
   const [loadingAllEvents, setLoadingAllEvents] = useState(false);
 
 
-  // Users
-  const [users, setUsers] = useState([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
-  const [userSearch, setUserSearch] = useState('');
-  const [userPage, setUserPage] = useState(1);
-  const [userMeta, setUserMeta] = useState(null);
+  // Users — the list itself lives in UsersTab; bump this to make it reload
+  // after a block/unblock done from here (e.g. the profile modal).
+  const [usersRefreshKey, setUsersRefreshKey] = useState(0);
 
   // Organizer requests (from audit logs)
   const [orgRequests, setOrgRequests] = useState([]);
@@ -358,6 +358,8 @@ const Admin = () => {
       const data = await admin.getDashboard();
       // get() unwraps { success, message, data } → data is { stats, recentEvents, recentUsers }
       setStats(data?.stats ?? null);
+      setTrends(data?.trends ?? null);
+      setTrendWindowDays(data?.trendWindowDays ?? 30);
       setRecentEvents(data?.recentEvents ?? []);
       setRecentUsers(data?.recentUsers ?? []);
       setInterestStats(data?.interestStats ?? []);
@@ -397,20 +399,6 @@ const Admin = () => {
   }, []);
 
   // ── Fetch Users ──
-
-  const fetchUsers = useCallback(async (page = 1, search = '') => {
-    setLoadingUsers(true);
-    try {
-      const data = await admin.getUsers(page, 10, search);
-      // buildPaginatedResult returns { data: [...], meta } → get() returns that directly
-      setUsers(data?.data ?? []);
-      setUserMeta(data?.meta ?? null);
-    } catch {
-      showToast('Failed to load users', 'error');
-    } finally {
-      setLoadingUsers(false);
-    }
-  }, []);
 
   // ── Fetch Organizer Requests ──
 
@@ -459,7 +447,6 @@ const Admin = () => {
   useEffect(() => {
     if (activeTab === 'events') fetchPending();
     if (activeTab === 'allEvents') fetchAllEvents();
-    if (activeTab === 'users') fetchUsers(1);
     if (activeTab === 'organizer') fetchOrgRequests();
     if (activeTab === 'recentUsers') fetchRecentUsers(1);
     if (activeTab === 'homepage') fetchHomepageData();
@@ -571,7 +558,7 @@ const Admin = () => {
         await admin.blockUser(u.id);
         showToast(`${u.name || u.email} blocked.`);
       }
-      fetchUsers(userPage, userSearch);
+      setUsersRefreshKey((k) => k + 1);
     } catch (e) {
       showToast(e.message || 'Action failed', 'error');
     }
@@ -586,12 +573,6 @@ const Admin = () => {
     } catch (e) {
       showToast(e.message || 'Failed to approve organizer', 'error');
     }
-  };
-
-  const handleUserSearch = (e) => {
-    e.preventDefault();
-    setUserPage(1);
-    fetchUsers(1, userSearch);
   };
 
   // ── Nav Items ──
@@ -611,13 +592,22 @@ const Admin = () => {
     { key: 'homepage', label: 'Homepage Config', icon: Settings },
   ];
 
+  // Every value and trend comes from the API — see adminService.getDashboard
+  // for the single definition of each metric.
   const statCards = stats ? [
-    { label: 'Total Users', value: stats.totalUsers, change: 12, icon: Users, iconBg: 'bg-purple-600' },
-    { label: 'Total Events', value: stats.totalEvents, change: 8, icon: CalendarDays, iconBg: 'bg-purple-500' },
-    { label: 'Upcoming Events', value: stats.pendingEvents, change: 15, icon: TrendingUp, iconBg: 'bg-red-500' },
-    { label: 'Total Impressions', value: stats.totalRegistrations, change: 29, icon: Eye, iconBg: 'bg-red-600' },
-    { label: 'Pending Approval', value: stats.pendingEvents, change: null, icon: Clock, iconBg: 'bg-orange-500' },
-    { label: 'Active Users', value: stats.approvedRegistrations, change: null, icon: BarChart2, iconBg: 'bg-yellow-500' },
+    { label: 'Total Users', value: stats.totalUsers, trend: trends?.users, icon: Users, iconBg: 'bg-purple-600' },
+    { label: 'Total Events', value: stats.totalEvents, trend: trends?.events, icon: CalendarDays, iconBg: 'bg-purple-500' },
+    { label: 'Upcoming Events', value: stats.upcomingEvents ?? 0, hint: 'Approved, starting after now', icon: TrendingUp, iconBg: 'bg-red-500' },
+    { label: 'Total Registrations', value: stats.totalRegistrations, trend: trends?.registrations, icon: Eye, iconBg: 'bg-red-600' },
+    {
+      label: 'Confirmed Registrations',
+      value: stats.confirmedRegistrations ?? stats.approvedRegistrations,
+      hint: `Approved + attended · ${stats.conversionRate}% of registrations`,
+      icon: CheckCircle, iconBg: 'bg-green-600',
+    },
+    { label: 'Pending Approval', value: stats.pendingApproval ?? stats.pendingEvents, hint: 'Events awaiting review', icon: Clock, iconBg: 'bg-orange-500' },
+    { label: 'Active Users', value: stats.activeUsers ?? 0, hint: `Registered for an event in the last ${trendWindowDays} days`, icon: BarChart2, iconBg: 'bg-yellow-500' },
+    { label: 'Revenue', value: stats.revenue ?? 0, format: fmtINR, trend: trends?.revenue, hint: 'All time, paid registrations', icon: Target, iconBg: 'bg-teal-600' },
   ] : [];
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -731,9 +721,9 @@ const Admin = () => {
               ) : (
                 <>
                   {/* Stat cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-10">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-10">
                     {statCards.map((card) => (
-                      <StatCard key={card.label} {...card} />
+                      <StatCard key={card.label} trendWindowDays={trendWindowDays} {...card} />
                     ))}
                   </div>
 
@@ -1395,147 +1385,12 @@ const Admin = () => {
 
           {/* ── USERS TAB ── */}
           {activeTab === 'users' && (
-            <div>
-              <SectionHeader title="All Users" onRefresh={() => fetchUsers(userPage, userSearch)} />
-
-              {/* Search */}
-              <form onSubmit={handleUserSearch} className="flex gap-2 mb-6">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={userSearch}
-                    onChange={e => setUserSearch(e.target.value)}
-                    placeholder="Search by name or email…"
-                    className="w-full bg-transparent border-2 border-[#1a4d4d] text-white placeholder-gray-500 py-2.5 pl-9 pr-4 rounded-xl focus:outline-none focus:border-[#00ff88] transition-all text-sm"
-                  />
-                </div>
-                <button type="submit" className="bg-[#00ff88] text-[#0a1f1f] font-bold px-5 py-2.5 rounded-xl hover:bg-[#00cc70] transition-all text-sm flex-shrink-0">
-                  Search
-                </button>
-              </form>
-
-              {loadingUsers ? (
-                <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-[#00ff88] animate-spin" /></div>
-              ) : users.length === 0 ? (
-                <p className="text-gray-500 text-center py-12">No users found.</p>
-              ) : (
-                <>
-                  {/* Desktop table */}
-                  <div className="hidden md:block bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-[#1a4d4d] bg-[#061818]">
-                          <th className="text-left text-gray-400 font-medium px-5 py-3">User</th>
-                          <th className="text-left text-gray-400 font-medium px-5 py-3">Role</th>
-                          <th className="text-left text-gray-400 font-medium px-5 py-3">Status</th>
-                          <th className="text-left text-gray-400 font-medium px-5 py-3">Joined</th>
-                          <th className="text-right text-gray-400 font-medium px-5 py-3">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {users.map((u, i) => (
-                          <tr key={u.id} className={`border-b border-[#1a4d4d] last:border-0 hover:bg-[#1a4d4d]/30 transition-colors`}>
-                            <td className="px-5 py-3">
-                              <p className="text-white font-medium">{u.name || '—'}</p>
-                              <p className="text-gray-500 text-xs">{u.email}</p>
-                            </td>
-                            <td className="px-5 py-3">
-                              <div className="flex flex-col gap-1">
-                                <Badge status={u.role} />
-                                {u.isOrganizer && <Badge status="ORGANIZER" />}
-                              </div>
-                            </td>
-                            <td className="px-5 py-3"><Badge status={u.status} /></td>
-                            <td className="px-5 py-3 text-gray-400">{fmtDate(u.createdAt)}</td>
-                            <td className="px-5 py-3 text-right">
-                              <div className="flex items-center justify-end gap-2.5">
-                                <button
-                                  onClick={() => setViewUserModal(u)}
-                                  className="text-blue-400 hover:text-blue-300 transition-colors p-1.5 rounded-lg hover:bg-blue-900/20"
-                                  title="View Profile"
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleToggleBlock(u)}
-                                  className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all
-                                    ${u.status === 'BLOCKED'
-                                      ? 'bg-green-900/40 hover:bg-green-700 text-green-400 hover:text-white border border-green-500/40'
-                                      : 'bg-red-900/40 hover:bg-red-700 text-red-400 hover:text-white border border-red-500/40'}`}
-                                >
-                                  {u.status === 'BLOCKED' ? 'Unblock' : 'Block'}
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile cards */}
-                  <div className="md:hidden space-y-3">
-                    {users.map((u) => (
-                      <div key={u.id} className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-4">
-                        <div className="flex items-start justify-between gap-2 mb-3">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-white font-medium truncate">{u.name || u.email}</p>
-                            <p className="text-gray-500 text-xs truncate">{u.email}</p>
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              <Badge status={u.role} />
-                              <Badge status={u.status} />
-                              {u.isOrganizer && <Badge status="ORGANIZER" />}
-                            </div>
-                            <p className="text-gray-600 text-xs mt-1">{fmtDate(u.createdAt)}</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-3 pt-2 border-t border-[#1a4d4d]">
-                          <button onClick={() => setViewUserModal(u)}
-                            className="flex-1 flex items-center justify-center gap-1.5 text-blue-400 text-xs py-1.5 rounded-lg hover:bg-blue-900/20 transition-colors">
-                            <Eye className="w-3.5 h-3.5" /> View Profile
-                          </button>
-                          <button
-                            onClick={() => handleToggleBlock(u)}
-                            className={`flex-1 flex items-center justify-center text-xs font-semibold py-1.5 rounded-lg transition-all
-                              ${u.status === 'BLOCKED'
-                                ? 'bg-green-900/40 text-green-400 border border-green-500/40 hover:bg-green-700 hover:text-white'
-                                : 'bg-red-900/40 text-red-400 border border-red-500/40 hover:bg-red-700 hover:text-white'}`}
-                          >
-                            {u.status === 'BLOCKED' ? 'Unblock' : 'Block'}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Pagination */}
-                  {userMeta && userMeta.totalPages > 1 && (
-                    <div className="flex items-center justify-between mt-6">
-                      <p className="text-gray-500 text-sm">
-                        Page {userMeta.page} of {userMeta.totalPages}
-                      </p>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => { const p = userPage - 1; setUserPage(p); fetchUsers(p, userSearch); }}
-                          disabled={userPage <= 1}
-                          className="p-2 bg-[#0d2f2f] border border-[#1a4d4d] rounded-xl text-gray-400 hover:text-white disabled:opacity-40 transition-all"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => { const p = userPage + 1; setUserPage(p); fetchUsers(p, userSearch); }}
-                          disabled={userPage >= userMeta.totalPages}
-                          className="p-2 bg-[#0d2f2f] border border-[#1a4d4d] rounded-xl text-gray-400 hover:text-white disabled:opacity-40 transition-all"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+            <UsersTab
+              showToast={showToast}
+              onViewUser={setViewUserModal}
+              onToggleBlock={handleToggleBlock}
+              refreshKey={usersRefreshKey}
+            />
           )}
 
           {activeTab === 'referrals' && (
@@ -1907,9 +1762,19 @@ const Admin = () => {
                   {/* Grid 1: Key Numbers */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
-                      <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Est. Revenue</p>
-                      <p className="text-3xl font-extrabold text-[#00ff88] mt-2">₹{analyticsData.totalRevenue.toLocaleString()}</p>
-                      <p className="text-[10px] text-gray-500 mt-2">Aggregated from paid events ticket sales</p>
+                      <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Revenue (all time)</p>
+                      <p className="text-3xl font-extrabold text-[#00ff88] mt-2">{fmtINR(analyticsData.totalRevenue)}</p>
+                      <p className="text-[10px] text-gray-500 mt-2">Ticket price of every paid registration — matches the dashboard</p>
+                    </div>
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                      <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Revenue (last 90 days)</p>
+                      <p className="text-3xl font-extrabold text-[#3b82f6] mt-2">{fmtINR(analyticsData.revenueLast90Days ?? 0)}</p>
+                      <p className="text-[10px] text-gray-500 mt-2">Paid registrations made in the last 90 days</p>
+                    </div>
+                    <div className="bg-[#0d2f2f] border border-[#1a4d4d] rounded-2xl p-6">
+                      <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Events</p>
+                      <p className="text-3xl font-extrabold text-white mt-2">{fmtNum(analyticsData.totalEvents ?? 0)}</p>
+                      <p className="text-[10px] text-gray-500 mt-2">All non-deleted events — both charts below add up to this</p>
                     </div>
                   </div>
 
@@ -1930,11 +1795,11 @@ const Admin = () => {
                             <CartesianGrid strokeDasharray="3 3" stroke="#1a4d4d" opacity={0.3} />
                             <XAxis dataKey="date" stroke="#888888" fontSize={10} tickFormatter={(str) => {
                               try {
-                                return new Date(str).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                                return parseDay(str).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
                               } catch { return str; }
                             }} />
-                            <YAxis stroke="#888888" fontSize={10} />
-                            <Tooltip contentStyle={{ backgroundColor: '#061818', border: '1px solid #1a4d4d' }} labelFormatter={(str) => new Date(str).toLocaleDateString(undefined, { dateStyle: 'medium' })} />
+                            <YAxis stroke="#888888" fontSize={10} allowDecimals={false} />
+                            <Tooltip contentStyle={{ backgroundColor: '#061818', border: '1px solid #1a4d4d' }} labelFormatter={(str) => parseDay(str).toLocaleDateString('en-IN', { dateStyle: 'medium' })} />
                             <Area type="monotone" dataKey="count" stroke="#00ff88" strokeWidth={2} fillOpacity={1} fill="url(#colorSignups)" />
                           </AreaChart>
                         </ResponsiveContainer>
@@ -1956,11 +1821,11 @@ const Admin = () => {
                             <CartesianGrid strokeDasharray="3 3" stroke="#1a4d4d" opacity={0.3} />
                             <XAxis dataKey="date" stroke="#888888" fontSize={10} tickFormatter={(str) => {
                               try {
-                                return new Date(str).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                                return parseDay(str).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
                               } catch { return str; }
                             }} />
-                            <YAxis stroke="#888888" fontSize={10} />
-                            <Tooltip contentStyle={{ backgroundColor: '#061818', border: '1px solid #1a4d4d' }} labelFormatter={(str) => new Date(str).toLocaleDateString(undefined, { dateStyle: 'medium' })} />
+                            <YAxis stroke="#888888" fontSize={10} allowDecimals={false} />
+                            <Tooltip contentStyle={{ backgroundColor: '#061818', border: '1px solid #1a4d4d' }} labelFormatter={(str) => parseDay(str).toLocaleDateString('en-IN', { dateStyle: 'medium' })} />
                             <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorRegistrations)" />
                           </AreaChart>
                         </ResponsiveContainer>
@@ -1978,7 +1843,7 @@ const Admin = () => {
                           <BarChart data={analyticsData.eventsByCategory}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#1a4d4d" opacity={0.3} />
                             <XAxis dataKey="category" stroke="#888888" fontSize={10} />
-                            <YAxis stroke="#888888" fontSize={10} />
+                            <YAxis stroke="#888888" fontSize={10} allowDecimals={false} />
                             <Tooltip contentStyle={{ backgroundColor: '#061818', border: '1px solid #1a4d4d' }} />
                             <Bar dataKey="count" radius={[8, 8, 0, 0]}>
                               {analyticsData.eventsByCategory.map((entry, index) => (
@@ -2333,7 +2198,12 @@ const Admin = () => {
                               <GraduationCap className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                               <div className="min-w-0">
                                 <span className="text-gray-500 block text-xs">College / Institution</span>
-                                <span className="text-gray-200 text-sm block truncate" title={viewUserModal.college}>{viewUserModal.college || '—'}</span>
+                                <span className="text-gray-200 text-sm block truncate" title={viewUserModal.effectiveCollege?.raw || viewUserModal.college || ''}>
+                                  {viewUserModal.effectiveCollege?.name || viewUserModal.college || '—'}
+                                </span>
+                                {viewUserModal.effectiveCollege?.source === 'registration' && (
+                                  <span className="text-gray-500 text-[11px] block">from their latest registration form</span>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-start gap-3">
