@@ -1,13 +1,19 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "ltfrontend",
+  // Adds per-event share-preview tags (Open Graph) — see worker/index.js.
+  "main": "worker/index.js",
   "compatibility_date": "2026-06-29",
   "observability": {
     "enabled": true
   },
   "assets": {
     "directory": "./build",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Only event pages run the Worker; everything else is served straight from
+    // the static build, exactly as before.
+    "run_worker_first": ["/e/*", "/event", "/event/*", "/r/*"]
   },
   "compatibility_flags": [
     "nodejs_compat"

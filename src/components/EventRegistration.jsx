@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Plus, Trash2, CheckCircle2, AlertCircle, Download, 
 import Header from './layout/Header';
 import Footer from './layout/Footer';
 import { events as eventsApi } from '../services/api';
+import { safeHttpUrl } from '../utils/safeUrl';
 import { getReferral, clearReferral } from '../services/referralTracker';
 import { useAuth } from '../context/AuthContext';
 import { trackEvent } from '../utils/analytics';
@@ -53,8 +54,9 @@ const EventRegistration = () => {
                 // Events with an external registration link are registered for
                 // elsewhere. The event page's Register button already redirects;
                 // do the same here so a direct /register URL can't bypass it.
-                if (e.registrationLink) {
-                    window.location.replace(e.registrationLink);
+                const externalLink = safeHttpUrl(e.registrationLink);
+                if (externalLink) {
+                    window.location.replace(externalLink);
                     return;
                 }
 

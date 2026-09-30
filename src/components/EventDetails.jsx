@@ -6,6 +6,7 @@ import Header from './layout/Header';
 import Footer from './layout/Footer';
 import CountdownTimer from './CountdownTimer';
 import { events as eventsApi, bookmarks as bookmarksApi } from '../services/api';
+import { safeHttpUrl } from '../utils/safeUrl';
 import { captureReferral } from '../services/referralTracker';
 import { useAuth } from '../context/AuthContext';
 import SubmissionForm from './user/SubmissionForm';
@@ -131,8 +132,10 @@ const EventDetails = () => {
             return;
         }
         // If this event has an external registration link, open it in a new tab
-        if (eventData?.registrationLink) {
-            window.open(eventData.registrationLink, '_blank', 'noopener,noreferrer');
+        // (http/https only — see utils/safeUrl).
+        const externalLink = safeHttpUrl(eventData?.registrationLink);
+        if (externalLink) {
+            window.open(externalLink, '_blank', 'noopener,noreferrer');
             return;
         }
         navigate(`/event/${eventData?.id ?? eventId}/register`);
