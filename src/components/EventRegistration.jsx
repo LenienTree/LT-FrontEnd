@@ -49,8 +49,17 @@ const EventRegistration = () => {
                 const res = await eventsApi.getById(eventId);
                 const e = res?.event || res;
                 if (!e) throw new Error('Event not found');
+
+                // Events with an external registration link are registered for
+                // elsewhere. The event page's Register button already redirects;
+                // do the same here so a direct /register URL can't bypass it.
+                if (e.registrationLink) {
+                    window.location.replace(e.registrationLink);
+                    return;
+                }
+
                 setEventData(e);
-                
+
                 if (isAuthenticated) {
                     try {
                         const statusRes = await eventsApi.checkRegistrationStatus(eventId);
