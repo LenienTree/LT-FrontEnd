@@ -6,7 +6,7 @@
  * build/index.html: the site title and no event image. For event pages this
  * Worker looks the event up in the API and writes its title, description and
  * image into the <head> as Open Graph / Twitter card tags, so a shared event
- * link previews with the event's own banner or poster.
+ * link previews with the event's own poster (banner if there is no poster).
  *
  * Short referral links (/r/:code) are resolved here and answered with a real
  * HTTP redirect to the event page. The SPA used to redirect in JavaScript,
@@ -121,7 +121,8 @@ async function loadEvent(key, ctx) {
 function withEventMeta(shell, event, url, method) {
   const title = clean(event.title) || SITE_NAME;
   const description = describe(event);
-  const image = absoluteHttp(event.bannerImage, url) || absoluteHttp(event.eventPoster, url) || `${url.origin}/og-default.png`;
+  // Poster first: it's the image organisers design for sharing.
+  const image = absoluteHttp(event.eventPoster, url) || absoluteHttp(event.bannerImage, url) || `${url.origin}/og-default.png`;
   const canonical = event.slug ? `${url.origin}/e/${encodeURIComponent(event.slug)}` : `${url.origin}${url.pathname}`;
 
   const tags = [

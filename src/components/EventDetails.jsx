@@ -200,7 +200,7 @@ const EventDetails = () => {
                 <meta name="description" content={eventData.subtitle || eventData.description} />
                 <meta property="og:title" content={eventData.title} />
                 <meta property="og:description" content={eventData.subtitle || eventData.description} />
-                <meta property="og:image" content={eventData.bannerImage || eventData.eventPoster} />
+                <meta property="og:image" content={eventData.eventPoster || eventData.bannerImage} />
                 <meta property="og:type" content="website" />
                 <meta name="twitter:card" content="summary_large_image" />
             </Helmet>
